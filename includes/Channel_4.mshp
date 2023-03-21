@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SAGA_METADATA>
+  <DATABASE>
+    <FIELDS>
+      <FIELD TYPE="INTEGER">SEGMENT_ID</FIELD>
+      <FIELD TYPE="INTEGER">NODE_A</FIELD>
+      <FIELD TYPE="INTEGER">NODE_B</FIELD>
+      <FIELD TYPE="INTEGER">BASIN</FIELD>
+      <FIELD TYPE="INTEGER">ORDER</FIELD>
+      <FIELD TYPE="INTEGER">ORDER_CELL</FIELD>
+      <FIELD TYPE="DOUBLE">LENGTH</FIELD>
+    </FIELDS>
+  </DATABASE>
+  <SOURCE></SOURCE>
+  <HISTORY saga-version="7.3.0">
+    <TOOL library="ta_channels" id="5" name="Channel Network and Drainage Basins">
+      <OPTION type="grid_system" id="PARAMETERS_GRID_SYSTEM" name="Grid system">
+        <CELLSIZE>30.13136960352394</CELLSIZE>
+        <XMIN>560189.001</XMIN>
+        <XMAX>566998.6905303964</XMAX>
+        <YMIN>1589031.4433389867</YMIN>
+        <YMAX>1592647.2076914096</YMAX>
+      </OPTION>
+      <OPTION type="integer" id="THRESHOLD" name="Threshold">4</OPTION>
+      <INPUT type="grid" id="DEM" name="Elevation" system="PARAMETERS_GRID_SYSTEM">
+        <TOOL library="io_gdal" id="0" name="Import Raster">
+          <OPTION type="file" id="FILES" name="Files">"/private/var/folders/q7/54_0b8t14g55p8mfvrk5syzm0000gn/T/processing_SXlhdL/1582504516e64e8488839ebdcc9efc04/FILLED.sdat"</OPTION>
+          <OPTION type="choice" id="MULTIPLE" name="Multiple Bands Output" index="2">automatic</OPTION>
+          <OPTION type="text" id="SELECTION" name="Select from Multiple Bands"/>
+          <OPTION type="boolean" id="TRANSFORM" name="Transformation">true</OPTION>
+          <OPTION type="choice" id="RESAMPLING" name="Resampling" index="3">B-Spline Interpolation</OPTION>
+          <OUTPUT type="grid_list" id="GRIDS" name="Grids">FILLED</OUTPUT>
+        </TOOL>
+      </INPUT>
+      <OUTPUT type="shapes" id="SEGMENTS" name="Channels">Channels</OUTPUT>
+    </TOOL>
+  </HISTORY>
+  <FILE></FILE>
+  <DESCRIPTION></DESCRIPTION>
+  <PROJECTION>
+    <OGC_WKT>PROJCS["Luzon 1911 / Philippines zone III",GEOGCS["Luzon 1911",DATUM["Luzon_1911",SPHEROID["Clarke 1866",6378206.4,294.978698213898,AUTHORITY["EPSG","7008"]],AUTHORITY["EPSG","6253"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4253"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",121],PARAMETER["scale_factor",0.99995],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","25393"]]</OGC_WKT>
+    <PROJ4>+proj=tmerc +lat_0=0 +lon_0=121 +k=0.99995 +x_0=500000 +y_0=0 +ellps=clrk66 +units=m +no_defs</PROJ4>
+    <EPSG>-1</EPSG>
+  </PROJECTION>
+</SAGA_METADATA>
