@@ -9,47 +9,48 @@ model main
 
 global {
 	/** Insert the global definitions, variables and actions here */
-	
-	matrix<float> elevation_matrix <-  matrix<float>(image_file( "../images/ITP_Reprojected_Filled.tif") as_matrix {300, 300});
-	init {
-		elevation_matrix <- elevation_matrix * (30 / (min(elevation_matrix)-max(elevation_matrix)));
-		ask elevation {
-			grid_value <- elevation_matrix at {grid_x, grid_y};
-		}
-	}
-
-	/*field itp_display <-  field(grid_file("../images/ITP_Reprojected_Filled.tif"));
+	file itp_elevation <-  image_file("../images/elevation.tif");
 	file road_shapefile <- file("../includes/itp_road.shp");
+	file river_shapefile <- file("../includes/Channel_4.shp");
+	//file climate_data <- file("../includes/ITP_climate_data_complete.shp"); 
 	
-	geometry shape <- envelope(road_shapefile);
+	geometry shape <- envelope(itp_elevation);
 	
 	init{
-		//Initialization of the road using the shapefile of roads
+		create river from: river_shapefile;
 		create road from: road_shapefile;
-	}*/
+		
+		
+	}
 
 }
 
-grid elevation  width: 300 height: 300;
+grid parcel neighbors: 8 parallel: true {
+	//rgb color <- #lightblue;
+	
+}
 
 //Species to represent the roads
 species road {
 	aspect default {
-		draw shape color: #red;
+		draw shape color: #black;
 	} 
+}
 
+species river {
+	aspect default {
+		draw shape color: #blue;
+	} 
 }
 
 experiment main type: gui {
 	/** Insert here the definition of the input and output of the model */
-	list<rgb> palette <- palette([#white, #darkgreen]);
 	output {
-		display "ITP through mesh" type:opengl {
-			grid elevation elevation: elevation_matrix texture: image_file( "../images/ITP_Reprojected_Filled.tif") triangulation: true refresh: false;
-			species road;  
-			
-			//species road ;
-			//mesh itp_display grayscale: true scale: 0.05 triangulation: true smooth: true refresh: false;
+		display "ITP"{  
+			grid parcel border: #black;
+			species road aspect: default;
+			species river aspect: default;
+			//image file("../images/elevation.tif") refresh: false;	
 		}
 	}
 }
