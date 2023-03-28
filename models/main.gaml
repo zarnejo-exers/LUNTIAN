@@ -9,27 +9,28 @@ model main
 
 global {
 	/** Insert the global definitions, variables and actions here */
-	file itp_elevation <-  image_file("../images/elevation.tif");
-	file road_shapefile <- file("../includes/itp_road.shp");
+	grid_file grid_data <- grid_file("../images/elevation.tif");
+	file road_shapefile <- file("../includes/itp_road.shp");	
 	file river_shapefile <- file("../includes/Channel_4.shp");
-	//file climate_data <- file("../includes/ITP_climate_data_complete.shp"); 
+	file Precip_Average <- file("../includes/ITP_climate_data_complete.shp", true);
 	
-	geometry shape <- envelope(itp_elevation);
+	geometry shape <- envelope(grid_data);
 	
+	field elevation <- field(grid_data);			
+	field water_available <- field(elevation.columns, elevation.rows, 0.0);
+	list<point> points <- list<point>(water_available cells_in shape);
+
 	init{
-		create river from: river_shapefile;
+		create climate from: Precip_Average;
 		create road from: road_shapefile;
-		
-		
-	}
+		create river from: river_shapefile;
+	} 
 
 }
 
-grid parcel neighbors: 8 parallel: true {
-	//rgb color <- #lightblue;
+species climate{
 	
 }
-
 //Species to represent the roads
 species road {
 	aspect default {
@@ -46,11 +47,10 @@ species river {
 experiment main type: gui {
 	/** Insert here the definition of the input and output of the model */
 	output {
-		display "ITP"{  
-			grid parcel border: #black;
+		display ITP type: opengl{  
 			species road aspect: default;
 			species river aspect: default;
-			//image file("../images/elevation.tif") refresh: false;	
+			mesh elevation grayscale:true scale: 0 refresh: true triangulation: true ;
 		}
 	}
 }
