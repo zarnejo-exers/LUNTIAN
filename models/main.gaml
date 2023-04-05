@@ -9,7 +9,8 @@ model main
 
 global {
 	/** Insert the global definitions, variables and actions here */
-	file dem_file <- file("../images/ITP_Elevation_resampled100.tif");
+	file elev_file <- file("../images/ITP_Reprojected_Filled.tif");
+	file dem_file <- file("../images/ITP_Elevation_colored.tif");
 	file road_shapefile <- file("../includes/itp_road.shp");	
 	file river_shapefile <- file("../includes/Channel_4.shp");
 	file Precip_Average <- file("../includes/ITP_climate_reprojected.shp");
@@ -17,8 +18,9 @@ global {
 	graph road_network;
 	graph river_network;
 	
-	field terrain <- field(dem_file);
-	field flow <- field(terrain.columns,terrain.rows);
+	field terrain <- field(dem_file, 0)-75;
+	field elev <- field(elev_file, 0);
+	field flow <- field(terrain, 0);
 	
 	geometry shape <- envelope(dem_file);
 	bool fill <- true;
@@ -27,36 +29,64 @@ global {
 	float diffusion_rate <- 0.6;
 	list<point> drain_cells <- [];
 	list<point> source_cells <- [];
-	list<point> points <- flow points_in shape;
+	list<point> points <- terrain points_in shape;
 	map<point, list<point>> neighbors <- points as_map (each::(terrain neighbors_of each));
 	map<point, bool> done <- points as_map (each::false);
-	map<point, float> h <- points as_map (each::terrain[each]);
+	map<point, float> h <- points as_map (each::elev[each]);
 	float input_water;
-
+	list<geometry> clean_lines;
 	
-
+	list<list<point>> connected_components ;
+	list<rgb> colors;
+	
 	init {
-		//create climate from: Precip_Average;
-		//create road from: road_shapefile;
-		//road_network <- as_edge_graph(road);
-		//create river from: river_shapefile;
-		//river_network <- as_edge_graph(river);
+		create climate from: Precip_Average;
 		
-		//write "Columns: "+terrain.columns+" Rows: "+terrain.rows;
+		//clean_network(road_shapefile.contents,tolerance,split_lines,reduce_to_main_connected_components
+		
+		clean_lines <- clean_network(road_shapefile.contents,50.0,true,true);
+		create road from: clean_lines;
+		road_network <- as_edge_graph(road);	//create road from the clean lines
+		
+		//clean data, with the given options
+		clean_lines <- clean_network(river_shapefile.contents,3.0,true,false);
+		//create river from the clean lines
+		create river from: clean_lines with: 
+				[
+					node_id::int(read("NODE_A")), 
+					drain_node::int(read("NODE_B")), 
+					basin::int(read("BASIN"))
+				];		
+		river_network <- as_edge_graph(river);
+		
+		//computed the connected components of the graph (for visualization purpose)
+		connected_components <- list<list<point>>(connected_components_of(river_network));
+		loop times: length(connected_components) {colors << rnd_color(255);}
 
 		if (fill) {
-			loop pp over: points where (height(each) < 360 and height(each) > 200){
-				flow[pp] <- 3.0;
-			}	
+			ask river{
+				loop pp over: my_rcells{
+					//flow[pp] <- flow[pp] + 10.0;
+				}	
+			}
+			
+			loop pp over: points where (height(each) > 0){
+				flow[pp] <- flow[pp]+1.0;
+			}
+			
+			//add water on rivers
+			loop pp over: points where (height(each) < 50 and height(each) > 0){
+				flow[pp] <- flow[pp]+5.0;
+			}
 		}
 
-		loop i from: 0 to: terrain.columns - 1 {
-			write "i,0: "+terrain[i,0]+" i,-1: "+ terrain[i, terrain.rows - 1];
-			if (terrain[i, 0] < 450) {
-				source_cells <<+ flow points_in (terrain cell_at (i, 0));
+		loop i from: 0 to: elev.columns - 1 {
+			if (elev[i, 0] < 450) {
+				write "i,0: "+elev[i,0];
+				source_cells <<+ flow points_in (elev cell_at (i, 0));
 			}
-			if (terrain[i, terrain.rows - 1] < 250) {
-				drain_cells <<+ flow points_in (terrain cell_at (i, terrain.rows - 1));
+			if (elev[i, elev.rows - 1] < 150) {
+				drain_cells <<+ flow points_in (elev cell_at (i, elev.rows - 1));
 			}
 		}
 		source_cells <- remove_duplicates(source_cells);
@@ -66,7 +96,11 @@ global {
 		write "drain cells: "+length(drain_cells);
 	}
 
-/* */
+	float height (point c) {
+		return h[c] + flow[c];
+	}
+	
+ 
 	//Reflex to add water among the water cells
 	reflex adding_input_water {
 		loop p over: source_cells {
@@ -79,11 +113,6 @@ global {
 		loop p over: drain_cells {
 			flow[p] <- 0.0;
 		}
-	}
-
-
-	float height (point c) {
-		return h[c] + flow[c];
 	}
 
 	//Reflex to flow the water according to the altitude and the obstacle
@@ -104,44 +133,63 @@ global {
 		}
 	}
 
+
 }
 
 species climate{
 	geometry display_shape <- shape + 50.0;
 	aspect default{
-		draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
+		//draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
+		draw display_shape color: #red depth: 3.0;// at: {location.x,location.y,location.z} 200
 	}
 }
 //Species to represent the roads
 species road {
-	geometry display_shape <- shape + 2.0;
+	geometry display_shape <- shape + 5.0;
 	aspect default {
-		draw display_shape color: #black depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+250]};//250
+		//draw display_shape color: #black depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+250]};//250
+		draw display_shape color: #black;// depth: 3.0 at: {location.x,location.y,location.z};//200
 	}
 }
 
 species river {
-	list<point> my_rcells <- list<point>(flow cells_overlapping shape);
-	geometry display_shape <- shape + 2.0;
+	list<point> my_rcells <- list<point>(flow points_in shape);
+	geometry display_shape <- shape + 5.0;
+	int node_id; 
+	int drain_node;
+	int basin;
 	
 	aspect default {
-		draw display_shape color: #blue depth: 3 at: {location.x,location.y,terrain[point(location.x, location.y)]+250};//250
+		//draw display_shape color: #blue depth: 3 at: {location.x,location.y,terrain[point(location.x, location.y)]+250};//250
+		draw display_shape color: #blue;// at: {location.x,location.y,location.z};//200
 	}
+	
 }
 
 experiment main type: gui {
-	parameter "Input water at source" var: input_water <- 1.0;
-	parameter "Fill the river" var: fill <- true;
+//	parameter "Input water at source" var: input_water <- 1.0;
+//	parameter "Fill the river" var: fill <- true;
 	/** Insert here the definition of the input and output of the model */
+	
 	output {
-		display ITP type: opengl camera:#isometric{  
+		layout #split;
+		display ITP type: opengl camera:#isometric{ 
 			species climate aspect: default;
 			species road aspect: default;
 			species river aspect: default;			
-			//mesh terrain scale: 3 triangulation: true  color: palette([#white, #saddlebrown, #darkgreen, #green]) refresh: false smooth: true;
+			mesh flow scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:-75.0 ;
+			mesh terrain scale: 3 triangulation: true  color: palette([#white, #saddlebrown, #darkgreen, #green]) refresh: false smooth: true;
+			
 			//mesh terrain color: terrain.bands refresh: false triangulation: true smooth: true;
-			mesh terrain grayscale:true refresh: true triangulation: true ;
-			mesh flow scale: 3 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:0.0 ;
+			//mesh flow grayscale:true refresh: true triangulation: true ;
+			
+//			graphics "connected components" {
+//				loop i from: 0 to: length(connected_components) - 1 {
+//					loop j from: 0 to: length(connected_components[i]) - 1 {
+//						draw cross(25) color: colors[i] at: connected_components[i][j];	
+//					}
+//				}
+//			}
 		}
 	}
 }
