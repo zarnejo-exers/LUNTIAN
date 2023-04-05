@@ -9,8 +9,8 @@ model main
 
 global {
 	/** Insert the global definitions, variables and actions here */
-	file elev_file <- file("../images/ITP_Reprojected_Filled.tif");
-	file dem_file <- file("../images/ITP_Elevation_colored.tif");
+	file elev_file <- file("../images/ITP_Reprojected_Filled_100.tif"); //file dem_file <- file("../images/ITP_Elevation_colored.tif");
+	file gray_multicolored <- file("../images/ITP_elev_rgb.tif");
 	file road_shapefile <- file("../includes/itp_road.shp");	
 	file river_shapefile <- file("../includes/Channel_4.shp");
 	file Precip_Average <- file("../includes/ITP_climate_reprojected.shp");
@@ -18,19 +18,18 @@ global {
 	graph road_network;
 	graph river_network;
 	
-	field terrain <- field(dem_file, 0)-75;
-	field elev <- field(elev_file, 0);
-	field flow <- field(terrain, 0);
+	field elev <- field(elev_file);
+	field flow <- field(elev_file);
 	
-	geometry shape <- envelope(dem_file);
+	geometry shape <- envelope(gray_multicolored);
 	bool fill <- true;
 
 	//Diffusion rate
 	float diffusion_rate <- 0.6;
 	list<point> drain_cells <- [];
 	list<point> source_cells <- [];
-	list<point> points <- terrain points_in shape;
-	map<point, list<point>> neighbors <- points as_map (each::(terrain neighbors_of each));
+	list<point> points <- elev points_in shape;
+	map<point, list<point>> neighbors <- points as_map (each::(elev neighbors_of each));
 	map<point, bool> done <- points as_map (each::false);
 	map<point, float> h <- points as_map (each::elev[each]);
 	float input_water;
@@ -66,17 +65,18 @@ global {
 		if (fill) {
 			ask river{
 				loop pp over: my_rcells{
-					//flow[pp] <- flow[pp] + 10.0;
+					flow[pp] <- flow[pp] + 50.0;
 				}	
 			}
 			
 			loop pp over: points where (height(each) > 0){
+				write "Point: "+pp+" Height: "+height(pp);
 				flow[pp] <- flow[pp]+1.0;
 			}
 			
 			//add water on rivers
-			loop pp over: points where (height(each) < 50 and height(each) > 0){
-				flow[pp] <- flow[pp]+5.0;
+			loop pp over: points where (height(each) < 50 and height(each) >0){
+				//flow[pp] <- flow[pp]+100.0;
 			}
 		}
 
@@ -94,6 +94,8 @@ global {
 		
 		write "source cells: "+length(source_cells);
 		write "drain cells: "+length(drain_cells);
+		
+		write "bands: "+length(elev.bands);
 	}
 
 	float height (point c) {
@@ -153,8 +155,8 @@ species road {
 }
 
 species river {
-	list<point> my_rcells <- list<point>(flow points_in shape);
 	geometry display_shape <- shape + 5.0;
+	list<point> my_rcells <- list<point>(flow points_in display_shape);
 	int node_id; 
 	int drain_node;
 	int basin;
@@ -177,11 +179,10 @@ experiment main type: gui {
 			species climate aspect: default;
 			species road aspect: default;
 			species river aspect: default;			
-			mesh flow scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:-75.0 ;
-			mesh terrain scale: 3 triangulation: true  color: palette([#white, #saddlebrown, #darkgreen, #green]) refresh: false smooth: true;
+			mesh elev scale: 2 color: palette([#white, #saddlebrown, #darkgreen]) refresh: true triangulation: true;
+			mesh flow scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.25 no_data:0.0 ; 
 			
-			//mesh terrain color: terrain.bands refresh: false triangulation: true smooth: true;
-			//mesh flow grayscale:true refresh: true triangulation: true ;
+			
 			
 //			graphics "connected components" {
 //				loop i from: 0 to: length(connected_components) - 1 {
