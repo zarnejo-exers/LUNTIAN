@@ -9,8 +9,8 @@ model main
 
 global {
 	/** Insert the global definitions, variables and actions here */
-	file elev_file <- file("../images/ITP_Reprojected_Filled_100.tif"); //file dem_file <- file("../images/ITP_Elevation_colored.tif");
-	file gray_multicolored <- file("../images/ITP_elev_rgb.tif");
+	file elev_file <- file("../images/ITP_Reprojected_Filled.tif"); 
+	file dem_file <- file("../images/ITP_colored_100.tif");
 	file road_shapefile <- file("../includes/itp_road.shp");	
 	file river_shapefile <- file("../includes/Channel_4.shp");
 	file Precip_Average <- file("../includes/ITP_climate_reprojected.shp");
@@ -19,9 +19,9 @@ global {
 	graph river_network;
 	
 	field elev <- field(elev_file);
-	field flow <- field(elev_file);
+	field flow <- field(dem_file)+400;
 	
-	geometry shape <- envelope(gray_multicolored);
+	geometry shape <- envelope(elev_file);
 	bool fill <- true;
 
 	//Diffusion rate
@@ -31,7 +31,7 @@ global {
 	list<point> points <- elev points_in shape;
 	map<point, list<point>> neighbors <- points as_map (each::(elev neighbors_of each));
 	map<point, bool> done <- points as_map (each::false);
-	map<point, float> h <- points as_map (each::elev[each]);
+	map<point, float> h <- points as_map (each::flow[each]);
 	float input_water;
 	list<geometry> clean_lines;
 	
@@ -62,6 +62,9 @@ global {
 		connected_components <- list<list<point>>(connected_components_of(river_network));
 		loop times: length(connected_components) {colors << rnd_color(255);}
 
+		write ("Elev min height: "+min(h)+" max height: "+max(h));
+		write ("Flow min height: "+min(h)+" max height: "+max(h));
+
 		if (fill) {
 			ask river{
 				loop pp over: my_rcells{
@@ -69,23 +72,31 @@ global {
 				}	
 			}
 			
-			loop pp over: points where (height(each) > 0){
-				write "Point: "+pp+" Height: "+height(pp);
-				flow[pp] <- flow[pp]+1.0;
+			loop pp over: points where (height(each) > 800){
+				//write "Point: "+pp+" Height: "+height(pp);
+				//flow[pp] <- flow[pp]+1.0;
 			}
 			
-			//add water on rivers
-			loop pp over: points where (height(each) < 50 and height(each) >0){
-				//flow[pp] <- flow[pp]+100.0;
+			//initial water content of the cells
+			loop pp over: points where (height(each) > 800){
+				if(height(pp) < 1150){			//more water on lowest point in the topography
+					flow[pp] <- flow[pp]+100.0;	
+				}//else{
+				//	flow[pp] <- flow[pp]+1.0;	//initial water level
+				//}
 			}
+			
+			//add water on lowest point in the topography
+			//loop pp over: points where (height(each) < 400 and height(each) > 0){
+			//	flow[pp] <- flow[pp]+100.0;
+			//}
 		}
 
 		loop i from: 0 to: elev.columns - 1 {
-			if (elev[i, 0] < 450) {
-				write "i,0: "+elev[i,0];
+			if (elev[i, 0] < 255) {
 				source_cells <<+ flow points_in (elev cell_at (i, 0));
 			}
-			if (elev[i, elev.rows - 1] < 150) {
+			if (elev[i, elev.rows - 1] < 0) {
 				drain_cells <<+ flow points_in (elev cell_at (i, elev.rows - 1));
 			}
 		}
@@ -95,7 +106,7 @@ global {
 		write "source cells: "+length(source_cells);
 		write "drain cells: "+length(drain_cells);
 		
-		write "bands: "+length(elev.bands);
+		//write "bands: "+length(elev.bands);
 	}
 
 	float height (point c) {
@@ -180,17 +191,15 @@ experiment main type: gui {
 			species road aspect: default;
 			species river aspect: default;			
 			mesh elev scale: 2 color: palette([#white, #saddlebrown, #darkgreen]) refresh: true triangulation: true;
-			mesh flow scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.25 no_data:0.0 ; 
+			mesh flow scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.75 no_data:400 ; 
 			
-			
-			
-//			graphics "connected components" {
-//				loop i from: 0 to: length(connected_components) - 1 {
-//					loop j from: 0 to: length(connected_components[i]) - 1 {
-//						draw cross(25) color: colors[i] at: connected_components[i][j];	
-//					}
-//				}
-//			}
+			graphics "connected components" {
+				loop i from: 0 to: length(connected_components) - 1 {
+					loop j from: 0 to: length(connected_components[i]) - 1 {
+						draw cross(25) color: colors[i] at: connected_components[i][j];	
+					}
+				}
+			}
 		}
 	}
 }
