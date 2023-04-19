@@ -81,46 +81,6 @@ global {
 			water_content[pp] <- water_content[pp] + (0.2 * closest_soil.S);
 			water_before_runoff[pp] <- 0.2 * closest_soil.S;	//Ia
 		}
-		
-		/* 
-		if (fill) {
-			ask river{
-				loop pp over: my_rcells{
-					water_content[pp] <- water_content[pp] + 50.0;
-				}	
-			}
-			
-			loop pp over: points where (height(each) > 800){
-				//write "Point: "+pp+" Height: "+height(pp);
-				//water_content[pp] <- water_content[pp]+1.0;
-			}
-			
-			//initial water content of the cells
-			loop pp over: points where (height(each) > 800){
-				if(height(pp) < 1150){			//more water on lowest point in the topography
-					water_content[pp] <- water_content[pp]+100.0;	
-				}//else{
-				//	water_content[pp] <- water_content[pp]+1.0;	//initial water level
-				//}
-			}
-			
-			//add water on lowest point in the topography
-			//loop pp over: points where (height(each) < 400 and height(each) > 0){
-			//	water_content[pp] <- water_content[pp]+100.0;
-			//}
-		}
-
-		loop i from: 0 to: elev.columns - 1 {
-			if (elev[i, 0] < 255) {
-				source_cells <<+ water_content points_in (elev cell_at (i, 0));
-			}
-			if (elev[i, elev.rows - 1] < 0) {
-				drain_cells <<+ water_content points_in (elev cell_at (i, elev.rows - 1));
-			}
-		}
-		source_cells <- remove_duplicates(source_cells);
-		drain_cells <- remove_duplicates(drain_cells);
-		*/
 	}
 	
 	//base on the current month, add precipitation
@@ -134,7 +94,6 @@ global {
 			float etp_value <- closest_clim.etp[current_month];
 			
 			remaining_precip[pp] <- (precip_value - etp_value > 0)? precip_value - etp_value : 0;
-			//write "Precip: "+precip_value+" ETP: "+etp_value+" RP: "+remaining_precip[pp];
 		}
 	}
 	
@@ -153,21 +112,16 @@ global {
 		}
 		loop p over: water {
 			soil closest_soil <- soil closest_to p;	//closest soil descriptor to the point
-			write "Inflow: "+inflow[p];
 			remaining_precip[p] <- remaining_precip[p] + inflow[p];	//add inflow
 			inflow[p] <- 0;	//set inflow back to 0
 			
 			//determine if there will be a runoff
 			if(remaining_precip[p] > water_before_runoff[p]){	//there will be runoff
 				//compute for Q, where Q = (RP-Ia)^2 / ((RP-Ia+S)
-				
-				write "before runoff: "+water_before_runoff[p];
-				
 				float Q <- ((remaining_precip[p] - water_before_runoff[p])^2)/(remaining_precip[p] - water_before_runoff[p]+closest_soil.S);
 				//subtract runoff from remaining_precip
 				water_before_runoff[p] <- remaining_precip[p] - Q;
 				
-				write "after runoff: "+water_before_runoff[p] +"\n";
 				//distribute runoff to lower elevation neighbors (add to neighbor's inflow)
 				float height <- elev[p];
 				list<point> downflow_neighbors <- neighbors[p] where (!done[each] and height > elev[each]);
@@ -212,7 +166,7 @@ species climate{
 	geometry display_shape <- shape + 50.0;
 	aspect default{
 		//draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
-		draw display_shape color: #red depth: 3.0;// at: {location.x,location.y,location.z} 200
+		draw display_shape color: #yellow depth: 3.0;// at: {location.x,location.y,location.z} 200
 	}
 }
 //Species to represent the roads
@@ -246,9 +200,10 @@ experiment main type: gui {
 	output {
 		layout #split;
 		display ITP type: opengl camera:#isometric{ 
+			species soil aspect: default;
 			species climate aspect: default;
-			species road aspect: default;
-			species river aspect: default;			
+			species river aspect: default;	
+			species road aspect: default;					
 			mesh elev scale: 2 color: palette([#white, #saddlebrown, #darkgreen]) refresh: true triangulation: true;
 			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.75 no_data:400 ; 
 			
