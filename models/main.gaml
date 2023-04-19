@@ -15,8 +15,7 @@ global {
 	file dem_file <- file("../images/ITP_colored_100.tif");		//resolution 100m-by-100m
 	file road_shapefile <- file("../includes/Itp_Road.shp");	
 	file river_shapefile <- file("../includes/River_Channel.shp");
-	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm
-	file ETO <- file("../includes/Monthly_ETP_Luzon.shp"); //total mm of ET0 per month
+	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/Soil_Group.shp");
 	
 	graph road_network;
@@ -24,6 +23,9 @@ global {
 	
 	field elev <- field(elev_file);
 	field water_content <- field(dem_file)+400;
+	field water_before_runoff <- field(water_content.columns, water_content.rows, 0.0);	// Ia
+	field remaining_precip <- field(water_content.columns, water_content.rows, 0.0);	// RP
+	field inflow <- field(water_content.columns, water_content.rows, 0.0);	// RP
 	
 	geometry shape <- envelope(elev_file);
 	bool fill <- true;
@@ -31,11 +33,8 @@ global {
 	map<point, climate> cell_climate;
 	
 	//Diffusion rate
-	float diffusion_rate <- 0.6;
-	list<point> drain_cells <- [];
-	list<point> source_cells <- [];
 	list<point> points <- water_content points_in shape; //elev
-	map<point, list<point>> neighbors <- points as_map (each::(elev neighbors_of each));
+	map<point, list<point>> neighbors <- points as_map (each::(water_content neighbors_of each));
 	map<point, bool> done <- points as_map (each::false);
 	map<point, float> h <- points as_map (each::water_content[each]);
 	float input_water;
@@ -47,7 +46,12 @@ global {
 	int current_month <- 0 update:(cycle mod NB_TS);
 	
 	init {
-		create climate from: Precip_TAverage;
+		create climate from: Precip_TAverage with: 
+		[
+			temperature::[float(get("1_TAvg")),float(get("2_TAvg")),float(get("3_TAvg")),float(get("4_TAvg")),float(get("5_TAvg")),float(get("6_TAvg")),float(get("7_TAvg")),float(get("8_TAvg")),float(get("9_TAvg")),float(get("10_TAvg")),float(get("11_TAvg")),float(get("12_TAvg"))],
+			precipitation::[float(get("1_Prec")),float(get("2_Prec")),float(get("3_Prec")),float(get("4_Prec")),float(get("5_Prec")),float(get("6_Prec")),float(get("7_Prec")),float(get("8_Prec")),float(get("9_Prec")),float(get("10_Prec")),float(get("11_Prec")),float(get("12_Prec"))],
+			etp::[float(get("1_ETP")),float(get("2_ETP")),float(get("3_ETP")),float(get("4_ETP")),float(get("5_ETP")),float(get("6_ETP")),float(get("7_ETP")),float(get("8_ETP")),float(get("9_ETP")),float(get("10_ETP")),float(get("11_ETP")),float(get("12_ETP"))]
+		];
 		create soil from: Soil_Group with: [id::int(get("VALUE"))];
 		
 		//clean_network(road_shapefile.contents,tolerance,split_lines,reduce_to_main_connected_components
@@ -75,6 +79,7 @@ global {
 		loop pp over: points where (water_content[each] > 400){
 			soil closest_soil <- soil closest_to pp;	//closest soil descriptor to the point
 			water_content[pp] <- water_content[pp] + (0.2 * closest_soil.S);
+			water_before_runoff[pp] <- 0.2 * closest_soil.S;	//Ia
 		}
 		
 		/* 
@@ -118,50 +123,68 @@ global {
 		*/
 	}
 	
-	//based on the month, add precipitation
+	//base on the current month, add precipitation
 	reflex adding_precipitation{
 		write "Current month: "+current_month;
-	}
-
-	/* 
-	float height (point c) {
-		return h[c] + water_content[c];
+		
+		//Determine initial amount of water
+		loop pp over: points where (water_content[each] > 400){
+			climate closest_clim <- climate closest_to pp;	//closest climate descriptor to the point
+			float precip_value <- closest_clim.precipitation[current_month];
+			float etp_value <- closest_clim.etp[current_month];
+			
+			remaining_precip[pp] <- (precip_value - etp_value > 0)? precip_value - etp_value : 0;
+			//write "Precip: "+precip_value+" ETP: "+etp_value+" RP: "+remaining_precip[pp];
+		}
 	}
 	
- 
-	//Reflex to add water among the water cells
-	reflex adding_input_water {
-		loop p over: source_cells {
-			water_content[p] <- water_content[p] + input_water;
-		}
-	}
-
-	//Reflex for the drain cells to drain water
-	reflex draining  {
-		loop p over: drain_cells {
-			water_content[p] <- 0.0;
-		}
-	}
-
-	//Reflex to water_content the water according to the altitude and the obstacle
-	reflex water_contenting {
+	//sort pixel based on elevation
+	//from highest elevation pixel down
+	//	add inflow to remaining_precip
+	//	determine if there will be a runoff: RP > Ia
+	//		yes: compute for Q, where Q = (RP-Ia)^2 / ((RP-Ia+S) 
+	//  subtract runoff from remaining_precip, Ia = RP - Q w
+	//  distribute runoff to lower elevation neighbors (add to neighbor's inflow) : do 8 neighbor
+	reflex water_flow{
 		done[] <- false;
-		list<point> water <- points where (water_content[each] > 0) sort_by (height(each));
+		list<point> water <- points where (water_content[each] > 400) sort_by (elev[each]);
 		loop p over: points - water {
 			done[p] <- true;
 		}
 		loop p over: water {
-			float height <- height(p);
-			loop water_content_cell over: neighbors[p] where (done[each] and height > height(each)) {
-				float water_water_contenting <- max(0.0, min((height - height(water_content_cell)), water_content[p] * diffusion_rate));
-				water_content[p] <- water_content[p] - water_water_contenting;
-				water_content[water_content_cell] <- water_content[water_content_cell] + water_water_contenting;
+			soil closest_soil <- soil closest_to p;	//closest soil descriptor to the point
+			write "Inflow: "+inflow[p];
+			remaining_precip[p] <- remaining_precip[p] + inflow[p];	//add inflow
+			inflow[p] <- 0;	//set inflow back to 0
+			
+			//determine if there will be a runoff
+			if(remaining_precip[p] > water_before_runoff[p]){	//there will be runoff
+				//compute for Q, where Q = (RP-Ia)^2 / ((RP-Ia+S)
+				
+				write "before runoff: "+water_before_runoff[p];
+				
+				float Q <- ((remaining_precip[p] - water_before_runoff[p])^2)/(remaining_precip[p] - water_before_runoff[p]+closest_soil.S);
+				//subtract runoff from remaining_precip
+				water_before_runoff[p] <- remaining_precip[p] - Q;
+				
+				write "after runoff: "+water_before_runoff[p] +"\n";
+				//distribute runoff to lower elevation neighbors (add to neighbor's inflow)
+				float height <- elev[p];
+				list<point> downflow_neighbors <- neighbors[p] where (!done[each] and height > elev[each]);
+				int neighbor_count <- length(downflow_neighbors); 
+				loop pp over: downflow_neighbors{
+					inflow[pp] <- inflow[pp] + (Q/neighbor_count);
+				}
 			}
-		done[p] <- true;
+			done[p] <- true;
 		}
 	}
 	
-	*/
+	reflex water_viz{
+		loop pp over: points where (water_content[each] > 400){
+			water_content[pp] <- water_before_runoff[pp] + 400;
+		}
+	}
 
 }
 
@@ -183,7 +206,7 @@ species soil{
 }
 species climate{
 	list<float> temperature;						
-	list<float> rain_amount;
+	list<float> precipitation;
 	list<float> etp;
 	
 	geometry display_shape <- shape + 50.0;
