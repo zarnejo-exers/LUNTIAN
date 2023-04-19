@@ -13,7 +13,9 @@ global {
 	file dem_file <- file("../images/ITP_colored_100.tif");		//resolution 100m-by-100m
 	file road_shapefile <- file("../includes/Itp_Road.shp");	
 	file river_shapefile <- file("../includes/River_Channel.shp");
-	file Precip_Average <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg
+	file Precip_Average <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm
+	file ETO <- file("../includes/Monthly_ETP_Luzon.shp"); //total mm of ET0 per month
+	file Soil_Group <- file("../includes/Soil_Group.shp");
 	
 	graph road_network;
 	graph river_network;
