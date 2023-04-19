@@ -9,11 +9,11 @@ model main
 
 global {
 	/** Insert the global definitions, variables and actions here */
-	file elev_file <- file("../images/ITP_Reprojected_Filled.tif"); 
-	file dem_file <- file("../images/ITP_colored_100.tif");
-	file road_shapefile <- file("../includes/itp_road.shp");	
-	file river_shapefile <- file("../includes/Channel_4.shp");
-	file Precip_Average <- file("../includes/ITP_climate_reprojected.shp");
+	file elev_file <- file("../images/ITP_Reprojected_Filled.tif"); //resolution 30m-by-30m
+	file dem_file <- file("../images/ITP_colored_100.tif");		//resolution 100m-by-100m
+	file road_shapefile <- file("../includes/Itp_Road.shp");	
+	file river_shapefile <- file("../includes/River_Channel.shp");
+	file Precip_Average <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg
 	
 	graph road_network;
 	graph river_network;
