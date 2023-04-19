@@ -8,12 +8,14 @@
 model main
 
 global {
+	int NB_TS <- 12; //monthly timestep, constant
+	
 	/** Insert the global definitions, variables and actions here */
 	file elev_file <- file("../images/ITP_Reprojected_Filled.tif"); //resolution 30m-by-30m
 	file dem_file <- file("../images/ITP_colored_100.tif");		//resolution 100m-by-100m
 	file road_shapefile <- file("../includes/Itp_Road.shp");	
 	file river_shapefile <- file("../includes/River_Channel.shp");
-	file Precip_Average <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm
+	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm
 	file ETO <- file("../includes/Monthly_ETP_Luzon.shp"); //total mm of ET0 per month
 	file Soil_Group <- file("../includes/Soil_Group.shp");
 	
@@ -42,8 +44,10 @@ global {
 	list<list<point>> connected_components ;
 	list<rgb> colors;
 	
+	int current_month <- 0 update:(cycle mod NB_TS);
+	
 	init {
-		create climate from: Precip_Average;
+		create climate from: Precip_TAverage;
 		create soil from: Soil_Group with: [id::int(get("VALUE"))];
 		
 		//clean_network(road_shapefile.contents,tolerance,split_lines,reduce_to_main_connected_components
@@ -113,6 +117,11 @@ global {
 		drain_cells <- remove_duplicates(drain_cells);
 		*/
 	}
+	
+	//based on the month, add precipitation
+	reflex adding_precipitation{
+		write "Current month: "+current_month;
+	}
 
 	/* 
 	float height (point c) {
@@ -157,11 +166,11 @@ global {
 }
 
 species soil{
-	geometry display_shape <- shape + 50.0;
 	float S; //potential maximum soil moisture 
 	int curve_number; 
 	int id;
 	
+	geometry display_shape <- shape + 50.0;
 	aspect default{
 		//draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
 		draw display_shape color: #brown depth: 3.0;// at: {location.x,location.y,location.z} 200
@@ -173,6 +182,10 @@ species soil{
 	}
 }
 species climate{
+	list<float> temperature;						
+	list<float> rain_amount;
+	list<float> etp;
+	
 	geometry display_shape <- shape + 50.0;
 	aspect default{
 		//draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
