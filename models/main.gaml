@@ -2,7 +2,7 @@
 * Name: main
 * Based on the internal skeleton template. 
 * Author: zenith
-* Tags: waterflow from "Waterflow Field Elevation.gaml"
+* Tags: waterwater_content from "Waterwater_content Field Elevation.gaml"
 */
 
 model main
@@ -21,19 +21,21 @@ global {
 	graph river_network;
 	
 	field elev <- field(elev_file);
-	field flow <- field(dem_file)+400;
+	field water_content <- field(dem_file)+400;
 	
 	geometry shape <- envelope(elev_file);
 	bool fill <- true;
 
+	map<point, climate> cell_climate;
+	
 	//Diffusion rate
 	float diffusion_rate <- 0.6;
 	list<point> drain_cells <- [];
 	list<point> source_cells <- [];
-	list<point> points <- elev points_in shape;
+	list<point> points <- water_content points_in shape; //elev
 	map<point, list<point>> neighbors <- points as_map (each::(elev neighbors_of each));
 	map<point, bool> done <- points as_map (each::false);
-	map<point, float> h <- points as_map (each::flow[each]);
+	map<point, float> h <- points as_map (each::water_content[each]);
 	float input_water;
 	list<geometry> clean_lines;
 	
@@ -42,6 +44,7 @@ global {
 	
 	init {
 		create climate from: Precip_Average;
+		create soil from: Soil_Group with: [id::int(get("VALUE"))];
 		
 		//clean_network(road_shapefile.contents,tolerance,split_lines,reduce_to_main_connected_components
 		
@@ -64,93 +67,111 @@ global {
 		connected_components <- list<list<point>>(connected_components_of(river_network));
 		loop times: length(connected_components) {colors << rnd_color(255);}
 
-		write ("Elev min height: "+min(h)+" max height: "+max(h));
-		write ("Flow min height: "+min(h)+" max height: "+max(h));
-
+		//Determine initial amount of water
+		loop pp over: points where (water_content[each] > 400){
+			soil closest_soil <- soil closest_to pp;	//closest soil descriptor to the point
+			water_content[pp] <- water_content[pp] + (0.2 * closest_soil.S);
+		}
+		
+		/* 
 		if (fill) {
 			ask river{
 				loop pp over: my_rcells{
-					flow[pp] <- flow[pp] + 50.0;
+					water_content[pp] <- water_content[pp] + 50.0;
 				}	
 			}
 			
 			loop pp over: points where (height(each) > 800){
 				//write "Point: "+pp+" Height: "+height(pp);
-				//flow[pp] <- flow[pp]+1.0;
+				//water_content[pp] <- water_content[pp]+1.0;
 			}
 			
 			//initial water content of the cells
 			loop pp over: points where (height(each) > 800){
 				if(height(pp) < 1150){			//more water on lowest point in the topography
-					flow[pp] <- flow[pp]+100.0;	
+					water_content[pp] <- water_content[pp]+100.0;	
 				}//else{
-				//	flow[pp] <- flow[pp]+1.0;	//initial water level
+				//	water_content[pp] <- water_content[pp]+1.0;	//initial water level
 				//}
 			}
 			
 			//add water on lowest point in the topography
 			//loop pp over: points where (height(each) < 400 and height(each) > 0){
-			//	flow[pp] <- flow[pp]+100.0;
+			//	water_content[pp] <- water_content[pp]+100.0;
 			//}
 		}
 
 		loop i from: 0 to: elev.columns - 1 {
 			if (elev[i, 0] < 255) {
-				source_cells <<+ flow points_in (elev cell_at (i, 0));
+				source_cells <<+ water_content points_in (elev cell_at (i, 0));
 			}
 			if (elev[i, elev.rows - 1] < 0) {
-				drain_cells <<+ flow points_in (elev cell_at (i, elev.rows - 1));
+				drain_cells <<+ water_content points_in (elev cell_at (i, elev.rows - 1));
 			}
 		}
 		source_cells <- remove_duplicates(source_cells);
 		drain_cells <- remove_duplicates(drain_cells);
-		
-		write "source cells: "+length(source_cells);
-		write "drain cells: "+length(drain_cells);
-		
-		//write "bands: "+length(elev.bands);
+		*/
 	}
 
+	/* 
 	float height (point c) {
-		return h[c] + flow[c];
+		return h[c] + water_content[c];
 	}
 	
  
 	//Reflex to add water among the water cells
 	reflex adding_input_water {
 		loop p over: source_cells {
-			flow[p] <- flow[p] + input_water;
+			water_content[p] <- water_content[p] + input_water;
 		}
 	}
 
 	//Reflex for the drain cells to drain water
 	reflex draining  {
 		loop p over: drain_cells {
-			flow[p] <- 0.0;
+			water_content[p] <- 0.0;
 		}
 	}
 
-	//Reflex to flow the water according to the altitude and the obstacle
-	reflex flowing {
+	//Reflex to water_content the water according to the altitude and the obstacle
+	reflex water_contenting {
 		done[] <- false;
-		list<point> water <- points where (flow[each] > 0) sort_by (height(each));
+		list<point> water <- points where (water_content[each] > 0) sort_by (height(each));
 		loop p over: points - water {
 			done[p] <- true;
 		}
 		loop p over: water {
 			float height <- height(p);
-			loop flow_cell over: neighbors[p] where (done[each] and height > height(each)) {
-				float water_flowing <- max(0.0, min((height - height(flow_cell)), flow[p] * diffusion_rate));
-				flow[p] <- flow[p] - water_flowing;
-				flow[flow_cell] <- flow[flow_cell] + water_flowing;
+			loop water_content_cell over: neighbors[p] where (done[each] and height > height(each)) {
+				float water_water_contenting <- max(0.0, min((height - height(water_content_cell)), water_content[p] * diffusion_rate));
+				water_content[p] <- water_content[p] - water_water_contenting;
+				water_content[water_content_cell] <- water_content[water_content_cell] + water_water_contenting;
 			}
 		done[p] <- true;
 		}
 	}
-
+	
+	*/
 
 }
 
+species soil{
+	geometry display_shape <- shape + 50.0;
+	float S; //potential maximum soil moisture 
+	int curve_number; 
+	int id;
+	
+	aspect default{
+		//draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
+		draw display_shape color: #brown depth: 3.0;// at: {location.x,location.y,location.z} 200
+	}
+	
+	init{
+		curve_number <- (id = 3)? 70: 77;	//see https://engineering.purdue.edu/mapserve/LTHIA7/documentation/scs.htm
+		S <- (1000/curve_number) - 10;
+	}
+}
 species climate{
 	geometry display_shape <- shape + 50.0;
 	aspect default{
@@ -169,7 +190,7 @@ species road {
 
 species river {
 	geometry display_shape <- shape + 5.0;
-	list<point> my_rcells <- list<point>(flow points_in display_shape);
+	list<point> my_rcells <- list<point>(water_content points_in display_shape);
 	int node_id; 
 	int drain_node;
 	int basin;
@@ -193,7 +214,7 @@ experiment main type: gui {
 			species road aspect: default;
 			species river aspect: default;			
 			mesh elev scale: 2 color: palette([#white, #saddlebrown, #darkgreen]) refresh: true triangulation: true;
-			mesh flow scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.75 no_data:400 ; 
+			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.75 no_data:400 ; 
 			
 			graphics "connected components" {
 				loop i from: 0 to: length(connected_components) - 1 {
