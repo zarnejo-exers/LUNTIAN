@@ -24,7 +24,7 @@ global {
 	field elev <- field(elev_file);
 	field water_content <- field(dem_file)+400;
 	field water_before_runoff <- field(water_content.columns, water_content.rows, 0.0);	// Ia
-	field remaining_precip <- field(water_content.columns, water_content.rows, 0.0);	// RP
+	field remaining_precip <- field(water_content.columns, water_content.rows, 0.0);	// RP in mm
 	field inflow <- field(water_content.columns, water_content.rows, 0.0);	// RP
 	
 	geometry shape <- envelope(elev_file);
@@ -39,6 +39,7 @@ global {
 	map<point, float> h <- points as_map (each::water_content[each]);
 	float input_water;
 	list<geometry> clean_lines;
+	list<point> drain_cells <- [];
 	
 	list<list<point>> connected_components ;
 	list<rgb> colors;
@@ -74,6 +75,21 @@ global {
 		//computed the connected components of the graph (for visualization purpose)
 		connected_components <- list<list<point>>(connected_components_of(river_network));
 		loop times: length(connected_components) {colors << rnd_color(255);}
+		
+		//Identify drain cells
+		write "Before Drain cells count: "+length(drain_cells)+" Lowest Elev: "+min(elev) + " Lowest water: "+min(water_content);
+		loop pp over: points where (water_content[each]>400){	//look inside the area of concern, less than 400 means not part of concern
+			list<point> edge_points <- neighbors[pp] where (water_content[each] = 400);
+			if(length(edge_points) > 1){
+				drain_cells <+ pp;	
+			}	
+		}
+		drain_cells <- remove_duplicates(drain_cells);
+		float min_height <- drain_cells min_of (water_content[each]);
+		
+		drain_cells <- drain_cells where (water_content[each] < min_height+10);
+		//get the Top 10 drain cells with minimum elevation 
+		write "After Drain cells count: "+length(drain_cells)+" length of points: "+length(points where (elev[each] < 0));
 
 		//Determine initial amount of water
 		loop pp over: points where (water_content[each] > 400){
@@ -103,7 +119,7 @@ global {
 	//	determine if there will be a runoff: RP > Ia
 	//		yes: compute for Q, where Q = (RP-Ia)^2 / ((RP-Ia+S) 
 	//  subtract runoff from remaining_precip, Ia = RP - Q w
-	//  distribute runoff to lower elevation neighbors (add to neighbor's inflow) : do 8 neighbor
+	//  distribute runoff to lower elevation neighbors (add to neighbor's inflow)
 	reflex water_flow{
 		done[] <- false;
 		list<point> water <- points where (water_content[each] > 400) sort_by (elev[each]);
@@ -119,8 +135,10 @@ global {
 			if(remaining_precip[p] > water_before_runoff[p]){	//there will be runoff
 				//compute for Q, where Q = (RP-Ia)^2 / ((RP-Ia+S)
 				float Q <- ((remaining_precip[p] - water_before_runoff[p])^2)/(remaining_precip[p] - water_before_runoff[p]+closest_soil.S);
+				
 				//subtract runoff from remaining_precip
-				water_before_runoff[p] <- remaining_precip[p] - Q;
+				water_before_runoff[p] <- (remaining_precip[p] - Q);	//in mm
+				write "WBF: "+water_before_runoff[p];
 				
 				//distribute runoff to lower elevation neighbors (add to neighbor's inflow)
 				float height <- elev[p];
@@ -135,11 +153,17 @@ global {
 	}
 	
 	reflex water_viz{
-		loop pp over: points where (water_content[each] > 400){
+		loop pp over: points where (water_content[each] > 0){
 			water_content[pp] <- water_before_runoff[pp] + 400;
 		}
 	}
 
+	reflex drain_cells{
+		loop pp over: drain_cells{
+			water_content[pp] <- 0;
+			water_before_runoff[pp] <- 0;
+		}
+	}
 }
 
 species soil{
