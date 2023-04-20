@@ -77,19 +77,16 @@ global {
 		loop times: length(connected_components) {colors << rnd_color(255);}
 		
 		//Identify drain cells
-		write "Before Drain cells count: "+length(drain_cells)+" Lowest Elev: "+min(elev) + " Lowest water: "+min(water_content);
 		loop pp over: points where (water_content[each]>400){	//look inside the area of concern, less than 400 means not part of concern
 			list<point> edge_points <- neighbors[pp] where (water_content[each] = 400);
-			if(length(edge_points) > 1){
+			if(length(edge_points) > 0){
 				drain_cells <+ pp;	
 			}	
 		}
 		drain_cells <- remove_duplicates(drain_cells);
 		float min_height <- drain_cells min_of (water_content[each]);
 		
-		drain_cells <- drain_cells where (water_content[each] < min_height+10);
-		//get the Top 10 drain cells with minimum elevation 
-		write "After Drain cells count: "+length(drain_cells)+" length of points: "+length(points where (elev[each] < 0));
+		drain_cells <- drain_cells where (water_content[each] < min_height+50);
 
 		//Determine initial amount of water
 		loop pp over: points where (water_content[each] > 400){
@@ -122,23 +119,24 @@ global {
 	//  distribute runoff to lower elevation neighbors (add to neighbor's inflow)
 	reflex water_flow{
 		done[] <- false;
-		list<point> water <- points where (water_content[each] > 400) sort_by (elev[each]);
+		inflow[] <- 0.0;
+		list<point> water <- points where (water_content[each] > 400) sort_by (water_content[each]);
 		loop p over: points - water {
 			done[p] <- true;
 		}
 		loop p over: water {
 			soil closest_soil <- soil closest_to p;	//closest soil descriptor to the point
 			remaining_precip[p] <- remaining_precip[p] + inflow[p];	//add inflow
-			inflow[p] <- 0;	//set inflow back to 0
+			inflow[p] <- 0.0;	//set inflow back to 0
 			
 			//determine if there will be a runoff
 			if(remaining_precip[p] > water_before_runoff[p]){	//there will be runoff
+				write "True";
 				//compute for Q, where Q = (RP-Ia)^2 / ((RP-Ia+S)
 				float Q <- ((remaining_precip[p] - water_before_runoff[p])^2)/(remaining_precip[p] - water_before_runoff[p]+closest_soil.S);
 				
 				//subtract runoff from remaining_precip
 				water_before_runoff[p] <- (remaining_precip[p] - Q);	//in mm
-				write "WBF: "+water_before_runoff[p];
 				
 				//distribute runoff to lower elevation neighbors (add to neighbor's inflow)
 				float height <- elev[p];
