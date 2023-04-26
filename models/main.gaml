@@ -86,7 +86,7 @@ global {
 		drain_cells <- remove_duplicates(drain_cells);
 		float min_height <- drain_cells min_of (water_content[each]);
 		
-		drain_cells <- drain_cells where (water_content[each] < min_height+50);
+		drain_cells <- drain_cells where (water_content[each] < min_height+20);
 
 		//Determine initial amount of water
 		loop pp over: points where (water_content[each] > 400){
@@ -227,7 +227,7 @@ experiment main type: gui {
 			species river aspect: default;	
 			species road aspect: default;					
 			mesh elev scale: 2 color: palette([#white, #saddlebrown, #darkgreen]) refresh: true triangulation: true;
-			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.75 no_data:400 ; 
+			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ; 
 			
 			graphics "connected components" {
 				loop i from: 0 to: length(connected_components) - 1 {
