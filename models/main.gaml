@@ -106,7 +106,7 @@ global {
 	}
 	
 	//base on the current month, add precipitation
-	reflex adding_precipitation{
+	reflex addingPrecipitation{
 		write "Current month: "+current_month;
 		
 		//Determine initial amount of water
@@ -126,7 +126,7 @@ global {
 	//		yes: compute for Q, where Q = (RP-Ia)^2 / ((RP-Ia+S) 
 	//  subtract runoff from remaining_precip, Ia = RP - Q w
 	//  distribute runoff to lower elevation neighbors (add to neighbor's inflow)
-	reflex water_flow{
+	reflex waterFlow{
 		done[] <- false;
 		inflow[] <- 0.0;
 		list<point> water <- points where (water_content[each] > 400) sort_by (water_content[each]);
@@ -159,13 +159,13 @@ global {
 		}
 	}
 	
-	reflex water_viz{
+	reflex waterViz{
 		loop pp over: points where (water_content[each] > 0){
 			water_content[pp] <- water_before_runoff[pp] + 400;
 		}
 	}
 
-	reflex drain_cells{
+	reflex drainCells{
 		loop pp over: drain_cells{
 			water_content[pp] <- 0;
 			water_before_runoff[pp] <- 0;
@@ -231,6 +231,20 @@ species trees{
 	
 	aspect default{
 		draw circle(self.dbh, shape.location) color: (type = 0)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
+	}
+	
+	init{
+		if(drain_cells contains shape.location){	//kill tree located at the drain
+			do die;	
+		}
+	}
+	
+	//kill tree that are inside a basin
+	reflex killTree{
+		point tree_loc <- shape.location;
+		if(water_content[tree_loc]-275 > elev[tree_loc]){
+			do die;
+		}
 	}
 }
 
