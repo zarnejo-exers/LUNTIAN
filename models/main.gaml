@@ -17,6 +17,7 @@ global {
 	file river_shapefile <- file("../includes/River_Channel.shp");
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/Soil_Group.shp");
+	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned
 	
 	graph road_network;
 	graph river_network;
@@ -93,6 +94,14 @@ global {
 			soil closest_soil <- soil closest_to pp;	//closest soil descriptor to the point
 			water_content[pp] <- water_content[pp] + (0.2 * closest_soil.S);
 			water_before_runoff[pp] <- 0.2 * closest_soil.S;	//Ia
+		}
+		
+		create trees from: trees_shapefile{
+			dbh <- float(read("Book2_DBH"));
+			th <- float(read("Book2_TH"));
+			mh <- float(read("Book2_MH"));	
+			r <- float(read("Book2_R"));
+			type <- ((read("Book2_Clas")) = "Native")? 0:1;
 		}
 	}
 	
@@ -211,7 +220,18 @@ species river {
 		//draw display_shape color: #blue depth: 3 at: {location.x,location.y,terrain[point(location.x, location.y)]+250};//250
 		draw display_shape color: #blue;// at: {location.x,location.y,location.z};//200
 	}
+}
+
+species trees{
+	float dbh; //diameter at breast height
+	float th; //total height
+	float mh; //merchantable height
+	float r; //distance from tree to a point 
+	int type;  //0-native; 1-exotic; 2-fruit tree
 	
+	aspect default{
+		draw circle(self.dbh, shape.location) color: (type = 0)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
+	}
 }
 
 experiment main type: gui {
@@ -226,8 +246,9 @@ experiment main type: gui {
 			species climate aspect: default;
 			species river aspect: default;	
 			species road aspect: default;					
-			mesh elev scale: 2 color: palette([#white, #saddlebrown, #darkgreen]) refresh: true triangulation: true;
+			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
 			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ; 
+			species trees aspect: default;
 			
 			graphics "connected components" {
 				loop i from: 0 to: length(connected_components) - 1 {
