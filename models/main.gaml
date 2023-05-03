@@ -229,13 +229,32 @@ species trees{
 	float r; //distance from tree to a point 
 	int type;  //0-native; 1-exotic; 2-fruit tree
 	
+	float ba;
+	float dipy;
+	float vol;
+	
+	float total_biomass;	//in kg
+	int age;
+	bool shade_tolerant;
+	
 	aspect default{
 		draw circle(self.dbh, shape.location) color: (type = 0)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
 	}
 	
+	aspect geom3D{
+		draw cylinder(min(0.1, self.dbh/100), min(1, self.dbh/100)) color: #saddlebrown at: {location.x,location.y,elev[point(location.x, location.y)]+450};
+		draw sphere(self.dbh) color: (type = 0) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+450 +  min(1, self.dbh/100)};
+	}
 	init{
 		if(drain_cells contains shape.location){	//kill tree located at the drain
 			do die;	
+		}
+		total_biomass <- 0.0;
+		if(type = 1){ //exotic trees, mahogany
+			age <- int(dbh/0.85);
+			shade_tolerant <- false;
+		}else{	//native trees are shade tolerant
+			shade_tolerant <- true;
 		}
 	}
 	
@@ -246,6 +265,52 @@ species trees{
 			do die;
 		}
 	}
+	
+	reflex growDiameter when: dbh <= 210{	//very minimum growth after DBH = 210
+		ba <- #pi * ((dbh/2)^2);
+		if(type = 0){ 
+			dipy <- 0.0057*(dbh^0.0173)+(0.0014*dbh)+(0.0004*ba)+0.0034+0.0033;
+			dbh <- dbh + dipy;
+		}else if(type = 1){
+			dbh <- 0.85 * age;
+			age <- age + 1;
+		}
+	}	
+	
+	reflex determineMortality{
+		float e <- exp(-2.917 - 1.897 * ((shade_tolerant)?1:0) - 0.079 * dbh);
+		float proba_dead <- (e/(e+1));
+		
+		if(flip(proba_dead)){
+			write "Dead!";
+			do die;
+		}
+	}
+	
+	reflex increaseHeight{
+		if(type = 1){
+			th <- 1.3 + 12.399*(1-exp(-0.105*dbh))^1.79; 
+		}else{	//dipterocarpaceae, but needs to be updated
+			th <- th + 0.238;
+		}
+	}
+	
+	reflex updateVolume{
+		if(type = 0){
+			vol <- 0.00005204*(dbh^2)*th;
+		}else if(type = 1){
+			
+		}
+	}
+	
+	/*reflex computeTotalBiomass{
+		if(dbh >= 5 or dbh <= 60){
+			total_biomass <- exp(-2.134 + 2.530 * (ln(dbh)));
+			write "tb: "+total_biomass;
+		}else if(dbh > 60){
+			total_biomass <- 42.69-12.68*dbh+1.242*(dbh^2);
+		}
+	}*/
 }
 
 experiment main type: gui {
@@ -262,7 +327,7 @@ experiment main type: gui {
 			species road aspect: default;					
 			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
 			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ; 
-			species trees aspect: default;
+			species trees aspect: geom3D;
 			
 			graphics "connected components" {
 				loop i from: 0 to: length(connected_components) - 1 {
