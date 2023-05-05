@@ -47,6 +47,19 @@ global {
 	
 	int current_month <- 0 update:(cycle mod NB_TS);
 	
+	float growth_rate_exotic <- 0.73 update: growth_rate_exotic;
+	float max_dbh_exotic <- 110.8 update: max_dbh_exotic;
+	float min_dbh_exotic <- 1.0 update: min_dbh_exotic;
+	
+	float growth_rate_native <- 2.0 update: growth_rate_native;
+	float max_dbh_native <- 130.0 update: max_dbh_native;
+	float min_dbh_native <- 1.0 update: min_dbh_native;
+	
+	//computed K based on Von Bertalanffy Growth Function 
+	float mahogany_von_gr;
+	float mayapis_von_gr;
+
+	
 	init {
 		create climate from: Precip_TAverage with: 
 		[
@@ -102,13 +115,29 @@ global {
 			mh <- float(read("Book2_MH"));	
 			r <- float(read("Book2_R"));
 			type <- ((read("Book2_Clas")) = "Native")? 0:1;
+			
+			if(type = 1){ //exotic trees, mahogany
+				age <- int(self.dbh/growth_rate_exotic);
+				shade_tolerant <- false;
+			}else{	//native trees are shade tolerant
+				age <- int(self.dbh/growth_rate_native);
+				shade_tolerant <- true;
+			}
 		}
+		
+		do computeGrowthRate;
+	}
+	
+	action computeGrowthRate{
+		 mahogany_von_gr <- growth_rate_exotic / (max_dbh_exotic - min_dbh_exotic);
+		 mayapis_von_gr <- growth_rate_native / (max_dbh_native - min_dbh_native);
+		 
+		 write "growth rate mahogany: "+mahogany_von_gr;
+		 write "growth_rate_mayapis: "+mayapis_von_gr;
 	}
 	
 	//base on the current month, add precipitation
 	reflex addingPrecipitation{
-		write "Current month: "+current_month;
-		
 		//Determine initial amount of water
 		loop pp over: points where (water_content[each] > 400){
 			climate closest_clim <- climate closest_to pp;	//closest climate descriptor to the point
@@ -140,7 +169,7 @@ global {
 			
 			//determine if there will be a runoff
 			if(remaining_precip[p] > water_before_runoff[p]){	//there will be runoff
-				write "True";
+				//write "Water runoff";
 				//compute for Q, where Q = (RP-Ia)^2 / ((RP-Ia+S)
 				float Q <- ((remaining_precip[p] - water_before_runoff[p])^2)/(remaining_precip[p] - water_before_runoff[p]+closest_soil.S);
 				
@@ -193,6 +222,7 @@ species climate{
 	list<float> temperature;						
 	list<float> precipitation;
 	list<float> etp;
+	int year <- 0;
 	
 	geometry display_shape <- shape + 50.0;
 	aspect default{
@@ -227,13 +257,13 @@ species trees{
 	float th; //total height
 	float mh; //merchantable height
 	float r; //distance from tree to a point 
-	int type;  //0-native; 1-exotic; 2-fruit tree
+	int type;  //0-mayapis; 1-mahogany; 2-fruit tree
 	
 	float ba;
 	float dipy;
 	float vol;
 	
-	float total_biomass;	//in kg
+	float total_biomass <- 0.0;	//in kg
 	int age;
 	bool shade_tolerant;
 	
@@ -245,19 +275,12 @@ species trees{
 		draw cylinder(min(0.1, self.dbh/100), min(1, self.dbh/100)) color: #saddlebrown at: {location.x,location.y,elev[point(location.x, location.y)]+450};
 		draw sphere(self.dbh) color: (type = 0) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+450 +  min(1, self.dbh/100)};
 	}
+	
 	init{
 		if(drain_cells contains shape.location){	//kill tree located at the drain
 			do die;	
 		}
-		total_biomass <- 0.0;
-		if(type = 1){ //exotic trees, mahogany
-			age <- int(dbh/0.85);
-			shade_tolerant <- false;
-		}else{	//native trees are shade tolerant
-			shade_tolerant <- true;
-		}
 	}
-	
 	//kill tree that are inside a basin
 	reflex killTree{
 		point tree_loc <- shape.location;
@@ -266,49 +289,31 @@ species trees{
 		}
 	}
 	
-	reflex growDiameter when: dbh <= 210{	//very minimum growth after DBH = 210
-		ba <- #pi * ((dbh/2)^2);
-		if(type = 0){ 
-			dipy <- 0.0057*(dbh^0.0173)+(0.0014*dbh)+(0.0004*ba)+0.0034+0.0033;
-			dbh <- dbh + dipy;
-		}else if(type = 1){
-			dbh <- 0.85 * age;
-			age <- age + 1;
+	//recruitment of tree
+	
+	//growth of tree
+	reflex growDiameter {	
+		float cur_month <- (cycle mod 12)/12;
+		//write "cur_month: "+cur_month;
+		if(type = 0){ //mayapis
+			dbh <- max_dbh_native * (1-exp(-mayapis_von_gr * (cur_month+age)));
+		}else if(type = 1){	//mahogany
+			dbh <- max_dbh_exotic * (1-exp(-mahogany_von_gr * (cur_month+age)));
 		}
 	}	
 	
-	reflex determineMortality{
+	reflex stepAge when: (cycle mod 12)=0 {
+		age <- age + 1;
+		//write "age:"+age;
+	}
+	
+	//tree mortality
+	/*reflex determineMortality{
 		float e <- exp(-2.917 - 1.897 * ((shade_tolerant)?1:0) - 0.079 * dbh);
 		float proba_dead <- (e/(e+1));
 		
 		if(flip(proba_dead)){
-			write "Dead!";
 			do die;
-		}
-	}
-	
-	reflex increaseHeight{
-		if(type = 1){
-			th <- 1.3 + 12.399*(1-exp(-0.105*dbh))^1.79; 
-		}else{	//dipterocarpaceae, but needs to be updated
-			th <- th + 0.238;
-		}
-	}
-	
-	reflex updateVolume{
-		if(type = 0){
-			vol <- 0.00005204*(dbh^2)*th;
-		}else if(type = 1){
-			
-		}
-	}
-	
-	/*reflex computeTotalBiomass{
-		if(dbh >= 5 or dbh <= 60){
-			total_biomass <- exp(-2.134 + 2.530 * (ln(dbh)));
-			write "tb: "+total_biomass;
-		}else if(dbh > 60){
-			total_biomass <- 42.69-12.68*dbh+1.242*(dbh^2);
 		}
 	}*/
 }
@@ -317,6 +322,14 @@ experiment main type: gui {
 //	parameter "Input water at source" var: input_water <- 1.0;
 //	parameter "Fill the river" var: fill <- true;
 	/** Insert here the definition of the input and output of the model */
+	
+	parameter "Growth rate (Exotic)" category: "Mahogany Setup" var:growth_rate_exotic;
+	parameter "Max DBH (Exotic)" category: "Mahogany Setup"  var:max_dbh_exotic;
+	parameter "DBH for planting (Exotic)" category: "Mahogany Setup"  var:min_dbh_exotic;
+	
+	parameter "Growth rate (Native)" category: "Mayapis Setup" var:growth_rate_native;
+	parameter "Max DBH (Native)" category: "Mayapis Setup"  var:max_dbh_native;
+	parameter "DBH for planting (Native)" category: "Mayapis Setup"  var:min_dbh_native;
 	
 	output {
 		layout #split;
