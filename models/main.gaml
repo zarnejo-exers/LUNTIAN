@@ -18,6 +18,7 @@ global {
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/Soil_Group.shp");
 	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned
+	file Plot_shapefile <- shape_file("../includes/parcel-polygon-100mx100m.shp");
 	
 	graph road_network;
 	graph river_network;
@@ -94,13 +95,14 @@ global {
 		loop pp over: points where (water_content[each]>400){	//look inside the area of concern, less than 400 means not part of concern
 			list<point> edge_points <- neighbors[pp] where (water_content[each] = 400);
 			if(length(edge_points) > 0){
-				drain_cells <+ pp;	
+				drain_cells <+ pp;
 			}	
 		}
 		drain_cells <- remove_duplicates(drain_cells);
 		float min_height <- drain_cells min_of (water_content[each]);
 		
 		drain_cells <- drain_cells where (water_content[each] < min_height+20);
+		write "drain count: "+length(drain_cells)+"\ndrain_cells: "+drain_cells;
 
 		//Determine initial amount of water
 		loop pp over: points where (water_content[each] > 400){
@@ -123,9 +125,16 @@ global {
 				age <- int(self.dbh/growth_rate_native);
 				shade_tolerant <- true;
 			}
-		}
+		}	
 		
 		do computeGrowthRate;
+		
+		create plot from: Plot_shapefile{
+			if(water_content[self.location] <= 400){
+				do die;
+			}
+		}
+		
 	}
 	
 	action computeGrowthRate{
@@ -199,6 +208,18 @@ global {
 			water_content[pp] <- 0;
 			water_before_runoff[pp] <- 0;
 		}
+	}
+}
+
+species plot{
+	list<trees> plot_trees <- trees inside self update: trees inside self;
+	
+	aspect default{
+		draw self.shape color: #black;
+	}
+	
+	reflex testing{
+		write "Plot Trees: "+length(plot_trees);
 	}
 }
 
@@ -276,11 +297,6 @@ species trees{
 		draw sphere(self.dbh) color: (type = 0) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+450 +  min(1, self.dbh/100)};
 	}
 	
-	init{
-		if(drain_cells contains shape.location){	//kill tree located at the drain
-			do die;	
-		}
-	}
 	//kill tree that are inside a basin
 	reflex killTree{
 		point tree_loc <- shape.location;
@@ -304,7 +320,6 @@ species trees{
 	
 	reflex stepAge when: (cycle mod 12)=0 {
 		age <- age + 1;
-		//write "age:"+age;
 	}
 	
 	//tree mortality
@@ -333,7 +348,8 @@ experiment main type: gui {
 	
 	output {
 		layout #split;
-		display ITP type: opengl camera:#isometric{ 
+		display ITP type: opengl camera:#isometric{
+			species plot; 
 			species soil aspect: default;
 			species climate aspect: default;
 			species river aspect: default;	
