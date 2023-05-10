@@ -308,14 +308,14 @@ species trees{
 	}
 	
 	//tree mortality
-	/*reflex determineMortality{
+	reflex determineMortality{
 		float e <- exp(-2.917 - 1.897 * ((shade_tolerant)?1:0) - 0.079 * dbh);
 		float proba_dead <- (e/(e+1));
 		
 		if(flip(proba_dead)){
 			do die;
 		}
-	}*/
+	}
 }
 
 experiment main type: gui {
@@ -349,6 +349,14 @@ experiment main type: gui {
 					}
 				}
 			}
+		}
+		
+		display chart1{	
+			chart "Distribution of Trees" type: histogram
+			{
+				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
+				data "Native Trees" value: length(trees where (each.type = 0)) color: #green;
+			}		
 		}
 	}
 }
