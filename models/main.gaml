@@ -14,7 +14,7 @@ global {
 	file elev_file <- file("../images/ITP_Reprojected_Filled.tif"); //resolution 30m-by-30m
 	file dem_file <- file("../images/ITP_colored_100.tif");		//resolution 100m-by-100m
 	file road_shapefile <- file("../includes/Itp_Road.shp");	
-	file river_shapefile <- file("../includes/River_Channel.shp");
+	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/Soil_Group.shp");
 	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned
@@ -76,21 +76,6 @@ global {
 		create road from: clean_lines;
 		road_network <- as_edge_graph(road);	//create road from the clean lines
 		
-		//clean data, with the given options
-		clean_lines <- clean_network(river_shapefile.contents,3.0,true,false);
-		//create river from the clean lines
-		create river from: clean_lines with: 
-				[
-					node_id::int(read("NODE_A")), 
-					drain_node::int(read("NODE_B")), 
-					basin::int(read("BASIN"))
-				];		
-		river_network <- as_edge_graph(river);
-		
-		//computed the connected components of the graph (for visualization purpose)
-		connected_components <- list<list<point>>(connected_components_of(river_network));
-		loop times: length(connected_components) {colors << rnd_color(255);}
-		
 		//Identify drain cells
 		loop pp over: points where (water_content[each]>400){	//look inside the area of concern, less than 400 means not part of concern
 			list<point> edge_points <- neighbors[pp] where (water_content[each] = 400);
@@ -102,7 +87,6 @@ global {
 		float min_height <- drain_cells min_of (water_content[each]);
 		
 		drain_cells <- drain_cells where (water_content[each] < min_height+20);
-		write "drain count: "+length(drain_cells)+"\ndrain_cells: "+drain_cells;
 
 		//Determine initial amount of water
 		loop pp over: points where (water_content[each] > 400){
@@ -135,6 +119,19 @@ global {
 			}
 		}
 		
+		//clean data, with the given options
+		clean_lines <- clean_network(river_shapefile.contents,3.0,true,false);
+		//create river from the clean lines
+		create river from: clean_lines {
+			node_id <- int(read("NODE_A")); 
+			drain_node <- int(read("NODE_B")); 
+			strahler <- int(read("ORDER_CELL"));
+		}
+		river_network <- as_edge_graph(river);
+		
+		//computed the connected components of the graph (for visualization purpose)
+		connected_components <- list<list<point>>(connected_components_of(river_network));
+		loop times: length(connected_components) {colors << rnd_color(255);}
 	}
 	
 	action computeGrowthRate{
@@ -215,11 +212,11 @@ species plot{
 	list<trees> plot_trees <- trees inside self update: trees inside self;
 	
 	aspect default{
-		draw self.shape color: #black;
-	}
-	
-	reflex testing{
-		write "Plot Trees: "+length(plot_trees);
+		if(length(plot_trees) > 0){
+			draw self.shape color: #gray;
+		}else{
+			draw self.shape color: #black;
+		}
 	}
 }
 
@@ -265,11 +262,20 @@ species river {
 	list<point> my_rcells <- list<point>(water_content points_in display_shape);
 	int node_id; 
 	int drain_node;
-	int basin;
+	int strahler;
 	
 	aspect default {
 		//draw display_shape color: #blue depth: 3 at: {location.x,location.y,terrain[point(location.x, location.y)]+250};//250
 		draw display_shape color: #blue;// at: {location.x,location.y,location.z};//200
+	}
+	
+	init cleaning_river{
+		ask plot overlapping self{
+			ask self.plot_trees{
+				do die;
+			}
+			self.plot_trees <- nil;
+		}
 	}
 }
 
