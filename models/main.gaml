@@ -85,7 +85,6 @@ global {
 		}
 		drain_cells <- remove_duplicates(drain_cells);
 		float min_height <- drain_cells min_of (water_content[each]);
-		
 		drain_cells <- drain_cells where (water_content[each] < min_height+20);
 
 		//Determine initial amount of water
@@ -110,13 +109,17 @@ global {
 				shade_tolerant <- true;
 			}
 		}	
-		
 		do computeGrowthRate;
 		
 		create plot from: Plot_shapefile{
 			if(water_content[self.location] <= 400){
 				do die;
 			}
+			
+			 plot_trees <- trees inside self;
+			 loop p over: plot_trees{
+			 	p.my_plot <- self;
+			 }
 		}
 		
 		//clean data, with the given options
@@ -209,7 +212,7 @@ global {
 }
 
 species plot{
-	list<trees> plot_trees <- trees inside self update: trees inside self;
+	list<trees> plot_trees;
 	
 	aspect default{
 		if(length(plot_trees) > 0){
@@ -294,6 +297,8 @@ species trees{
 	int age;
 	bool shade_tolerant;
 	
+	plot my_plot;
+	
 	aspect default{
 		draw circle(self.dbh, shape.location) color: (type = 0)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
 	}
@@ -307,11 +312,66 @@ species trees{
 	reflex killTree{
 		point tree_loc <- shape.location;
 		if(water_content[tree_loc]-275 > elev[tree_loc]){
+			if(my_plot != nil) {remove self from: my_plot.plot_trees;}
 			do die;
-		}
+		}else if(my_plot = nil) {do die;}
 	}
 	
 	//recruitment of tree
+	//mahogany fruit production every January, February, March, August, and December 
+	reflex fruitProduction when: ([0,1,2,7,11] contains current_month){
+		list<int> fruiting_months <- [0,1,2,7,11];
+		
+		float sfruit <- 42.4;
+		float fsurv <- 0.085;
+		float fgap <- 0.026;
+		float fviable <- 0.618;
+		
+		//Trees 75 cm DBH were also more consistent producers.
+		//produces more than 700 fruits/year 
+		if(dbh >= 75){
+			int total_no_seeds <- int((700/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
+			do recruitTree(total_no_seeds);
+		}	
+	}
+	
+	action recruitTree(int total_no_seeds){
+		//determine available space in the parcel within 20m to 40m
+		geometry t_space <- circle(self.dbh, self.location + (40 #m)) - circle(self.dbh, self.location+ (20 #m));
+		
+		ask my_plot{
+			list<trees> t_inside_zone <- (plot_trees at_distance 20) + (plot_trees at_distance 40);
+			if(length(t_inside_zone) > 0){	//check if there are trees inside the zone, then remove the spaces occupied by the trees 
+				//do not include spaces occupied by trees
+				ask t_inside_zone{
+					if(empty(t_space)){break;} //stop when there's no more space 
+					geometry occupied_spaces <- circle(self.dbh #cm) translated_to self.location;
+					t_space <- t_space - occupied_spaces;
+				}
+			}
+		}
+			
+		//create new trees	
+		int count <- 0;	
+		loop i from: 0 to: length(total_no_seeds){
+			if(empty(t_space)){break;}	//don't add seeds if there are no space
+			create trees{			
+				age <- 1;
+				type <- 1;	//mahogany
+				shade_tolerant <- false;
+				dbh <- 0.7951687878;
+				location <- any_location_in(t_space);	//place tree on an unoccupied portion of the parcel
+				//location <- any_location_in(myself.chosenParcel.shape);	//same as above
+				my_plot <- myself.my_plot;
+				myself.my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
+				
+				geometry circle_tree <- circle(self.dbh #cm) translated_to self.location;
+				t_space <- t_space - circle_tree;
+			}//add treeInstance all: true to: chosenParcel.parcelTrees;	//add new tree to parcel's list of trees
+			count <- count + 1;
+		}		
+		write "New trees: "+count;
+	}
 	
 	//growth of tree
 	reflex growDiameter {	
@@ -321,9 +381,13 @@ species trees{
 			dbh <- max_dbh_native * (1-exp(-mayapis_von_gr * (cur_month+age)));
 		}else if(type = 1){	//mahogany
 			dbh <- max_dbh_exotic * (1-exp(-mahogany_von_gr * (cur_month+age)));
+			write "DBH: "+dbh+" Age: "+age;
 		}
 	}	
 	
+	//height of tree
+	
+	//tree age
 	reflex stepAge when: (cycle mod 12)=0 {
 		age <- age + 1;
 	}
@@ -334,6 +398,7 @@ species trees{
 		float proba_dead <- (e/(e+1));
 		
 		if(flip(proba_dead)){
+			remove self from: my_plot.plot_trees;
 			do die;
 		}
 	}
@@ -346,11 +411,11 @@ experiment main type: gui {
 	
 	parameter "Growth rate (Exotic)" category: "Mahogany Setup" var:growth_rate_exotic;
 	parameter "Max DBH (Exotic)" category: "Mahogany Setup"  var:max_dbh_exotic;
-	parameter "DBH for planting (Exotic)" category: "Mahogany Setup"  var:min_dbh_exotic;
+	parameter "Age for planting (Exotic)" category: "Mahogany Setup"  var:min_dbh_exotic;
 	
 	parameter "Growth rate (Native)" category: "Mayapis Setup" var:growth_rate_native;
 	parameter "Max DBH (Native)" category: "Mayapis Setup"  var:max_dbh_native;
-	parameter "DBH for planting (Native)" category: "Mayapis Setup"  var:min_dbh_native;
+	parameter "Age for planting (Native)" category: "Mayapis Setup"  var:min_dbh_native;
 	
 	output {
 		layout #split;
