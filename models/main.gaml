@@ -51,10 +51,12 @@ global {
 	float growth_rate_exotic <- 0.73 update: growth_rate_exotic;
 	float max_dbh_exotic <- 110.8 update: max_dbh_exotic;
 	float min_dbh_exotic <- 1.0 update: min_dbh_exotic;
+	int ave_fruits_exotic <- 700 update: ave_fruits_exotic;
 	
 	float growth_rate_native <- 2.0 update: growth_rate_native;
 	float max_dbh_native <- 130.0 update: max_dbh_native;
 	float min_dbh_native <- 1.0 update: min_dbh_native;
+	int ave_fruits_native <- 100 update: ave_fruits_native;
 	
 	//computed K based on Von Bertalanffy Growth Function 
 	float mahogany_von_gr;
@@ -330,12 +332,12 @@ species trees{
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
 		if(dbh >= 75 and ([0,1,2,7,11] contains current_month) and type = 1){
-			int total_no_seeds <- int((700/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
+			int total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			geometry t_space <- circle(self.dbh, self.location + (40#m))- circle(self.dbh, self.location+ (20#m));
 			list<trees> t_inside_zone <- (my_plot.plot_trees at_distance 40#m)-(my_plot.plot_trees at_distance 20#m);
 			do recruitTree(total_no_seeds, t_space, t_inside_zone);
 		}else if(type = 0 and age > 15 and current_month = 8){
-			int total_no_seeds <- int((100)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
+			int total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			geometry t_space <- circle(self.dbh, self.location+ (20 #m));
 			list<trees> t_inside_zone <- (my_plot.plot_trees at_distance 20#m);
 			do recruitTree(total_no_seeds, t_space, t_inside_zone);
@@ -415,10 +417,12 @@ experiment main type: gui {
 	parameter "Growth rate (Exotic)" category: "Mahogany Setup" var:growth_rate_exotic;
 	parameter "Max DBH (Exotic)" category: "Mahogany Setup"  var:max_dbh_exotic;
 	parameter "Age for planting (Exotic)" category: "Mahogany Setup"  var:min_dbh_exotic;
+	parameter "Number of fruits per year (Exotic)" category: "Mahogany Setup" var: ave_fruits_exotic;
 	
 	parameter "Growth rate (Native)" category: "Mayapis Setup" var:growth_rate_native;
 	parameter "Max DBH (Native)" category: "Mayapis Setup"  var:max_dbh_native;
 	parameter "Age for planting (Native)" category: "Mayapis Setup"  var:min_dbh_native;
+	parameter "Number of fruits per year (Native)" category: "Mayapis Setup" var: ave_fruits_native;
 	
 	output {
 		layout #split;
@@ -442,7 +446,7 @@ experiment main type: gui {
 		}
 		
 		display chart1{	
-			chart "Distribution of Trees" type: histogram
+			chart "Distribution of Trees" type: pie
 			{
 				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
 				data "Native Trees" value: length(trees where (each.type = 0)) color: #green;
