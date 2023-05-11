@@ -319,7 +319,7 @@ species trees{
 	
 	//recruitment of tree
 	//mahogany fruit production every January, February, March, August, and December 
-	reflex fruitProduction when: ([0,1,2,7,11] contains current_month){
+	reflex fruitProduction{
 		list<int> fruiting_months <- [0,1,2,7,11];
 		
 		float sfruit <- 42.4;
@@ -329,25 +329,28 @@ species trees{
 		
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
-		if(dbh >= 75){
+		if(dbh >= 75 and ([0,1,2,7,11] contains current_month) and type = 1){
 			int total_no_seeds <- int((700/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
-			do recruitTree(total_no_seeds);
+			geometry t_space <- circle(self.dbh, self.location + (40#m))- circle(self.dbh, self.location+ (20#m));
+			list<trees> t_inside_zone <- (my_plot.plot_trees at_distance 40#m)-(my_plot.plot_trees at_distance 20#m);
+			do recruitTree(total_no_seeds, t_space, t_inside_zone);
+		}else if(type = 0 and age > 15 and current_month = 8){
+			int total_no_seeds <- int((100)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
+			geometry t_space <- circle(self.dbh, self.location+ (20 #m));
+			list<trees> t_inside_zone <- (my_plot.plot_trees at_distance 20#m);
+			do recruitTree(total_no_seeds, t_space, t_inside_zone);
 		}	
 	}
 	
-	action recruitTree(int total_no_seeds){
+	action recruitTree(int total_no_seeds, geometry t_space, list<trees> t_inside_zone){
 		//determine available space in the parcel within 20m to 40m
-		geometry t_space <- circle(self.dbh, self.location + (40 #m)) - circle(self.dbh, self.location+ (20 #m));
 		
-		ask my_plot{
-			list<trees> t_inside_zone <- (plot_trees at_distance 20) + (plot_trees at_distance 40);
-			if(length(t_inside_zone) > 0){	//check if there are trees inside the zone, then remove the spaces occupied by the trees 
-				//do not include spaces occupied by trees
-				ask t_inside_zone{
-					if(empty(t_space)){break;} //stop when there's no more space 
-					geometry occupied_spaces <- circle(self.dbh #cm) translated_to self.location;
-					t_space <- t_space - occupied_spaces;
-				}
+		if(length(t_inside_zone) > 0){	//check if there are trees inside the zone, then remove the spaces occupied by the trees 
+			//do not include spaces occupied by trees
+			ask t_inside_zone{
+				if(empty(t_space)){break;} //stop when there's no more space 
+				geometry occupied_spaces <- circle(self.dbh #cm) translated_to self.location;
+				t_space <- t_space - occupied_spaces;
 			}
 		}
 			
@@ -357,11 +360,12 @@ species trees{
 			if(empty(t_space)){break;}	//don't add seeds if there are no space
 			create trees{			
 				age <- 1;
-				type <- 1;	//mahogany
+				type <- self.type;	//mahogany
 				shade_tolerant <- false;
 				dbh <- 0.7951687878;
 				location <- any_location_in(t_space);	//place tree on an unoccupied portion of the parcel
 				//location <- any_location_in(myself.chosenParcel.shape);	//same as above
+				my_plot <- plot(agent_closest_to(self));
 				my_plot <- myself.my_plot;
 				myself.my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
 				
@@ -381,7 +385,6 @@ species trees{
 			dbh <- max_dbh_native * (1-exp(-mayapis_von_gr * (cur_month+age)));
 		}else if(type = 1){	//mahogany
 			dbh <- max_dbh_exotic * (1-exp(-mahogany_von_gr * (cur_month+age)));
-			write "DBH: "+dbh+" Age: "+age;
 		}
 	}	
 	
