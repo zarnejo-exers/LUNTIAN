@@ -333,11 +333,11 @@ species trees{
 		//produces more than 700 fruits/year 
 		if(dbh >= 75 and ([0,1,2,7,11] contains current_month) and type = 1){
 			int total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
-			geometry t_space <- circle((self.dbh #cm)+(40 #cm), self.location)- circle((self.dbh #cm)+(20 #cm), self.location);
+			geometry t_space <- circle((self.dbh)+(40), self.location)- circle((self.dbh)+(20), self.location);
 			do recruitTree(total_no_seeds, t_space);
 		}else if(type = 0 and age > 15 and current_month = 8){
 			int total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
-			geometry t_space <- circle((self.dbh #cm)+(40 #cm), self.location);
+			geometry t_space <- circle((self.dbh)+(40), self.location);
 			do recruitTree(total_no_seeds, t_space);
 		}	
 	}
@@ -350,13 +350,13 @@ species trees{
 			//do not include spaces occupied by trees
 			ask t_inside_zone{
 				if(empty(t_space)){break;} //stop when there's no more space 
-				geometry occupied_spaces <- circle(self.dbh #cm) translated_to self.location;
+				geometry occupied_spaces <- circle(self.dbh) translated_to self.location;
 				t_space <- t_space - occupied_spaces;
 			}
 		}
 			
 		//create new trees	
-		int count <- 0;	
+		int count <- 0;
 		loop i from: 0 to: total_no_seeds-1 {
 			if(empty(t_space)){write "breaking... "; break;}	//don't add seeds if there are no space
 			create trees{			
@@ -370,7 +370,7 @@ species trees{
 				my_plot <- self.my_plot;
 				myself.my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
 				
-				geometry circle_tree <- circle(dbh #cm) translated_to location;
+				geometry circle_tree <- circle(dbh) translated_to location;
 				t_space <- t_space - circle_tree;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	//add new tree to parcel's list of trees
 		}
