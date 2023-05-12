@@ -333,19 +333,18 @@ species trees{
 		//produces more than 700 fruits/year 
 		if(dbh >= 75 and ([0,1,2,7,11] contains current_month) and type = 1){
 			int total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
-			geometry t_space <- circle(self.dbh, self.location + (40#m))- circle(self.dbh, self.location+ (20#m));
-			list<trees> t_inside_zone <- (my_plot.plot_trees at_distance 40#m)-(my_plot.plot_trees at_distance 20#m);
-			do recruitTree(total_no_seeds, t_space, t_inside_zone);
+			geometry t_space <- circle((self.dbh #cm)+(40 #cm), self.location)- circle((self.dbh #cm)+(20 #cm), self.location);
+			do recruitTree(total_no_seeds, t_space);
 		}else if(type = 0 and age > 15 and current_month = 8){
 			int total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
-			geometry t_space <- circle(self.dbh, self.location+ (20 #m));
-			list<trees> t_inside_zone <- (my_plot.plot_trees at_distance 20#m);
-			do recruitTree(total_no_seeds, t_space, t_inside_zone);
+			geometry t_space <- circle((self.dbh #cm)+(40 #cm), self.location);
+			do recruitTree(total_no_seeds, t_space);
 		}	
 	}
 	
-	action recruitTree(int total_no_seeds, geometry t_space, list<trees> t_inside_zone){
+	action recruitTree(int total_no_seeds, geometry t_space){
 		//determine available space in the parcel within 20m to 40m
+		list<trees> t_inside_zone <- my_plot.plot_trees inside t_space; 
 		
 		if(length(t_inside_zone) > 0){	//check if there are trees inside the zone, then remove the spaces occupied by the trees 
 			//do not include spaces occupied by trees
@@ -358,25 +357,23 @@ species trees{
 			
 		//create new trees	
 		int count <- 0;	
-		loop i from: 0 to: length(total_no_seeds){
-			if(empty(t_space)){break;}	//don't add seeds if there are no space
+		loop i from: 0 to: total_no_seeds-1 {
+			if(empty(t_space)){write "breaking... "; break;}	//don't add seeds if there are no space
 			create trees{			
 				age <- 1;
-				type <- self.type;	//mahogany
+				type <- myself.type;	//mahogany
 				shade_tolerant <- false;
 				dbh <- 0.7951687878;
 				location <- any_location_in(t_space);	//place tree on an unoccupied portion of the parcel
 				//location <- any_location_in(myself.chosenParcel.shape);	//same as above
 				my_plot <- plot(agent_closest_to(self));
-				my_plot <- myself.my_plot;
+				my_plot <- self.my_plot;
 				myself.my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
 				
-				geometry circle_tree <- circle(self.dbh #cm) translated_to self.location;
+				geometry circle_tree <- circle(dbh #cm) translated_to location;
 				t_space <- t_space - circle_tree;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	//add new tree to parcel's list of trees
-			count <- count + 1;
-		}		
-		write "New trees: "+count;
+		}
 	}
 	
 	//growth of tree
@@ -426,7 +423,7 @@ experiment main type: gui {
 	
 	output {
 		layout #split;
-		display ITP type: opengl camera:#isometric{
+		/*display ITP type: opengl camera:#isometric{
 			species plot; 
 			species soil aspect: default;
 			species climate aspect: default;
@@ -443,10 +440,10 @@ experiment main type: gui {
 					}
 				}
 			}
-		}
+		}*/
 		
 		display chart1{	
-			chart "Distribution of Trees" type: pie
+			chart "Distribution of Trees" type: series
 			{
 				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
 				data "Native Trees" value: length(trees where (each.type = 0)) color: #green;
