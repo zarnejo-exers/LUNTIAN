@@ -362,11 +362,10 @@ species trees{
 			geometry new_shape;
 			if(new_location = nil){break;}	//don't add seeds if there are no space
 			else{
-				geometry circle_tree <- circle(dbh) translated_to new_location;
-				new_shape <- circle_tree;
-				if(circle_tree.area > t_space.area){break;}	//don't add if tree is greater than available space
+				new_shape <- circle(dbh) translated_to new_location;
+				if(new_shape.area > t_space.area){break;}	//don't add if tree is greater than available space
 				else{
-					t_space <- t_space - circle_tree;
+					t_space <- t_space - new_shape;
 				}
 			}
 			create trees{			
