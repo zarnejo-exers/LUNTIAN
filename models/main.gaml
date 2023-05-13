@@ -354,24 +354,32 @@ species trees{
 				t_space <- t_space - occupied_spaces;
 			}
 		}
-			
 		//create new trees	
 		int count <- 0;
 		loop i from: 0 to: total_no_seeds-1 {
-			if(empty(t_space)){write "breaking... "; break;}	//don't add seeds if there are no space
+			//setting location of the new tree 
+			point new_location <- any_location_in(t_space);
+			geometry new_shape;
+			if(new_location = nil){break;}	//don't add seeds if there are no space
+			else{
+				geometry circle_tree <- circle(dbh) translated_to new_location;
+				new_shape <- circle_tree;
+				if(circle_tree.area > t_space.area){break;}	//don't add if tree is greater than available space
+				else{
+					t_space <- t_space - circle_tree;
+				}
+			}
 			create trees{			
 				age <- 1;
 				type <- myself.type;	//mahogany
 				shade_tolerant <- false;
 				dbh <- 0.7951687878;
-				location <- any_location_in(t_space);	//place tree on an unoccupied portion of the parcel
+				location <- new_location;	//place tree on an unoccupied portion of the parcel
 				//location <- any_location_in(myself.chosenParcel.shape);	//same as above
 				my_plot <- plot(agent_closest_to(self));
 				my_plot <- self.my_plot;
 				myself.my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
-				
-				geometry circle_tree <- circle(dbh) translated_to location;
-				t_space <- t_space - circle_tree;
+				shape <- new_shape;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	//add new tree to parcel's list of trees
 		}
 	}
