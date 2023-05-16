@@ -59,18 +59,18 @@ global {
 	float min_dbh_native <- 1.0 update: min_dbh_native;
 	int ave_fruits_native <- 100 update: ave_fruits_native;
 	
-	float min_water_native<- 300.0 update: min_water_native;	//temp value
-	float max_water_native<- 1000.0 update: max_water_native;	//temp value
+	float min_water_native<- 1500.0 update: min_water_native;	//best grow, annual
+	float max_water_native<- 3500.0 update: max_water_native;	//best grow, annual
 	float min_temp_native <- 20.0 update: min_temp_native;	//temp value
 	float max_temp_native <- 34.0 update: max_temp_native;
 	float min_pH_native <- 4.5 update: min_pH_native;	//temp value
 	float max_pH_native <- 7.5 update: max_pH_native;	//temp value
-	float min_water_exotic <- 400.0 update: min_water_exotic;	//temp value 
-	float max_water_exotic <- 1000.0 update: max_water_exotic;	//temp value
+	float min_water_exotic <- 2000.0 update: min_water_exotic;	//best grow, annual 
+	float max_water_exotic <- 4000.0 update: max_water_exotic;	//best grow, annual
 	float min_temp_exotic <- 20.0 update: min_temp_exotic; 		//best grow
 	float max_temp_exotic <- 30.0 update: max_temp_exotic;		//best grow
-	float min_pH_exotic <- 6.0 update: min_pH_exotic;
-	float max_pH_exotic <- 8.5 update: max_pH_exotic;
+	float min_pH_exotic <- 6.5 update: min_pH_exotic;			//best grow
+	float max_pH_exotic <- 7.5 update: max_pH_exotic;			//best grow
 	
 	list<float> min_water <- [min_water_native, min_water_exotic];
 	list<float> max_water <- [max_water_native, max_water_exotic];
@@ -88,12 +88,13 @@ global {
 
 	
 	init {
-		create climate from: Precip_TAverage with: 
-		[
-			temperature::[float(get("1_TAvg")),float(get("2_TAvg")),float(get("3_TAvg")),float(get("4_TAvg")),float(get("5_TAvg")),float(get("6_TAvg")),float(get("7_TAvg")),float(get("8_TAvg")),float(get("9_TAvg")),float(get("10_TAvg")),float(get("11_TAvg")),float(get("12_TAvg"))],
-			precipitation::[float(get("1_Prec")),float(get("2_Prec")),float(get("3_Prec")),float(get("4_Prec")),float(get("5_Prec")),float(get("6_Prec")),float(get("7_Prec")),float(get("8_Prec")),float(get("9_Prec")),float(get("10_Prec")),float(get("11_Prec")),float(get("12_Prec"))],
-			etp::[float(get("1_ETP")),float(get("2_ETP")),float(get("3_ETP")),float(get("4_ETP")),float(get("5_ETP")),float(get("6_ETP")),float(get("7_ETP")),float(get("8_ETP")),float(get("9_ETP")),float(get("10_ETP")),float(get("11_ETP")),float(get("12_ETP"))]
-		];
+		create climate from: Precip_TAverage {
+			temperature <- [float(get("1_TAvg")),float(get("2_TAvg")),float(get("3_TAvg")),float(get("4_TAvg")),float(get("5_TAvg")),float(get("6_TAvg")),float(get("7_TAvg")),float(get("8_TAvg")),float(get("9_TAvg")),float(get("10_TAvg")),float(get("11_TAvg")),float(get("12_TAvg"))];
+			precipitation <- [float(get("1_Prec")),float(get("2_Prec")),float(get("3_Prec")),float(get("4_Prec")),float(get("5_Prec")),float(get("6_Prec")),float(get("7_Prec")),float(get("8_Prec")),float(get("9_Prec")),float(get("10_Prec")),float(get("11_Prec")),float(get("12_Prec"))];
+			etp <- [float(get("1_ETP")),float(get("2_ETP")),float(get("3_ETP")),float(get("4_ETP")),float(get("5_ETP")),float(get("6_ETP")),float(get("7_ETP")),float(get("8_ETP")),float(get("9_ETP")),float(get("10_ETP")),float(get("11_ETP")),float(get("12_ETP"))];
+		
+			total_precipitation <- sum(precipitation);	
+		}
 		create soil from: Soil_Group with: [id::int(get("VALUE")), soil_pH::float(get("Average_pH"))];
 		
 		//clean_network(road_shapefile.contents,tolerance,split_lines,reduce_to_main_connected_components
@@ -272,6 +273,7 @@ species climate{
 	list<float> temperature;						
 	list<float> precipitation;
 	list<float> etp;
+	float total_precipitation;
 	int year <- 0;
 	
 	geometry display_shape <- shape + 50.0;
@@ -421,6 +423,7 @@ species trees{
 		}
 	}	
 	
+	//the best range
 	float reduceGrowth(float curr, float min, float max){
 		float ave <- (max + min)/2;
 		float coeff;
@@ -431,7 +434,7 @@ species trees{
 			coeff <- -((curr/(max-ave))+(max/(max-ave)));
 		}
 		
-		if(coeff<= 0.01){coeff <- 1.0;}
+		if(coeff<= 0.01 or coeff > 1.0){coeff <- 1.0;}	//for the meantime, if the coeff is very small or curr is greater than the max  value
 		return coeff;
 	}
 	
@@ -439,17 +442,13 @@ species trees{
 		float curr_temp <- my_plot.my_climate.temperature[current_month];
 		float curr_pH <- my_plot.my_soil.soil_pH;
 		float curr_water <- water_content[location];
+		float percent_precip <- my_plot.my_climate.precipitation[current_month]/my_plot.my_climate.total_precipitation;
 		
 		float g_coeff <- 1.0;
-		//coefficient given temperature
-		g_coeff <- g_coeff * reduceGrowth(curr_temp, min_temp[t_type], max_temp[t_type]);
-		//coefficient given soil pH
-		g_coeff <- g_coeff * reduceGrowth(curr_pH, min_pH[t_type], max_pH[t_type]);
-		//coefficient given water
-		g_coeff <- g_coeff * reduceGrowth(curr_water, min_water[t_type], max_water[t_type]);
+		g_coeff <- g_coeff * reduceGrowth(curr_temp, min_temp[t_type], max_temp[t_type]);	//coefficient given temperature
+		g_coeff <- g_coeff * reduceGrowth(curr_pH, min_pH[t_type], max_pH[t_type]);			//coefficient given soil pH
+		g_coeff <- g_coeff * reduceGrowth(curr_water, min_water[t_type]*percent_precip, max_water[t_type]*percent_precip);//coefficient given water (considering only the percentage of precipitation given current month over the total annual precipitation)
 		
-		//write "temp: "+reduceGrowth(curr_temp, min_temp[t_type], max_temp[t_type])+" soil pH: "+reduceGrowth(curr_pH, min_pH[t_type], max_pH[t_type])+" water: "+reduceGrowth(curr_water, min_water[t_type], max_water[t_type]);
-		//write "Final coeff"+g_coeff;//+" where: temp-"+reduceGrowth(curr_temp, min_temp[t_type], max_temp[t_type])+" pH-"+reduceGrowth(curr_pH, min_pH[t_type], max_pH[t_type])+" water-"+reduceGrowth(curr_water, min_water[t_type], max_water[t_type]);
 		return g_coeff;
 	}
 	//height of tree
@@ -478,23 +477,11 @@ experiment main type: gui {
 	parameter "Max DBH (Exotic)" category: "Mahogany Setup"  var:max_dbh_exotic;
 	parameter "Age for planting (Exotic)" category: "Mahogany Setup"  var:min_dbh_exotic;
 	parameter "Number of fruits per year (Exotic)" category: "Mahogany Setup" var: ave_fruits_exotic;
-	parameter "Water requirement (min_E): " category: "Mahogany Setup" var: min_water_exotic;
-	parameter "Water requirement (max_E): " category: "Mahogany Setup" var: max_water_exotic;
-	parameter "Temperature requirement (min_E): " category: "Mahogany Setup" var: min_temp_exotic;
-	parameter "Temperature requirement (max_E): " category: "Mahogany Setup" var: max_temp_exotic;
-	parameter "Soil pH requirement (min_E): " category: "Mahogany Setup" var: min_pH_exotic;
-	parameter "Soil pH requirement (max_E): " category: "Mahogany Setup" var: max_pH_exotic; 
 	
 	parameter "Growth rate (Native)" category: "Mayapis Setup" var:growth_rate_native;
 	parameter "Max DBH (Native)" category: "Mayapis Setup"  var:max_dbh_native;
 	parameter "Age for planting (Native)" category: "Mayapis Setup"  var:min_dbh_native;
 	parameter "Number of fruits per year (Native)" category: "Mayapis Setup" var: ave_fruits_native;
-	parameter "Water requirement (min_N): " category: "Mayapis Setup" var: min_water_native;
-	parameter "Water requirement (max_N): " category: "Mayapis Setup" var: max_water_native;
-	parameter "Temperature requirement (min_N): " category: "Mayapis Setup" var: min_temp_native;
-	parameter "Temperature requirement (max_N): " category: "Mayapis Setup" var: max_temp_native;
-	parameter "Soil pH requirement (min_N): " category: "Mayapis Setup" var: min_pH_native;
-	parameter "Soil pH requirement (max_N): " category: "Mayapis Setup" var: max_pH_native;
 	
 	output {
 		layout #split;
