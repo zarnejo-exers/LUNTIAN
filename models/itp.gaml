@@ -5,7 +5,7 @@
 * Tags: waterwater_content from "Waterwater_content Field Elevation.gaml"
 */
 
-model main
+model ITP
 
 global {
 	int NB_TS <- 12; //monthly timestep, constant
@@ -59,26 +59,13 @@ global {
 	float min_dbh_native <- 1.0 update: min_dbh_native;
 	int ave_fruits_native <- 100 update: ave_fruits_native;
 	
-	float min_water_native<- 1500.0 update: min_water_native;	//best grow, annual
-	float max_water_native<- 3500.0 update: max_water_native;	//best grow, annual
-	float min_temp_native <- 20.0 update: min_temp_native;	//temp value
-	float max_temp_native <- 34.0 update: max_temp_native;
-	float min_pH_native <- 4.5 update: min_pH_native;	//temp value
-	float max_pH_native <- 7.5 update: max_pH_native;	//temp value
-	float min_water_exotic <- 2000.0 update: min_water_exotic;	//best grow, annual 
-	float max_water_exotic <- 4000.0 update: max_water_exotic;	//best grow, annual
-	float min_temp_exotic <- 20.0 update: min_temp_exotic; 		//best grow
-	float max_temp_exotic <- 30.0 update: max_temp_exotic;		//best grow
-	float min_pH_exotic <- 6.5 update: min_pH_exotic;			//best grow
-	float max_pH_exotic <- 7.5 update: max_pH_exotic;			//best grow
-	
-	list<float> min_water <- [min_water_native, min_water_exotic];
-	list<float> max_water <- [max_water_native, max_water_exotic];
-	list<float> min_pH <- [min_pH_native, min_pH_exotic];
-	list<float> max_pH <- [max_pH_native, max_pH_exotic];
-	list<float> min_temp <- [min_temp_native, min_temp_exotic];
-	list<float> max_temp <- [max_temp_native, max_temp_exotic];
-	
+	list<float> min_water <- [1500.0, 2000.0];						//best grow, annual
+	list<float> max_water <- [3500.0, 4000.0];						//best grow, annual
+	list<float> min_pH <- [4.5, 6.5];								//temp value - best grow
+	list<float> max_pH <- [7.5, 7.5];								//temp value - best grow
+	list<float> min_temp <- [20.0, 20.0];							//temp value - best grow
+	list<float> max_temp <- [34.0, 7.5];							//true value - best grow
+		
 	
 	
 
@@ -470,7 +457,7 @@ species trees{
 	}
 }
 
-experiment main type: gui {
+experiment ITP type: gui {
 	/** Insert here the definition of the input and output of the model */
 	
 	parameter "Growth rate (Exotic)" category: "Mahogany Setup" var:growth_rate_exotic;
