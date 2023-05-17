@@ -52,14 +52,13 @@ species university{
 	
 	//determine if a plot is to be a nursery or not
 	//	where there is a mother tree, it becomes a nursery
-	reflex assignNurseries{
-		ask plot{
-			int mother_count <- length(plot_trees where (each.is_mother_tree=true));
-			if(mother_count > 0){	//at least 1 mother trees	
-				is_nursery <- true;
-			}else{
-				is_nursery <- false;
-			}
+	reflex assignNurseries when: (nursery_count > length(plot where each.is_nursery)){
+		list<plot> candidate_plots <- plot where (length(each.plot_trees where (each.is_mother_tree=true))>0);
+		if(length(candidate_plots) > nursery_count){
+			candidate_plots <- candidate_plots[0::nursery_count];
+		}
+		ask candidate_plots{
+			is_nursery <- true;
 		}
 	}	
 	

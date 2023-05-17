@@ -233,10 +233,14 @@ species plot{
 	bool is_nursery <- false;
 	
 	aspect default{
-		if(length(plot_trees) > 0){
-			draw self.shape color: #gray;
+		if(is_nursery){
+			draw self.shape color: #gold;
 		}else{
-			draw self.shape color: #black;
+			if(length(plot_trees) > 0){
+				draw self.shape color: #gray;
+			}else{
+				draw self.shape color: #black;
+			}
 		}
 	}
 	
