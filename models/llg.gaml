@@ -5,7 +5,8 @@
 * Tags: waterwater_content from "Waterwater_content Field Elevation.gaml"
 */
 
-model ITP
+model llg
+import "actors.gaml"
 
 global {
 	int NB_TS <- 12; //monthly timestep, constant
@@ -64,14 +65,13 @@ global {
 	list<float> min_pH <- [4.5, 6.5];								//temp value - best grow
 	list<float> max_pH <- [7.5, 7.5];								//temp value - best grow
 	list<float> min_temp <- [20.0, 20.0];							//temp value - best grow
-	list<float> max_temp <- [34.0, 7.5];							//true value - best grow
-		
-	
-	
+	list<float> max_temp <- [34.0, 7.5];							//true value - best grow	
 
 	//computed K based on Von Bertalanffy Growth Function 
 	float mahogany_von_gr;
 	float mayapis_von_gr;
+	
+	int nursery_count <- 1 update: nursery_count;
 
 	
 	init {
@@ -229,6 +229,8 @@ species plot{
 	list<trees> plot_trees;
 	soil my_soil <- soil closest_to location;
 	climate my_climate <- climate closest_to location;
+	float investment_value;
+	bool is_nursery <- false;
 	
 	aspect default{
 		if(length(plot_trees) > 0){
@@ -237,6 +239,17 @@ species plot{
 			draw self.shape color: #black;
 		}
 	}
+	
+	action computeReqInvestment{
+		
+	}
+	
+	reflex updateTrees{
+		if(length(plot_trees where dead(each)) > 0){
+			plot_trees <- plot_trees where !dead(each);
+		}
+	}
+	
 }
 
 species soil{
@@ -295,7 +308,7 @@ species river {
 			ask self.plot_trees{
 				do die;
 			}
-			self.plot_trees <- nil;
+			do die;
 		}
 	}
 }
@@ -316,6 +329,7 @@ species trees{
 	bool shade_tolerant;
 	
 	plot my_plot;
+	bool is_mother_tree <- false;
 	
 	aspect default{
 		draw circle(self.dbh, shape.location) color: (type = 0)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
@@ -329,10 +343,13 @@ species trees{
 	//kill tree that are inside a basin
 	reflex killTree{
 		point tree_loc <- shape.location;
-		if(water_content[tree_loc]-275 > elev[tree_loc]){
-			if(my_plot != nil) {remove self from: my_plot.plot_trees;}
-			do die;
-		}else if(my_plot = nil) {do die;}
+		if(my_plot = nil) {do die;}
+		else{
+			if(water_content[tree_loc]-275 > elev[tree_loc]){
+				remove self from: my_plot.plot_trees;
+				do die;
+			}
+		} 
 	}
 	
 	//recruitment of tree
@@ -344,17 +361,23 @@ species trees{
 		float fsurv <- 0.085;
 		float fgap <- 0.026;
 		float fviable <- 0.618;
-		
+		int total_no_seeds <- 0;
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
 		if(dbh >= 75 and ([0,1,2,7,11] contains current_month) and type = 1){
-			int total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
-			geometry t_space <- circle((self.dbh)+(40), self.location)- circle((self.dbh)+(20), self.location);
-			do recruitTree(total_no_seeds, t_space);
+			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
+			if(total_no_seeds > 0){
+				is_mother_tree <- true;
+				geometry t_space <- circle((self.dbh)+(40), self.location)- circle((self.dbh)+(20), self.location);
+				do recruitTree(total_no_seeds, t_space);	
+			}else{is_mother_tree <- false;}
 		}else if(type = 0 and age > 15 and current_month = 8){
-			int total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
-			geometry t_space <- circle((self.dbh)+(40), self.location);
-			do recruitTree(total_no_seeds, t_space);
+			total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
+			if(total_no_seeds > 0){
+				is_mother_tree <- true;
+				geometry t_space <- circle((self.dbh)+(40), self.location);
+				do recruitTree(total_no_seeds, t_space);
+			}else{is_mother_tree <- false;}
 		}	
 	}
 	
@@ -453,50 +476,6 @@ species trees{
 		if(flip(proba_dead)){
 			remove self from: my_plot.plot_trees;
 			do die;
-		}
-	}
-}
-
-experiment ITP type: gui {
-	/** Insert here the definition of the input and output of the model */
-	
-	parameter "Growth rate (Exotic)" category: "Mahogany Setup" var:growth_rate_exotic;
-	parameter "Max DBH (Exotic)" category: "Mahogany Setup"  var:max_dbh_exotic;
-	parameter "Age for planting (Exotic)" category: "Mahogany Setup"  var:min_dbh_exotic;
-	parameter "Number of fruits per year (Exotic)" category: "Mahogany Setup" var: ave_fruits_exotic;
-	
-	parameter "Growth rate (Native)" category: "Mayapis Setup" var:growth_rate_native;
-	parameter "Max DBH (Native)" category: "Mayapis Setup"  var:max_dbh_native;
-	parameter "Age for planting (Native)" category: "Mayapis Setup"  var:min_dbh_native;
-	parameter "Number of fruits per year (Native)" category: "Mayapis Setup" var: ave_fruits_native;
-	
-	output {
-		layout #split;
-		display ITP type: opengl camera:#isometric{
-			species plot; 
-			species soil aspect: default;
-			species climate aspect: default;
-			species river aspect: default;	
-			species road aspect: default;					
-			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
-			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ; 
-			species trees aspect: geom3D;
-			
-			graphics "connected components" {
-				loop i from: 0 to: length(connected_components) - 1 {
-					loop j from: 0 to: length(connected_components[i]) - 1 {
-						draw cross(25) color: colors[i] at: connected_components[i][j];	
-					}
-				}
-			}
-		}
-		
-		display chart1{	
-			chart "Distribution of Trees" type: series
-			{
-				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
-				data "Native Trees" value: length(trees where (each.type = 0)) color: #green;
-			}		
 		}
 	}
 }

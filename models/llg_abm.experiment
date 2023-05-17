@@ -1,0 +1,56 @@
+/**
+* Name: itp
+* This wizard creates a new experiment file. 
+* Author: admin
+* Tags: 
+*/
+
+experiment LLG_ABM model: "actors.gaml" type: gui {
+	/** Insert here the definition of the input and output of the model */
+	
+	parameter "Growth rate (Exotic)" category: "Mahogany Setup" var:growth_rate_exotic;
+	parameter "Max DBH (Exotic)" category: "Mahogany Setup"  var:max_dbh_exotic;
+	parameter "Age for planting (Exotic)" category: "Mahogany Setup"  var:min_dbh_exotic;
+	parameter "Number of fruits per year (Exotic)" category: "Mahogany Setup" var: ave_fruits_exotic;
+	
+	parameter "Growth rate (Native)" category: "Mayapis Setup" var:growth_rate_native;
+	parameter "Max DBH (Native)" category: "Mayapis Setup"  var:max_dbh_native;
+	parameter "Age for planting (Native)" category: "Mayapis Setup"  var:min_dbh_native;
+	parameter "Number of fruits per year (Native)" category: "Mayapis Setup" var: ave_fruits_native;
+	
+	parameter "Number of initial investors" category: "Investors" var: investor_count min: 0 step: 1;
+	parameter "Size of investable plot" category: "Investors" var: plot_size min: 1 step: 1;
+	
+	parameter "Number of nurseries" category: "Management" var: nursery_count min: 1 step: 1;
+	
+	output {
+		layout #split;
+		display ITP type: opengl camera:#isometric{
+			species plot; 
+			species soil aspect: default;
+			species climate aspect: default;
+			species river aspect: default;	
+			species road aspect: default;					
+			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
+			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ; 
+			species trees aspect: geom3D;
+			species university; 
+			
+			graphics "connected components" {
+				loop i from: 0 to: length(connected_components) - 1 {
+					loop j from: 0 to: length(connected_components[i]) - 1 {
+						draw cross(25) color: colors[i] at: connected_components[i][j];	
+					}
+				}
+			}
+		}
+		
+		display chart1{	
+			chart "Distribution of Trees" type: series
+			{
+				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
+				data "Native Trees" value: length(trees where (each.type = 0)) color: #green;
+			}		
+		}
+	}
+}
