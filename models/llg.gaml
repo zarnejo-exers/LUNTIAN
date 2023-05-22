@@ -226,99 +226,6 @@ global {
 	}
 }
 
-species plot{
-	list<trees> plot_trees;
-	soil my_soil <- soil closest_to location;
-	climate my_climate <- climate closest_to location;
-	float investment_value;
-	bool is_nursery <- false;
-	
-	aspect default{
-		if(is_nursery){
-			draw self.shape color: #gold;
-		}else{
-			if(length(plot_trees) > 0){
-				draw self.shape color: #gray;
-			}else{
-				draw self.shape color: #black;
-			}
-		}
-	}
-	
-	action computeReqInvestment{
-		
-	}
-	
-	reflex updateTrees{
-		if(length(plot_trees where dead(each)) > 0){
-			plot_trees <- plot_trees where !dead(each);
-		}
-	}
-	
-}
-
-species soil{
-	float S; //potential maximum soil moisture 
-	int curve_number; 
-	int id;
-	float soil_pH;
-	
-	geometry display_shape <- shape + 50.0;
-	aspect default{
-		//draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
-		draw display_shape color: #brown depth: 3.0;// at: {location.x,location.y,location.z} 200
-	}
-	
-	init{
-		curve_number <- (id = 3)? 70: 77;	//see https://engineering.purdue.edu/mapserve/LTHIA7/documentation/scs.htm
-		S <- (1000/curve_number) - 10;
-	}
-}
-species climate{
-	list<float> temperature;						
-	list<float> precipitation;
-	list<float> etp;
-	float total_precipitation;
-	int year <- 0;
-	
-	geometry display_shape <- shape + 50.0;
-	aspect default{
-		//draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
-		draw display_shape color: #yellow depth: 3.0;// at: {location.x,location.y,location.z} 200
-	}
-}
-//Species to represent the roads
-species road {
-	geometry display_shape <- shape + 5.0;
-	aspect default {
-		//draw display_shape color: #black depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+250]};//250
-		draw display_shape color: #black;// depth: 3.0 at: {location.x,location.y,location.z};//200
-	}
-}
-
-species river {
-	geometry display_shape <- shape + 5.0;
-	list<point> my_rcells <- water_content points_in display_shape;
-	int node_id; 
-	int drain_node;
-	int strahler;
-	
-	aspect default {
-		//draw display_shape color: #blue depth: 3 at: {location.x,location.y,terrain[point(location.x, location.y)]+250};//250
-		draw display_shape color: #blue;// at: {location.x,location.y,location.z};//200
-	}
-	
-	//remove trees inside the river
-	init cleaning_river{
-		ask plot overlapping self{
-			ask self.plot_trees{
-				do die;
-			}
-			do die;
-		}
-	}
-}
-
 species trees{
 	float dbh; //diameter at breast height
 	float th; //total height
@@ -353,6 +260,7 @@ species trees{
 		else{
 			if(water_content[tree_loc]-275 > elev[tree_loc]){
 				remove self from: my_plot.plot_trees;
+				my_plot.is_near_water <- true;
 				do die;
 			}
 		} 
@@ -439,12 +347,11 @@ species trees{
 	
 	//growth of tree
 	reflex growDiameter {	
-		float cur_month <- (cycle mod 12)/12;
 		//write "cur_month: "+cur_month;
 		if(type = 0){ //mayapis
-			dbh <- (max_dbh_native * (1-exp(-mayapis_von_gr * (cur_month+age))))*growthCoeff(type);
+			dbh <- (max_dbh_native * (1-exp(-mayapis_von_gr * (current_month+age))))*growthCoeff(type);
 		}else if(type = 1){	//mahogany
-			dbh <- (max_dbh_exotic * (1-exp(-mahogany_von_gr * (cur_month+age))))*growthCoeff(type);
+			dbh <- (max_dbh_exotic * (1-exp(-mahogany_von_gr * (current_month+age))))*growthCoeff(type);
 		}
 	}	
 	
@@ -490,6 +397,127 @@ species trees{
 		
 		if(flip(proba_dead)){
 			remove self from: my_plot.plot_trees;
+			do die;
+		}
+	}
+}
+
+species plot{
+	list<trees> plot_trees;
+	soil my_soil <- soil closest_to location;
+	climate my_climate <- climate closest_to location;
+	float investment_value;
+	bool is_nursery <- false;
+	bool is_investable <- false;
+	bool is_near_water <- false;
+	
+	aspect default{
+		if(is_nursery){
+			draw self.shape color: #gold;
+		}else if(is_investable){
+			draw self.shape color: #turquoise;
+		}else{
+			if(length(plot_trees) > 0){
+				draw self.shape color: #gray;
+			}else{
+				draw self.shape color: #black;
+			}
+		}
+	}
+	
+	action updateTrees{
+		if(length(plot_trees where dead(each)) > 0){
+			plot_trees <- plot_trees where !dead(each);
+		}
+	}
+	
+	action computeReqInvestment{
+		
+	}
+	
+	//compute the number of new tree that the plot can accommodate
+	//given type of tree, returns the number of spaces that can be accommodate wildlings
+	int getAvailableSpaces(int type){
+		do updateTrees;
+		
+		//remove from occupied spaces
+		geometry temp_shape <- self.shape;
+		loop pt over: plot_trees{
+			geometry occupied_space <- circle(pt.dbh) translated_to pt.location;
+			temp_shape <- temp_shape - occupied_space;
+		}
+		
+		float temp_dbh;
+		ask university{
+			temp_dbh <- managementDBHEstimate(type, planting_age);
+		}
+		geometry tree_shape <- circle(temp_dbh);
+		
+		if(temp_shape = nil){return 0;}
+		else{
+			return int(temp_shape.area/tree_shape.area);	//rough estimate of the number of available spaces for occupation
+		}	
+	}
+	
+}
+
+species soil{
+	float S; //potential maximum soil moisture 
+	int curve_number; 
+	int id;
+	float soil_pH;
+	
+	geometry display_shape <- shape + 50.0;
+	aspect default{
+		//draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
+		draw display_shape color: #brown depth: 3.0;// at: {location.x,location.y,location.z} 200
+	}
+	
+	init{
+		curve_number <- (id = 3)? 70: 77;	//see https://engineering.purdue.edu/mapserve/LTHIA7/documentation/scs.htm
+		S <- (1000/curve_number) - 10;
+	}
+}
+species climate{
+	list<float> temperature;						
+	list<float> precipitation;
+	list<float> etp;
+	float total_precipitation;
+	int year <- 0;
+	
+	geometry display_shape <- shape + 50.0;
+	aspect default{
+		//draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
+		draw display_shape color: #yellow depth: 3.0;// at: {location.x,location.y,location.z} 200
+	}
+}
+//Species to represent the roads
+species road {
+	geometry display_shape <- shape + 5.0;
+	aspect default {
+		//draw display_shape color: #black depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+250]};//250
+		draw display_shape color: #black;// depth: 3.0 at: {location.x,location.y,location.z};//200
+	}
+}
+
+species river {
+	geometry display_shape <- shape + 5.0;
+	list<point> my_rcells <- water_content points_in display_shape;
+	int node_id; 
+	int drain_node;
+	int strahler;
+	
+	aspect default {
+		//draw display_shape color: #blue depth: 3 at: {location.x,location.y,terrain[point(location.x, location.y)]+250};//250
+		draw display_shape color: #blue;// at: {location.x,location.y,location.z};//200
+	}
+	
+	//remove trees inside the river
+	init cleaning_river{
+		ask plot overlapping self{
+			ask self.plot_trees{
+				do die;
+			}
 			do die;
 		}
 	}

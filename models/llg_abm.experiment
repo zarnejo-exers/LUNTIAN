@@ -12,11 +12,13 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 	parameter "Max DBH (Exotic)" category: "Mahogany Setup"  var:max_dbh_exotic;
 	parameter "Age for planting (Exotic)" category: "Mahogany Setup"  var:min_dbh_exotic;
 	parameter "Number of fruits per year (Exotic)" category: "Mahogany Setup" var: ave_fruits_exotic;
+	parameter "Harvesting age (Exotic)" category: "Mahogany Setup" var: harvesting_age_exotic;
 	
 	parameter "Growth rate (Native)" category: "Mayapis Setup" var:growth_rate_native;
 	parameter "Max DBH (Native)" category: "Mayapis Setup"  var:max_dbh_native;
 	parameter "Age for planting (Native)" category: "Mayapis Setup"  var:min_dbh_native;
 	parameter "Number of fruits per year (Native)" category: "Mayapis Setup" var: ave_fruits_native;
+	parameter "Harvesting age (native)" category: "Mahogany Setup" var: harvesting_age_native;
 	
 	parameter "Number of initial investors" category: "Investors" var: investor_count min: 0 step: 1;
 	parameter "Size of investable plot" category: "Investors" var: plot_size min: 1 step: 1;
@@ -24,6 +26,8 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 	parameter "Number of laborers" category: "Management" var: laborer_count min: 1 step: 1;
 	parameter "Number of nurseries" category: "Management" var: nursery_count min: 1 step: 1;
 	parameter "Number of wildlings for planting" category: "Management" var: required_wildlings min: 1 step: 1;
+	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
+	parameter "Planting age" category: "Management" var: planting_age min: 1;
 	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
 	
 	output {
