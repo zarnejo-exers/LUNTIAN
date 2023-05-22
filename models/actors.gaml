@@ -63,10 +63,12 @@ species university{
 	list<plot> my_nurseries <- (plot where each.is_nursery) update: (plot where each.is_nursery);	//list of nurseries managed by university
 	list<plot> investable_plots;
 	
-	float mcost_native <- 5.0; //maintenance cost in man hours of labor
-	float mcost_exotic <- 4.0; //maintenance cost in man hours of labor
+	float mcost_of_native <- 5.0; //management cost in man hours of labor
+	float mcost_of_exotic <- 4.0; //management cost in man hours of labor
+	float pcost_of_native <- 1.0;	//planting cost in man hours of labor
+	float pcost_of_exotic <- 1.0;	//planting cost in man hours of labor
 	
-	float labor_cost <- 3.0; //per hour
+	float labor_price <- 3.0; //per hour
 	
 	/*
 	 * Determine amount of investment needed per hectare
@@ -77,19 +79,26 @@ species university{
 		
 	}
 	
+	float getPlantingCost(int t_type){
+		return ((t_type = 1)?pcost_of_exotic:pcost_of_native);
+	}
+	
+	float getManagementCost(int t_type){
+		return ((t_type = 1)?mcost_of_exotic:mcost_of_native);
+	}
+	
 	//for each plot, determine if plot is investable or not
 	//investable -> if (profit > cost & profit > threshold)
 	//profit : current trees in n years, where n = rotation of newly planted trees
 	//cost : number of wildlings that needs to be planted + maintenance cost per wildling
 	//note: consider that the policy of the government will have an effect on the actual profit, where only x% can be harvested from a plot of y area
 	action determineInvestablePlots(int t_type){
-		float planting_cost;
-		float buying_cost;
+		float planting_cost <- getPlantingCost(t_type);
+		float buying_price;
 		int harvest_age <- (t_type=1 ? harvesting_age_exotic: harvesting_age_native);
 		//get the planting cost from the market
 		ask market{
-			planting_cost <- getPlantingCost(t_type);
-			buying_cost <- getBuyingCost(t_type);
+			buying_price <- getBuyingPrice(t_type);
 			
 		}
 		
@@ -101,7 +110,7 @@ species university{
 		ask plot - not_investable_plots{
 			int spaces_for_planting <- getAvailableSpaces(t_type);	//get total number of wildlings that the plot can accommodate
 			
-			float total_cost <- (((planting_cost+(t_type=1?myself.mcost_exotic: myself.mcost_native)) * spaces_for_planting)*myself.labor_cost) ;	//compute total cost in man hours
+			float total_cost <- (((planting_cost+myself.getManagementCost(t_type)) * spaces_for_planting)*myself.labor_price) ;	//compute total cost in man hours
 			int rotation_years <- harvest_age - planting_age;
 			
 			int tree_to_harvest <- int((length(plot_trees)+spaces_for_planting)*harvest_policy);
@@ -111,12 +120,12 @@ species university{
 				if(t_count=tree_to_harvest){break;}
 				int future_age <- pt.age + rotation_years;
 				float future_dbh <- myself.managementDBHEstimate(pt.type, future_age);
-				projected_profit <- projected_profit + (future_dbh*buying_cost);
+				projected_profit <- projected_profit + (future_dbh*buying_price);
 				t_count <- t_count + 1;
 			}
 			
 			float new_tree_dbh <- myself.managementDBHEstimate(t_type, harvest_age);
-			projected_profit <- projected_profit + (new_tree_dbh*buying_cost*(tree_to_harvest - t_count));
+			projected_profit <- projected_profit + (new_tree_dbh*buying_price*(tree_to_harvest - t_count));
 			is_investable <- (projected_profit > total_cost)?true:false;
 			if(is_investable){
 				add self to: myself.investable_plots;
@@ -153,17 +162,11 @@ species university{
 }
 
 species market{
-	float pcost_of_native <- 1.0;	//planting cost in man hours
-	float pcost_of_exotic <- 1.0;	//planting cost in man hours
-	float bcost_of_exotic <- 3.0;	//php per dbh
-	float bcost_of_native <- 5.0; 	//php per dbh
+	float bprice_of_exotic <- 3.0;	//php per dbh
+	float bprice_of_native <- 5.0; 	//php per dbh
 	
-	float getPlantingCost(int t_type){
-		return ((t_type = 1)?pcost_of_exotic:pcost_of_native);
-	}
-	
-	float getBuyingCost(int t_type){
-		return ((t_type = 1)?bcost_of_exotic:bcost_of_native);
+	float getBuyingPrice(int t_type){
+		return ((t_type = 1)?bprice_of_exotic:bprice_of_native);
 	}
 	
 }
