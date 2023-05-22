@@ -49,7 +49,7 @@ global {
 	
 	int current_month <- 0 update:(cycle mod NB_TS);
 	
-	//information about the trees can be compiled in a csv	
+	//note: information about the trees can be compiled in a csv	
 	float growth_rate_exotic <- 0.73 update: growth_rate_exotic;
 	float max_dbh_exotic <- 110.8 update: max_dbh_exotic;
 	float min_dbh_exotic <- 1.0 update: min_dbh_exotic;
@@ -72,6 +72,7 @@ global {
 	float mayapis_von_gr;
 	
 	int nursery_count <- 1 update: nursery_count;
+	float harvest_policy <- 0.5 update: harvest_policy; 
 
 	
 	init {
@@ -297,7 +298,7 @@ species road {
 
 species river {
 	geometry display_shape <- shape + 5.0;
-	list<point> my_rcells <- list<point>(water_content points_in display_shape);
+	list<point> my_rcells <- water_content points_in display_shape;
 	int node_id; 
 	int drain_node;
 	int strahler;
@@ -307,6 +308,7 @@ species river {
 		draw display_shape color: #blue;// at: {location.x,location.y,location.z};//200
 	}
 	
+	//remove trees inside the river
 	init cleaning_river{
 		ask plot overlapping self{
 			ask self.plot_trees{
@@ -366,6 +368,12 @@ species trees{
 		float fgap <- 0.026;
 		float fviable <- 0.618;
 		int total_no_seeds <- 0;
+		
+		list<plot> nurseries;
+		ask university{
+			nurseries <- my_nurseries;
+		}
+		
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
 		if(dbh >= 75 and ([0,1,2,7,11] contains current_month) and type = 1){
@@ -373,7 +381,9 @@ species trees{
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
 				geometry t_space <- circle((self.dbh)+(40), self.location)- circle((self.dbh)+(20), self.location);
-				do recruitTree(total_no_seeds, t_space);	
+				if(length(nurseries) > 0){
+					
+				}else{do recruitTree(total_no_seeds, t_space);}	
 			}else{is_mother_tree <- false;}
 		}else if(type = 0 and age > 15 and current_month = 8){
 			total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
@@ -385,6 +395,7 @@ species trees{
 		}	
 	}
 	
+	//if there is no nursery, put the recruit on the same plot as with the mother tree
 	action recruitTree(int total_no_seeds, geometry t_space){
 		//determine available space in the parcel within 20m to 40m
 		list<trees> t_inside_zone <- my_plot.plot_trees inside t_space; 
