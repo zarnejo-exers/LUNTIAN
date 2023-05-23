@@ -76,7 +76,7 @@ species university{
 	action determineReqInvestment{
 		
 	}
-	
+
 	float getPlantingCost(int t_type){
 		return ((t_type = 1)?pcost_of_exotic:pcost_of_native);
 	}
@@ -191,7 +191,7 @@ species university{
 					new_trees >>- new_trees[0::remaining_capacity];
 					do newTreeAlert(source_plot, new_trees);
 				}
-				write "Alert Planting from: "+source_plot.name+" Total new tree: "+length(new_trees);
+				//write "Alert Planting from: "+source_plot.name+" Total new tree: "+length(new_trees);
 			}
 			available_laborers >>- closest_laborer;	//remove the current laborer from the prospect laborers 
 		}
