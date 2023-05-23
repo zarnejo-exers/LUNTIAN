@@ -65,11 +65,12 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 		}
 		
 		display chart2{	
-			chart "Distribution of Plots" type: histogram
+			chart "Distribution of Plots with Mother Trees" type: series
 			{
-				loop e over: (plot where each.is_nursery){
+				data "Number of plots" value: length(plot where (each.is_candidate_nursery)) color: #blue;
+				/*loop e over: (plot where each.is_nursery){
 					data "Plot "+e.name value: length(e.plot_trees) color: #blue;
-				}
+				}*/
 			}
 		}
 	}

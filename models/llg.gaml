@@ -419,6 +419,7 @@ species plot{
 	bool is_investable <- false;
 	bool is_near_water <- false;
 	bool has_road <- false;
+	bool is_candidate_nursery <- false; //true if there exist a mother tree in one of its trees;
 	
 	aspect default{
 		if(is_nursery){
@@ -438,6 +439,13 @@ species plot{
 		if(length(plot_trees where dead(each)) > 0){
 			plot_trees <- plot_trees where !dead(each);
 		}
+	}
+	
+	//if there exist a mother tree in one of the trees inside the plot, it becomes a candidate nursery
+	reflex checkifCandidateNursery{
+		do updateTrees;
+		int mother_count <- length(plot_trees where each.is_mother_tree);
+		is_candidate_nursery <- (mother_count > 0)?true:false;
 	}
 	
 	action computeReqInvestment{
