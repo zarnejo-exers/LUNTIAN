@@ -10,14 +10,19 @@ import "llg.gaml"
 
 /* Insert your model definition here */
 global{
+	int NURSERY_LABOUR <- 12; //labor required per nursery, constant
+	
 	int investor_count <- 0 update: investor_count;
 	int plot_size <- 1 update: plot_size;
 	int required_wildlings <- 1 update: required_wildlings;
-	int laborer_count <- 1 update: laborer_count;
+	int laborer_count <- 5 update: laborer_count;
+	int nlaborer_count<- 2 update: nlaborer_count;
 	float planting_space <- 1.0 update: planting_space; 
 	int planting_age <- 1 update: planting_age;
 	int harvesting_age_exotic <- 50 update: harvesting_age_exotic;
 	int harvesting_age_native <- 70 update: harvesting_age_native;
+	int nursery_count <- 2 update: nursery_count;
+	float harvest_policy <- 0.5 update: harvest_policy;
 	
 	init{
 		create market;
@@ -29,21 +34,14 @@ global{
 	reflex checkNurseries{
 		ask university{
 			do assignNurseries;
-			if(length(my_nurseries) > nursery_count){	//start ITP if there's enough nurseries
+			if(length(my_nurseries) >= nursery_count){	//start ITP if there's enough nurseries
 				write "Starting ITP";
-				do assignLaborerToPlot;
+				do assignLaborerToPlot(my_nurseries);
 			}else{
 				write "Let environment grow";
 			}	
 		}
 	}
-	
-//	reflex reset{
-//		ask plot{
-//			is_nursery <- false;
-//			is_investable <- false;
-//		}
-//	}
 }
 
 species investor{
@@ -154,11 +152,26 @@ species university{
 	}
 	
 	//divide the total number of investable plots+nursery plots to available laborers 
-	action assignLaborerToPlot{
-		do determineInvestablePlots(1);	//plant exotic
-		
+	action assignLaborerToPlot(list<plot> to_assign_nurseries){
+		//do determineInvestablePlots(1);	//plant exotic
+		//get all unassigned laborers
+		list<labour> free_laborers <- labour where !each.is_nursery_labour;
+		loop an over: to_assign_nurseries{
+			if(length(free_laborers) >= nlaborer_count){	//there are sufficient number of laborers
+				list<labour> laborers <- free_laborers[0::nlaborer_count]-1;	//get the nlaborers from the free_laborers
+				an.my_laborers <<+ laborers;	//add laborers to the plot's laborers
+				free_laborers >>- laborers;	//remove assigned laborers
+				
+				//update the status of the laborer	
+				ask laborers{
+					add an to: self.my_plots;
+					self.man_months <- [NURSERY_LABOUR, 0];
+					self.is_nursery_labour <- true;
+					do assignLocation;
+				}
+			}
+		}
 	}	
-	
 }
 
 species market{
@@ -172,10 +185,25 @@ species market{
 }
 
 species labour{
-	plot my_plot;
-	list<float> man_hours <- [0.0,0.0];	//assigned, serviced 
+	list<plot> my_plots <- [];
+	list<trees> my_trees <- [];
+	list<int> man_months <- [0,0];	//assigned, serviced 
 	int current_wildlings <- 0;
+	bool is_nursery_labour <- false;
 	
-		
+	aspect default{
+		draw triangle(length(my_trees)+50) color: #orange rotate: 90.0;
+	}
+	
+	//put the laborer at the the center of one of its assigned plots
+	action assignLocation{
+		if(length(my_plots) = 1){	//if there's only one plot, put the laborer on the location of the plot
+			self.location <- my_plots[0].location;
+		}else if(length(my_plots where each.has_road) > 0){	//one of the plot has a road, put the laborer on one of the plots with a road
+			self.location <- one_of(my_plots where each.has_road).location;
+		}else{	//if there are multiple plots, just put the laborer randomly
+			self.location <- one_of(my_plots).location;
+		}
+	}
 }
 

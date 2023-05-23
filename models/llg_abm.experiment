@@ -24,11 +24,14 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 	parameter "Size of investable plot" category: "Investors" var: plot_size min: 1 step: 1;
 	
 	parameter "Number of laborers" category: "Management" var: laborer_count min: 1 step: 1;
-	parameter "Number of nurseries" category: "Management" var: nursery_count min: 1 step: 1;
-	parameter "Number of wildlings for planting" category: "Management" var: required_wildlings min: 1 step: 1;
-	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
 	parameter "Planting age" category: "Management" var: planting_age min: 1;
 	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
+	
+	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 1 step: 1;
+	parameter "Number of laborers per nursery" category: "Nursery Management" var: nlaborer_count min: 1 step: 1;
+	parameter "Number of wildlings for planting" category: "Nursery Management" var: required_wildlings min: 1 step: 1;
+	parameter "Planting space" category: "Nursery Management" var: planting_space min: 1.0 max: 5.0;
+	
 	
 	output {
 		layout #split;
@@ -37,11 +40,13 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 			species soil aspect: default;
 			species climate aspect: default;
 			species river aspect: default;	
-			species road aspect: default;					
-			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
-			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ; 
+			species road aspect: default;					 
 			species trees aspect: geom3D;
 			species university; 
+			species labour;
+			
+			//mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
+			//mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
 			
 			graphics "connected components" {
 				loop i from: 0 to: length(connected_components) - 1 {
@@ -57,6 +62,14 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 			{
 				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
 				data "Native Trees" value: length(trees where (each.type = 0)) color: #green;
+			}		
+		}
+		
+		display chart2{	
+			chart "Distribution of Plots" type: histogram
+			{
+				data "Investable Plots" value: length(plot where (each.is_investable)) color:#blue;
+				data "Nursery Plots" value: length(plot where (each.is_nursery)) color:#blue;
 			}		
 		}
 	}

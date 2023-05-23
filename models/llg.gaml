@@ -69,11 +69,7 @@ global {
 
 	//computed K based on Von Bertalanffy Growth Function 
 	float mahogany_von_gr;
-	float mayapis_von_gr;
-	
-	int nursery_count <- 1 update: nursery_count;
-	float harvest_policy <- 0.5 update: harvest_policy; 
-
+	float mayapis_von_gr; 
 	
 	init {
 		create climate from: Precip_TAverage {
@@ -134,6 +130,10 @@ global {
 			 plot_trees <- trees inside self;
 			 loop p over: plot_trees{
 			 	p.my_plot <- self;
+			 }
+			 
+			 if(length(road crossing self)>0){
+			 	has_road <- true;
 			 }
 		}
 		
@@ -243,6 +243,7 @@ species trees{
 	
 	plot my_plot;
 	bool is_mother_tree <- false;
+	bool is_new_tree <- false;
 	
 	aspect default{
 		draw circle(self.dbh, shape.location) color: (type = 0)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
@@ -264,6 +265,11 @@ species trees{
 				do die;
 			}
 		} 
+	}
+	
+	//once the tree reaches 5 years old, it cannot be moved to a nursery anymore 
+	reflex updateTreeStats when: age > 5{
+		is_new_tree <- false;
 	}
 	
 	//recruitment of tree
@@ -341,6 +347,7 @@ species trees{
 				my_plot <- self.my_plot;
 				myself.my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
 				shape <- new_shape;
+				is_new_tree <- true;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	//add new tree to parcel's list of trees
 		}
 	}
@@ -403,6 +410,7 @@ species trees{
 }
 
 species plot{
+	list<labour> my_laborers;
 	list<trees> plot_trees;
 	soil my_soil <- soil closest_to location;
 	climate my_climate <- climate closest_to location;
@@ -410,6 +418,7 @@ species plot{
 	bool is_nursery <- false;
 	bool is_investable <- false;
 	bool is_near_water <- false;
+	bool has_road <- false;
 	
 	aspect default{
 		if(is_nursery){
