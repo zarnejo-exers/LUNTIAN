@@ -326,6 +326,7 @@ species trees{
 		int count <- 0;
 		loop i from: 0 to: total_no_seeds-1 {
 			//setting location of the new tree 
+			//make sure that there is sufficient space before putting the tree in the new location
 			point new_location <- any_location_in(t_space);
 			geometry new_shape;
 			if(new_location = nil){break;}	//don't add seeds if there are no space
@@ -343,9 +344,8 @@ species trees{
 				dbh <- 0.7951687878;
 				location <- new_location;	//place tree on an unoccupied portion of the parcel
 				//location <- any_location_in(myself.chosenParcel.shape);	//same as above
-				my_plot <- plot(agent_closest_to(self));
-				my_plot <- self.my_plot;
-				myself.my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
+				my_plot <- myself.my_plot;
+				my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
 				shape <- new_shape;
 				is_new_tree <- true;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	//add new tree to parcel's list of trees
@@ -447,14 +447,9 @@ species plot{
 	//compute the number of new tree that the plot can accommodate
 	//given type of tree, returns the number of spaces that can be accommodate wildlings
 	int getAvailableSpaces(int type){
-		do updateTrees;
-		
 		//remove from occupied spaces
-		geometry temp_shape <- self.shape;
-		loop pt over: plot_trees{
-			geometry occupied_space <- circle(pt.dbh) translated_to pt.location;
-			temp_shape <- temp_shape - occupied_space;
-		}
+		geometry temp_shape <- getRemainingSpace();
+		
 		
 		float temp_dbh;
 		ask university{
@@ -466,6 +461,30 @@ species plot{
 		else{
 			return int(temp_shape.area/tree_shape.area);	//rough estimate of the number of available spaces for occupation
 		}	
+	}
+	
+	reflex checkNewTreeRecruit{
+		do updateTrees;
+		
+		list<trees> new_trees <- plot_trees where each.is_new_tree;
+		if(length(new_trees) > 0){
+			ask university{
+				do newTreeAlert(myself, new_trees);
+			}
+		}
+	}
+	
+	geometry getRemainingSpace{
+		do updateTrees;
+		
+		//remove from occupied spaces
+		geometry temp_shape <- self.shape;
+		loop pt over: plot_trees{
+			geometry occupied_space <- circle(pt.dbh) translated_to pt.location;
+			temp_shape <- temp_shape - occupied_space;
+		}
+		
+		return temp_shape;
 	}
 	
 }

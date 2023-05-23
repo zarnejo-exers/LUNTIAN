@@ -29,7 +29,6 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 	
 	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 1 step: 1;
 	parameter "Number of laborers per nursery" category: "Nursery Management" var: nlaborer_count min: 1 step: 1;
-	parameter "Number of wildlings for planting" category: "Nursery Management" var: required_wildlings min: 1 step: 1;
 	parameter "Planting space" category: "Nursery Management" var: planting_space min: 1.0 max: 5.0;
 	
 	
@@ -68,9 +67,10 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 		display chart2{	
 			chart "Distribution of Plots" type: histogram
 			{
-				data "Investable Plots" value: length(plot where (each.is_investable)) color:#blue;
-				data "Nursery Plots" value: length(plot where (each.is_nursery)) color:#blue;
-			}		
+				loop e over: (plot where each.is_nursery){
+					data "Plot "+e.name value: length(e.plot_trees) color: #blue;
+				}
+			}
 		}
 	}
 }
