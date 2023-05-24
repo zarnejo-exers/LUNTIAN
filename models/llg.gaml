@@ -246,11 +246,11 @@ species trees{
 	bool is_new_tree <- false;
 	
 	aspect default{
-		draw circle(self.dbh, shape.location) color: (type = 0)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
+		draw circle(self.dbh, self.location) color: (type = 0)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
 	}
 	
 	aspect geom3D{
-		draw cylinder(min(0.1, self.dbh/100), min(1, self.dbh/100)) color: #saddlebrown at: {location.x,location.y,elev[point(location.x, location.y)]+450};
+		//draw cylinder(min(0.1, self.dbh/100), min(1, self.dbh/100)) color: #saddlebrown at: {location.x,location.y,elev[point(location.x, location.y)]+450};
 		draw sphere(self.dbh) color: (type = 0) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+450 +  min(1, self.dbh/100)};
 	}
 	
@@ -268,7 +268,7 @@ species trees{
 	}
 	
 	//once the tree reaches 5 years old, it cannot be moved to a nursery anymore 
-	reflex updateTreeStats when: age > 5{
+	reflex updateTreeStats when: age > 2{
 		is_new_tree <- false;
 	}
 	
@@ -284,82 +284,87 @@ species trees{
 		int total_no_seeds <- 0;
 		
 		list<plot> nurseries;
+		point mother_location <- point(self.location.x, self.location.y);
 		ask university{
 			nurseries <- my_nurseries;
 		}
 		
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
+		geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
 		if(dbh >= 75 and ([0,1,2,7,11] contains current_month) and type = 1){
 			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
-				geometry t_space <- circle((self.dbh)+(40), self.location)- circle((self.dbh)+(20), self.location);
-				if(length(nurseries) > 0){
-					
-				}else{do recruitTree(total_no_seeds, t_space);}	
+				t_space <- (t_space - (circle((self.dbh)+(10)) translated_to mother_location)) inter (circle((self.dbh)+(20), mother_location));
+				if(t_space != nil){
+					//write "\nbefore tspace: "+t_space.area;
+					do recruitTree(total_no_seeds, t_space);
+				}
 			}else{is_mother_tree <- false;}
 		}else if(type = 0 and age > 15 and current_month = 8){
 			total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
-				geometry t_space <- circle((self.dbh)+(40), self.location);
-				do recruitTree(total_no_seeds, t_space);
+				t_space <- (t_space - (circle(self.dbh) translated_to mother_location)) inter (circle((self.dbh)+(20), mother_location));//do not include the area occupied by the tree
+				if(t_space != nil){
+					//write "\nbefore tspace: "+t_space.area;
+					do recruitTree(total_no_seeds, t_space);
+				}
 			}else{is_mother_tree <- false;}
 		}	
 	}
 	
 	//if there is no nursery, put the recruit on the same plot as with the mother tree
 	action recruitTree(int total_no_seeds, geometry t_space){
-		//determine available space in the parcel within 20m to 40m
-		list<trees> t_inside_zone <- my_plot.plot_trees inside t_space; 
-		
-		if(length(t_inside_zone) > 0){	//check if there are trees inside the zone, then remove the spaces occupied by the trees 
-			//do not include spaces occupied by trees
-			ask t_inside_zone{
-				if(empty(t_space)){break;} //stop when there's no more space 
-				geometry occupied_spaces <- circle(self.dbh) translated_to self.location;
-				t_space <- t_space - occupied_spaces;
-			}
-		}
 		//create new trees	
-		int count <- 0;
 		loop i from: 0 to: total_no_seeds-1 {
+			float new_dbh <- 0.7951687878;
 			//setting location of the new tree 
 			//make sure that there is sufficient space before putting the tree in the new location
 			point new_location <- any_location_in(t_space);
-			geometry new_shape;
-			if(new_location = nil){break;}	//don't add seeds if there are no space
-			else{
-				new_shape <- circle(dbh) translated_to new_location;
-				if(new_shape.area > t_space.area){break;}	//don't add if tree is greater than available space
-				else{
-					t_space <- t_space - new_shape;
-				}
-			}
+			if(new_location = nil){return;}	//don't add seeds if there are no space
+			trees instance;
 			create trees{			
 				age <- 1;
 				type <- myself.type;	//mahogany
 				shade_tolerant <- false;
-				dbh <- 0.7951687878;
-				location <- new_location;	//place tree on an unoccupied portion of the parcel
-				//location <- any_location_in(myself.chosenParcel.shape);	//same as above
-				my_plot <- myself.my_plot;
+				dbh <- new_dbh;
+				location <- new_location+myself.location.z;	//place tree on an unoccupied portion of the parcel
+				my_plot <- (plot closest_to(self));
+				shape <- circle(dbh) translated_to location;
 				my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
-				shape <- new_shape;
 				is_new_tree <- true;
+
+				t_space <- t_space - circle(dbh+20) translated_to new_location;
+				instance <- self;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	//add new tree to parcel's list of trees
+			
+			if(length(instance.my_plot.plot_trees overlapping (circle(instance.dbh) translated_to instance.location)) > 0){
+				//write "TOUCHING!!!";
+				ask instance{
+					remove self from: my_plot.plot_trees;
+					do die;
+				}
+			}
+		}
+		if(t_space != nil){
+		//	write "after adding trees tspace: "+t_space.area;
 		}
 	}
 	
 	//growth of tree
-	reflex growDiameter {	
+	reflex growDiameter {
+		//float prev_dbh <- dbh;	
 		//write "cur_month: "+cur_month;
 		if(type = 0){ //mayapis
-			dbh <- (max_dbh_native * (1-exp(-mayapis_von_gr * (current_month+age))))*growthCoeff(type);
+			dbh <- (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))))*growthCoeff(type);
 		}else if(type = 1){	//mahogany
-			dbh <- (max_dbh_exotic * (1-exp(-mahogany_von_gr * (current_month+age))))*growthCoeff(type);
+			dbh <- (max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))))*growthCoeff(type);
 		}
+		/*if(length(trees overlapping (circle(self.dbh) translated_to self.location)) > 0){
+			dbh <- prev_dbh;	//inhibit growth if it overlaps other trees; update this once height is added
+		}*/
 	}	
 	
 	//the best range
@@ -411,7 +416,7 @@ species trees{
 
 species plot{
 	list<labour> my_laborers;
-	list<trees> plot_trees;
+	list<trees> plot_trees<- [] update: plot_trees where !dead(each);
 	soil my_soil <- soil closest_to location;
 	climate my_climate <- climate closest_to location;
 	float investment_value;
@@ -442,7 +447,7 @@ species plot{
 	}
 	
 	//if there exist a mother tree in one of the trees inside the plot, it becomes a candidate nursery
-	reflex checkifCandidateNursery{
+	reflex checkifCandidateNursery{	// should be reflex
 		do updateTrees;
 		int mother_count <- length(plot_trees where each.is_mother_tree);
 		is_candidate_nursery <- (mother_count > 0)?true:false;
@@ -471,7 +476,7 @@ species plot{
 		}	
 	}
 	
-	reflex checkNewTreeRecruit{
+	reflex checkNewTreeRecruit{ //should be reflex
 		do updateTrees;
 		
 		list<trees> new_trees <- plot_trees where each.is_new_tree;

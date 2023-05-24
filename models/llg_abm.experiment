@@ -45,8 +45,8 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 			species university; 
 			species labour;
 			
-			//mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
-			//mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
+			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
+			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
 			
 			graphics "connected components" {
 				loop i from: 0 to: length(connected_components) - 1 {
@@ -71,5 +71,17 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 				data "Number of Trees" value: (plot where each.is_nursery) sum_of length(each.plot_trees) color: #blue;
 			}
 		}
+		
+//		display chart2{
+//			chart "Population of New Trees" type: series{
+//				data "New Tree" value: length(trees where each.is_new_tree) color: #blue; 
+//			}
+//		}
+//		
+//		display chart3{
+//			chart "Population of Mother trees" type: series{
+//				data "Mother Trees" value: length(trees where each.is_mother_tree) color: #blue;
+//			}
+//		}
 	}
 }
