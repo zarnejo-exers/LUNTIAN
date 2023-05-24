@@ -35,7 +35,7 @@ global{
 		ask university{
 			do assignNurseries;
 			if(length(my_nurseries) >= nursery_count){	//start ITP if there's enough nurseries
-				write "Starting ITP";
+				write "Starting ITP: "+length(my_nurseries)+" with: "+nursery_count;
 				do assignLaborerToPlot(my_nurseries);
 			}else{
 				write "Let environment grow";

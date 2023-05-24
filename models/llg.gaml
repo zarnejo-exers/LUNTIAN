@@ -18,7 +18,8 @@ global {
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/soil_group_pH.shp");
-	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned
+	//file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
+	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, actual
 	file Plot_shapefile <- shape_file("../includes/parcel-polygon-100mx100m.shp");
 	
 	graph road_network;
@@ -106,11 +107,18 @@ global {
 		}
 		
 		create trees from: trees_shapefile{
-			dbh <- float(read("Book2_DBH"));
-			th <- float(read("Book2_TH"));
-			mh <- float(read("Book2_MH"));	
-			r <- float(read("Book2_R"));
-			type <- ((read("Book2_Clas")) = "Native")? 0:1;
+			/*Actual
+			 * dbh <- float(read("Book2_DBH"));	//Dummy_Data
+			th <- float(read("Book2_TH"));		//Dummy_Da_2
+			mh <- float(read("Book2_MH"));		//Dummy_Da_1
+			r <- float(read("Book2_R"));		//Dummy_Da_5
+			type <- ((read("Book2_Clas")) = "Native")? 0:1;	//Dummy_Da_3*/
+			
+			dbh <- float(read("Dummy_Data"));	//Dummy_Data
+			th <- float(read("Dummy_Da_2"));		//Dummy_Da_2
+			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
+			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
+			type <- ((read("Dummy_Da_3")) = "Native")? 0:1;	//Dummy_Da_3
 			
 			if(type = 1){ //exotic trees, mahogany
 				age <- int(self.dbh/growth_rate_exotic);
@@ -338,10 +346,9 @@ species trees{
 
 				t_space <- t_space - circle(dbh+20) translated_to new_location;
 				instance <- self;
-			}//add treeInstance all: true to: chosenParcel.parcelTrees;	//add new tree to parcel's list of trees
+			}//add treeInstance all: true to: chosenParcel.parcelTrees;	add new tree to parcel's list of trees
 			
 			if(length(instance.my_plot.plot_trees overlapping (circle(instance.dbh) translated_to instance.location)) > 0){
-				//write "TOUCHING!!!";
 				ask instance{
 					remove self from: my_plot.plot_trees;
 					do die;
