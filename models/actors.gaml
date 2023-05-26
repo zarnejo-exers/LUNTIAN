@@ -23,6 +23,7 @@ global{
 	int nursery_count <- 2 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
 	
+	bool assignedNurseries <- false;
 	init{
 		create market;
 		create university;
@@ -31,12 +32,13 @@ global{
 	}
 	
 	//automatically execute when there are no laborers assigned to nurseries
-	reflex assignLaborersToNurseries when: length(labour where each.is_nursery_labour)=0{
+	reflex assignLaborersToNurseries when: !assignedNurseries{
 		ask university{
 			do assignNurseries;
 			if(length(my_nurseries) >= nursery_count){	//start ITP if there's enough nurseries
 				write "Starting ITP: "+length(my_nurseries)+" with: "+nursery_count;
 				do assignLaborerToPlot(my_nurseries);
+				assignedNurseries <- true;
 			}else{
 				write "Let environment grow";
 			}	
@@ -142,7 +144,8 @@ species university{
 	//	where there is a mother tree, it becomes a nursery
 	action assignNurseries{
 		ask plot{do updateTrees;}
-		list<plot> candidate_plots <- plot where (length(each.plot_trees where (each.is_mother_tree=true))>0);
+		
+		list<plot> candidate_plots <- plot where (length(each.plot_trees where each.is_mother_tree)>0);
 		if(candidate_plots != nil and length(candidate_plots) > nursery_count){
 			candidate_plots <- candidate_plots[0::nursery_count];
 			ask candidate_plots{
@@ -184,14 +187,19 @@ species university{
 			labour closest_laborer <- available_laborers closest_to source_plot;	//get closest available laborer to the source plot
 			ask closest_laborer{
 				location <- source_plot.location;					//update the location of the laborer
-				int remaining_capacity <- carrying_capacity - length(my_trees); 
-				if(length(new_trees) < remaining_capacity){	//the laborer can carry all the new trees, go back and plant
-					do newTreeAlert(source_plot, new_trees);
-				}else {	//let the laborer carry only as much as it can, then WAIT on the plot
+				int remaining_capacity <- carrying_capacity - length(my_trees);	//remaining unfilled capacity of laborer, given the number of trees it currently holds
+				if(length(new_trees) >= remaining_capacity){
+					my_trees <<+ new_trees[0::remaining_capacity];
 					new_trees >>- new_trees[0::remaining_capacity];
-					do newTreeAlert(source_plot, new_trees);
+					do replantAlert(source_plot);					
+				}else{	//the number of trees isn't enough to make the laborer go back to the nursery to plant
+					//since the trees are already assigned with a laborer, the tree is no longer "new"
+					ask new_trees{
+						is_new_tree <- false;
+					}
+					my_trees <<+ new_trees;	//get all the trees
+					new_trees <- [];		//set the new unassigned trees to empty
 				}
-				//write "Alert Planting from: "+source_plot.name+" Total new tree: "+length(new_trees);
 			}
 			available_laborers >>- closest_laborer;	//remove the current laborer from the prospect laborers 
 		}
@@ -234,29 +242,26 @@ species labour{
 		}
 	}
 	
-	//if the capacity of the laborer is reached, plant the trees to the nursery
-	action newTreeAlert(plot source_plot, list<trees> new_trees){
-		my_trees <<+ new_trees;
-		if(length(my_trees) >= carrying_capacity){
-			list<plot> available_plots <- my_plots where (each.getRemainingSpace() != nil);	//all plots with remaining space
-			
-			loop while: length(available_plots)>0 and length(my_trees) > 0{	//while there are available plots and there are trees to be planted
-				plot closest_nursery <- available_plots closest_to self;	//get closest nursery that has space
-				location <- closest_nursery.location;		//go back to the nursery and plant the trees
+	//The capacity of the laborer is reached, plant the trees to the nursery
+	action replantAlert(plot source_plot){
+		list<plot> available_plots <- my_plots where (each.getRemainingSpace() != nil);	//all plots with remaining space
+		loop while: length(available_plots)>0 and length(my_trees) > 0{	//while there are available plots and there are trees to be planted
+			plot closest_nursery <- available_plots closest_to self;	//get closest nursery that has space
+			location <- closest_nursery.location;		//go back to the nursery and plant the trees
 				
-				geometry remaining_space <- closest_nursery.getRemainingSpace();
-				loop while: remaining_space != nil and length(my_trees) > 0{	//use the same plot while there are spaces; plant while there are trees to plant
-					trees to_plant <- one_of(my_trees);	//get one of the trees
-					to_plant.my_plot <- closest_nursery;	//update plot of tree
-					closest_nursery.plot_trees << to_plant;	//put tree to the tree list of the nursery
-					to_plant.location <- any_location_in(remaining_space);	//plant anywhere inside the remaining_space;
-					remove to_plant from: my_trees;
-					geometry new_occupied_space <- circle(to_plant.dbh) translated_to to_plant.location;
-					remaining_space <- remaining_space - new_occupied_space;	
-				}		
-				remove closest_nursery from: available_plots;		
-			}
-		}//if carrying capacity is not exhausted, do nothing
+			geometry remaining_space <- closest_nursery.getRemainingSpace();
+			loop while: remaining_space != nil and length(my_trees) > 0{	//use the same plot while there are spaces; plant while there are trees to plant
+				trees to_plant <- one_of(my_trees);	//get one of the trees
+				to_plant.is_new_tree <- false;
+				to_plant.my_plot <- closest_nursery;	//update plot of tree
+				closest_nursery.plot_trees << to_plant;	//put tree to the tree list of the nursery
+				to_plant.location <- any_location_in(remaining_space);	//plant anywhere inside the remaining_space;
+				remove to_plant from: my_trees;
+				geometry new_occupied_space <- circle(to_plant.dbh) translated_to to_plant.location;
+				remaining_space <- remaining_space - new_occupied_space;
+			}		
+			remove closest_nursery from: available_plots;	
+		}
 	}
 }
 

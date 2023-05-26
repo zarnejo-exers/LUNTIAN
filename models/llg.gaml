@@ -18,8 +18,8 @@ global {
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/soil_group_pH.shp");
-	//file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
-	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, actual
+	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
+//	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
 	file Plot_shapefile <- shape_file("../includes/parcel-polygon-100mx100m.shp");
 	
 	graph road_network;
@@ -107,18 +107,19 @@ global {
 		}
 		
 		create trees from: trees_shapefile{
-			/*Actual
-			 * dbh <- float(read("Book2_DBH"));	//Dummy_Data
+			//Actual
+			dbh <- float(read("Book2_DBH"));	//Dummy_Data
 			th <- float(read("Book2_TH"));		//Dummy_Da_2
 			mh <- float(read("Book2_MH"));		//Dummy_Da_1
 			r <- float(read("Book2_R"));		//Dummy_Da_5
-			type <- ((read("Book2_Clas")) = "Native")? 0:1;	//Dummy_Da_3*/
+			type <- ((read("Book2_Clas")) = "Native")? 0:1;	//Dummy_Da_3
 			
-			dbh <- float(read("Dummy_Data"));	//Dummy_Data
-			th <- float(read("Dummy_Da_2"));		//Dummy_Da_2
-			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
-			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
-			type <- ((read("Dummy_Da_3")) = "Native")? 0:1;	//Dummy_Da_3
+			//Dummy
+//			dbh <- float(read("Dummy_Data"));	//Dummy_Data
+//			th <- float(read("Dummy_Da_2"));		//Dummy_Da_2
+//			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
+//			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
+//			type <- ((read("Dummy_Da_3")) = "Native")? 0:1;	//Dummy_Da_3
 			
 			if(type = 1){ //exotic trees, mahogany
 				age <- int(self.dbh/growth_rate_exotic);
@@ -253,6 +254,8 @@ species trees{
 	bool is_mother_tree <- false;
 	bool is_new_tree <- false;
 	
+	int count_fruits; 
+	
 	aspect default{
 		draw circle(self.dbh, self.location) color: (type = 0)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
 	}
@@ -300,7 +303,7 @@ species trees{
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
 		geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
-		if(dbh >= 75 and ([0,1,2,7,11] contains current_month) and type = 1){
+		if(dbh >= 75 and ([0,1,2,7,11] contains current_month) and type = 1){		//exotic tree
 			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
@@ -310,7 +313,7 @@ species trees{
 					do recruitTree(total_no_seeds, t_space);
 				}
 			}else{is_mother_tree <- false;}
-		}else if(type = 0 and age > 15 and current_month = 8){
+		}else if(type = 0 and age > 15 and current_month = 8){						//native tree
 			total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
@@ -326,12 +329,14 @@ species trees{
 	//if there is no nursery, put the recruit on the same plot as with the mother tree
 	action recruitTree(int total_no_seeds, geometry t_space){
 		//create new trees	
+		int fc <- 0;
 		loop i from: 0 to: total_no_seeds-1 {
 			float new_dbh <- 0.7951687878;
 			//setting location of the new tree 
 			//make sure that there is sufficient space before putting the tree in the new location
 			point new_location <- any_location_in(t_space);
 			if(new_location = nil){return;}	//don't add seeds if there are no space
+			fc <- fc + 1;
 			trees instance;
 			create trees{			
 				age <- 1;
@@ -358,6 +363,7 @@ species trees{
 		if(t_space != nil){
 		//	write "after adding trees tspace: "+t_space.area;
 		}
+		count_fruits <- fc;
 	}
 	
 	//growth of tree
@@ -486,7 +492,7 @@ species plot{
 	reflex checkNewTreeRecruit{ //should be reflex
 		do updateTrees;
 		
-		list<trees> new_trees <- plot_trees where each.is_new_tree;
+		list<trees> new_trees <- plot_trees where (each.is_new_tree);
 		if(length(new_trees) > 0){
 			ask university{
 				do newTreeAlert(myself, new_trees);

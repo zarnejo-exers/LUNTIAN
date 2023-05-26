@@ -65,6 +65,13 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 			}		
 		}
 		
+		display chart3{	
+			chart "Population of Nurseries" type: series
+			{
+				data "Number of Nurseries" value: length(plot where each.is_nursery) color: #blue;
+			}
+		}
+		
 		display chart2{	
 			chart "Population of Trees in Nurseries" type: series
 			{
