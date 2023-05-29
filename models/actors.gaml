@@ -15,7 +15,7 @@ global{
 	int investor_count <- 0 update: investor_count;
 	int plot_size <- 1 update: plot_size;
 	int laborer_count <- 5 update: laborer_count;
-	int nlaborer_count<- 2 update: nlaborer_count;
+	int nlaborer_count<- 1 update: nlaborer_count;
 	float planting_space <- 1.0 update: planting_space; 
 	int planting_age <- 1 update: planting_age;
 	int harvesting_age_exotic <- 50 update: harvesting_age_exotic;
@@ -154,25 +154,95 @@ species university{
 		}
 	}
 	
-	//divide the total number of investable plots+nursery plots to available laborers 
+	//divide the total number of investable plots+nursery plots to available laborers
+	//NOTE: 
+	// 1 laborer can manage 0..* nurseries -> meaning, they may have none or multiple nurseries
+	// 1 nursery can have 1..* laborers -> meaning, a nursery must be managed by at least 1 laborer
 	action assignLaborerToPlot(list<plot> to_assign_nurseries){
 		//do determineInvestablePlots(1);	//plant exotic
 		//get all unassigned laborers
 		list<labour> free_laborers <- labour where !each.is_nursery_labour;
-		loop an over: to_assign_nurseries{
-			if(length(free_laborers) >= nlaborer_count){	//there are sufficient number of laborers
-				list<labour> laborers <- free_laborers[0::nlaborer_count]-1;	//get the nlaborers from the free_laborers
-				an.my_laborers <<+ laborers;	//add laborers to the plot's laborers
-				free_laborers >>- laborers;	//remove assigned laborers
-				
-				//update the status of the laborer	
-				ask laborers{
-					add an to: self.my_plots;
+		
+		if(length(to_assign_nurseries) <= length(free_laborers)){	//there are sufficient laborers for the nurseries
+			write "Total Nurseries: "+length(to_assign_nurseries)+" of max capacity: "+nlaborer_count+" given Total Labor: "+length(free_laborers);
+		
+			loop an from: 0 to: length(to_assign_nurseries)-1{
+				//update the status of the laborer
+				ask free_laborers[an]{
+					add to_assign_nurseries[an] to: self.my_plots;
 					self.man_months <- [NURSERY_LABOUR, 0];
 					self.is_nursery_labour <- true;
-					do assignLocation;
+				}
+				add free_laborers[an] to: to_assign_nurseries[an].my_laborers; 
+			}//assign one laborer per nursery
+			
+			list<labour> remaining_laborers <- free_laborers where !each.is_nursery_labour;
+			
+			//if nurseries can have more than one laborer and if there are unassigned laborers, assign the remaining laborers to the nurseries (provided the restriction on teh allowed number of laborers per nursery) 
+			if(nlaborer_count > 1 and length(remaining_laborers) > 0){	//nurseries can have more than 1 laborer
+				write "Nurseries are given multiple laborers -- max: "+nlaborer_count+" for: "+length(remaining_laborers);
+
+				loop an over: to_assign_nurseries{
+					list<labour> laborers;
+					if(length(remaining_laborers) >= nlaborer_count-1){	//there are sufficient number of laborers; nlaborer_count-1 because it is sure that one of laborers has been assigned on the nursery already
+						laborers <- remaining_laborers[0::nlaborer_count-1];	//get the nlaborers from the free_laborers
+					}else if(length(remaining_laborers) > 0){	//put the remaining laborers to the nursery
+						laborers <- remaining_laborers;
+					}else{	//there are no more laborers to be placed in nurseries
+						break;
+					}
+					
+					an.my_laborers <<+ laborers;	//add laborers to the plot's laborers
+					
+					//update the status of the laborer	
+					ask laborers{
+						add an to: self.my_plots;
+						self.man_months <- [NURSERY_LABOUR, 0];
+						self.is_nursery_labour <- true;
+					}
+					remaining_laborers >>- laborers;	//remove assigned laborers					
+				}
+			}else{
+				write "Nurseries are given exactly one laborer";
+			}
+		}else{	//there are more nurseries than the laborers
+//			int nurseries_per_laborer <- int(length(to_assign_nurseries)/length(free_laborers));
+// 			5 nurseries, 2 laborers: laborer_1=2, laborer_2=3
+			write "Laborers are assigned to multiple nurseries... To do";
+			float nurseries_per_laborer <- length(to_assign_nurseries)/length(free_laborers);	//get how many nurseries will be assigned to one laborer
+			
+			ask free_laborers{
+				int no_nurseries; 
+				if(length(to_assign_nurseries) > 0){
+					write "nurseries left: "+length(to_assign_nurseries); 
+					if(length(to_assign_nurseries)>int(nurseries_per_laborer)+1){
+						no_nurseries <- int(nurseries_per_laborer);
+					}else{
+						no_nurseries <- int(nurseries_per_laborer)+1;
+					}	
+				}
+				else{
+					break;
+				}
+				self.my_plots <<+ to_assign_nurseries[0::no_nurseries];
+				self.man_months <- [NURSERY_LABOUR, 0];
+				self.is_nursery_labour <- true;
+				to_assign_nurseries >>- to_assign_nurseries[0::no_nurseries];
+			}
+			
+			if(length(to_assign_nurseries) > 0){	//put the remaining nursery on random laborer
+				labour chosen_laborer <- one_of(free_laborers);
+				ask chosen_laborer{
+					self.my_plots <<+ to_assign_nurseries;
+					self.man_months <- [NURSERY_LABOUR, 0];
+					self.is_nursery_labour <- true;
 				}
 			}
+			
+		}
+		
+		ask free_laborers{
+			do assignLocation;
 		}
 	}
 	
@@ -181,12 +251,16 @@ species university{
 	//let the laborer get as much new trees as it can carry (meaning, some new trees will not be transplanted to the nursery)
 	action newTreeAlert(plot source_plot, list<trees> new_trees){
 		plot closest_nursery <- (plot where each.is_nursery) closest_to source_plot;	//get closest nursery
-		list<labour> available_laborers <- closest_nursery.my_laborers where (length(each.my_trees) < each.carrying_capacity);//get the available laborers of the nursery
+		
+		//get available laborers that is currently in one of its nursery plot
+		list<labour> available_laborers <- closest_nursery.my_laborers where (each.current_plot = closest_nursery);
+		write available_laborers accumulate(int(each));
 		
 		loop while: (length(available_laborers) > 0 and length(new_trees)>0){
 			labour closest_laborer <- available_laborers closest_to source_plot;	//get closest available laborer to the source plot
 			ask closest_laborer{
 				location <- source_plot.location;					//update the location of the laborer
+				current_plot <- source_plot;
 				int remaining_capacity <- carrying_capacity - length(my_trees);	//remaining unfilled capacity of laborer, given the number of trees it currently holds
 				if(length(new_trees) >= remaining_capacity){
 					my_trees <<+ new_trees[0::remaining_capacity];
@@ -218,6 +292,7 @@ species market{
 
 species labour{
 	list<plot> my_plots <- [];
+	plot current_plot;
 	list<trees> my_trees <- [];		//list of wildlings that the laborer currently carries
 	list<int> man_months <- [0,0];	//assigned, serviced 
 	int carrying_capacity <- 10;	//total number of wildlings that a laborer can carry 
@@ -233,13 +308,18 @@ species labour{
 	
 	//put the laborer at the the center of one of its assigned plots
 	action assignLocation{
-		if(length(my_plots) = 1){	//if there's only one plot, put the laborer on the location of the plot
-			self.location <- my_plots[0].location;
-		}else if(length(my_plots where each.has_road) > 0){	//one of the plot has a road, put the laborer on one of the plots with a road
-			self.location <- one_of(my_plots where each.has_road).location;
-		}else{	//if there are multiple plots, just put the laborer randomly
-			self.location <- one_of(my_plots).location;
+		if(length(my_plots) = 0){
+			return;
 		}
+		
+		if(length(my_plots where each.has_road) > 0){	//one of the plot has a road, put the laborer on one of the plots with a road
+			current_plot <- one_of(my_plots where each.has_road);
+			write self.name+" at current_plot "+current_plot.name;
+		}else{	//put the laborer randomly
+			current_plot <- one_of(my_plots);
+			write self.name+" at current_plot "+current_plot.name;
+		}
+		self.location <- current_plot.location;
 	}
 	
 	//The capacity of the laborer is reached, plant the trees to the nursery
@@ -248,6 +328,7 @@ species labour{
 		loop while: length(available_plots)>0 and length(my_trees) > 0{	//while there are available plots and there are trees to be planted
 			plot closest_nursery <- available_plots closest_to self;	//get closest nursery that has space
 			location <- closest_nursery.location;		//go back to the nursery and plant the trees
+			current_plot <- closest_nursery;
 				
 			geometry remaining_space <- closest_nursery.getRemainingSpace();
 			loop while: remaining_space != nil and length(my_trees) > 0{	//use the same plot while there are spaces; plant while there are trees to plant
