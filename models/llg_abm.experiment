@@ -29,7 +29,7 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
 	
 	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 1 step: 1;
-	parameter "Number of laborers per nursery" category: "Nursery Management" var: nlaborer_count min: 1 step: 1;
+	parameter "Number of laborers per nursery" category: "Nursery Management" var: nlaborer_count min: 0 step: 1;
 
 	
 	
@@ -57,7 +57,7 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 			}
 		}
 		
-		display chart1{	
+		display chart1 type: java2D{	
 			chart "Population of Trees" type: series
 			{
 				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
@@ -72,7 +72,7 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 //			}
 //		}
 		
-		display chart2{	
+		display chart2 type: java2D{	
 			chart "Population of Trees in Nurseries" type: series
 			{
 				data "Number of Trees" value: (plot where each.is_nursery) sum_of length(each.plot_trees) color: #blue;

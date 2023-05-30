@@ -495,7 +495,12 @@ species plot{
 		list<trees> new_trees <- plot_trees where (each.is_new_tree);
 		if(length(new_trees) > 0){
 			ask university{
-				do newTreeAlert(myself, new_trees);
+				if(length(my_nurseries) > 0){
+					do newTreeAlert(myself, new_trees);	
+				}else{
+					write "There are no nursery yet.";
+				}
+				
 			}
 		}
 	}
