@@ -161,6 +161,8 @@ species university{
 	action assignLaborerToPlot(list<plot> to_assign_nurseries){
 		//do determineInvestablePlots(1);	//plant exotic
 		//get all unassigned laborers
+		if(nlaborer_count = 0) { write "Nursery not accepting laborers."; return; }
+		
 		list<labour> free_laborers <- labour where !each.is_nursery_labour;
 		
 		if(length(to_assign_nurseries) <= length(free_laborers)){	//there are sufficient laborers for the nurseries
@@ -266,13 +268,15 @@ species university{
 			plot closest_nursery <- (plot where each.is_nursery) closest_to source_plot;	//get closest nursery to plot with new tree	
 			list<labour> available_laborers <- closest_nursery.my_laborers where (each.current_plot = closest_nursery);
 			if(length(available_laborers) = 0){		//let the closest laborer go back to the nursery and plant all the widlings that it had gathered
-				labour closest_labor <- closest_nursery.my_laborers closest_to source_plot;
-				ask closest_labor{
-					location <- closest_nursery.location;	//return to closest_nursery;
-					current_plot <- closest_nursery;
-					write "In university, planting at: "+closest_nursery.name;
-					do replantAlert(closest_nursery);
-				}		
+				labour closest_labor <- (closest_nursery.my_laborers where each.is_nursery_labour) closest_to source_plot;
+				if(closest_labor != nil){
+					ask closest_labor{
+						location <- closest_nursery.location;	//return to closest_nursery;
+						current_plot <- closest_nursery;
+						write "In university, planting at: "+closest_nursery.name;
+						do replantAlert(closest_nursery);
+					}		
+				}
 			}else{	//choose one laborer and move the laborer to source_plot
 				loop al over: available_laborers{
 					if(length(new_trees) = 0) {break;}	//if there are no more trees, break
@@ -331,10 +335,12 @@ species labour{
 		list<plot> available_plots <- my_plots where (each.getRemainingSpace() != nil);	//all plots with remaining space
 		if(length(available_plots) > 0){
 			plot nursery <- available_plots closest_to current_plot;
-			location <- nursery.location;		//go back to the nursery and plant the trees
-			current_plot <- nursery;
-			write "Planting at: "+nursery.name;
-			do replantAlert(nursery);	
+			if(nursery != nil){
+				location <- nursery.location;		//go back to the nursery and plant the trees
+				current_plot <- nursery;
+				write "Planting at: "+nursery.name;
+				do replantAlert(nursery);	
+			}
 		}//else, do nothing; meaning, just wait until there are available plots
 		
 	}
