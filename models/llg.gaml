@@ -420,7 +420,7 @@ species trees{
 	
 	//tree age
 	reflex stepAge {
-		age <- age + (cycle/12);
+		age <- age + (1/12);
 	}
 	
 	//tree mortality
