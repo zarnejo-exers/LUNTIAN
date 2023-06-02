@@ -99,10 +99,9 @@ species university{
 		//get the planting cost from the market
 		ask market{
 			buying_price <- getBuyingPrice(t_type);
-			
 		}
 		
-		list<plot> not_investable_plots <- plot where (each.is_near_water or each.is_nursery);
+		list<plot> not_investable_plots <- plot where (each.is_near_water or each.is_nursery or !empty(each.my_investors));
 		ask not_investable_plots{
 			is_investable <- false;
 		}
@@ -118,7 +117,7 @@ species university{
 			int t_count <- 0;
 			loop pt over: plot_trees{
 				if(t_count=tree_to_harvest){break;}
-				int future_age <- pt.age + rotation_years;
+				int future_age <- int(pt.age + rotation_years);
 				float future_dbh <- myself.managementDBHEstimate(pt.type, future_age);
 				projected_profit <- projected_profit + (future_dbh*buying_price);
 				t_count <- t_count + 1;

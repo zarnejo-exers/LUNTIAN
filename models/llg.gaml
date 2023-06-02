@@ -10,6 +10,8 @@ import "actors.gaml"
 
 global {
 	int NB_TS <- 12; //monthly timestep, constant
+	int NATIVE <- 0;
+	int EXOTIC <- 1;
 	
 	/** Insert the global definitions, variables and actions here */
 	file elev_file <- file("../images/ITP_Reprojected_Filled.tif"); //resolution 30m-by-30m
@@ -18,8 +20,8 @@ global {
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/soil_group_pH.shp");
-//	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
-	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
+	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
+//	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
 	file Plot_shapefile <- shape_file("../includes/parcel-polygon-100mx100m.shp");
 	
 	graph road_network;
@@ -108,24 +110,22 @@ global {
 		
 		create trees from: trees_shapefile{
 			//Actual
-//			dbh <- float(read("Book2_DBH"));	
-//			th <- float(read("Book2_TH"));		
-//			mh <- float(read("Book2_MH"));		
-//			r <- float(read("Book2_R"));		
-//			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
+			dbh <- float(read("Book2_DBH"));	
+			mh <- float(read("Book2_MH"));		
+			r <- float(read("Book2_R"));		
+			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
 			
 			//Dummy
-			dbh <- float(read("Dummy_Data"));	//Dummy_Data
-			th <- float(read("Dummy_Da_2"));		//Dummy_Da_2
-			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
-			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
-			type <- ((read("Dummy_Da_3")) = "Native")? 0:1;	//Dummy_Da_3
+//			dbh <- float(read("Dummy_Data"));	//Dummy_Data
+//			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
+//			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
+//			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
 			
-			if(type = 1){ //exotic trees, mahogany
-				age <- int(self.dbh/growth_rate_exotic);
+			if(type = EXOTIC){ //exotic trees, mahogany
+				age <- float(self.dbh/growth_rate_exotic);
 				shade_tolerant <- false;
 			}else{	//native trees are shade tolerant
-				age <- int(self.dbh/growth_rate_native);
+				age <- float(self.dbh/growth_rate_native);
 				shade_tolerant <- true;
 			}
 		}	
@@ -237,7 +237,6 @@ global {
 
 species trees{
 	float dbh; //diameter at breast height
-	float th; //total height
 	float mh; //merchantable height
 	float r; //distance from tree to a point 
 	int type;  //0-mayapis; 1-mahogany; 2-fruit tree
@@ -247,7 +246,7 @@ species trees{
 	float vol;
 	
 	float total_biomass <- 0.0;	//in kg
-	int age;
+	float age;
 	bool shade_tolerant;
 	
 	plot my_plot;
@@ -257,12 +256,14 @@ species trees{
 	int count_fruits; 
 	
 	aspect default{
-		draw circle(self.dbh, self.location) color: (type = 0)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
+		draw circle(self.dbh, self.location) color: (type = NATIVE)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
 	}
 	
 	aspect geom3D{
 		//draw cylinder(min(0.1, self.dbh/100), min(1, self.dbh/100)) color: #saddlebrown at: {location.x,location.y,elev[point(location.x, location.y)]+450};
-		draw sphere(self.dbh) color: (type = 0) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+450 +  min(1, self.dbh/100)};
+		//draw line([{location.x,location.y,elev[point(location.x, location.y)]+400},{location.x,location.y,elev[point(location.x, location.y)]+450}]) depth: self.dbh color: #brown wireframe: true; 
+		draw circle(mh/4) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: mh/4;
+		draw sphere(self.dbh) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+(mh/4)};
 	}
 	
 	//kill tree that are inside a basin
@@ -313,7 +314,7 @@ species trees{
 					do recruitTree(total_no_seeds, t_space);
 				}
 			}else{is_mother_tree <- false;}
-		}else if(type = 0 and age > 15 and current_month = 8){						//native tree
+		}else if(type = NATIVE and age > 15 and current_month = 8){						//native tree
 			total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
@@ -339,7 +340,7 @@ species trees{
 			fc <- fc + 1;
 			trees instance;
 			create trees{			
-				age <- 1;
+				age <- 1.0;
 				type <- myself.type;	//mahogany
 				shade_tolerant <- false;
 				dbh <- new_dbh;
@@ -368,11 +369,9 @@ species trees{
 	
 	//growth of tree
 	reflex growDiameter {
-		//float prev_dbh <- dbh;	
-		//write "cur_month: "+cur_month;
-		if(type = 0){ //mayapis
+		if(type = NATIVE){ //mayapis
 			dbh <- (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))))*growthCoeff(type);
-		}else if(type = 1){	//mahogany
+		}else if(type = EXOTIC){	//mahogany
 			dbh <- (max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))))*growthCoeff(type);
 		}
 		/*if(length(trees overlapping (circle(self.dbh) translated_to self.location)) > 0){
@@ -390,8 +389,8 @@ species trees{
 		}else{
 			coeff <- -((curr/(max-ave))+(max/(max-ave)));
 		}
-		
-		if(coeff<= 0.01 or coeff > 1.0){coeff <- 1.0;}	//for the meantime, if the coeff is very small or curr is greater than the max  value
+		write "coeff: "+coeff;
+		if(coeff< 0.01 or coeff > 1.0){coeff <- 1.0;}	//for the meantime if the coeff is very small or curr is greater than the max  value, do nothing
 		return coeff;
 	}
 	
@@ -408,11 +407,20 @@ species trees{
 		
 		return g_coeff;
 	}
+	
 	//height of tree
+	//list<float> native_hcoeffs <- [6.364, 0.1308]; //a, b	
+	//list<float> exotic_hcoeffs <- [6.9418, 0.0759]; //a, b
+	reflex updateHeight{
+		matrix<float> hcoeffs <- matrix([[6.364, 0.1308],[6.9418, 0.0759]]);
+		
+		//1.4 + (b+a/dbh)^-2.5
+		mh <- 1.4 + (hcoeffs[{type,1}] + hcoeffs[{type,0}] / dbh)^-2.5;
+	}
 	
 	//tree age
-	reflex stepAge when: (cycle mod 12)=0 {
-		age <- age + 1;
+	reflex stepAge {
+		age <- age + (cycle/12);
 	}
 	
 	//tree mortality
@@ -433,6 +441,7 @@ species plot{
 	soil my_soil <- soil closest_to location;
 	climate my_climate <- climate closest_to location;
 	float investment_value;
+	list<investor> my_investors;
 	bool is_nursery <- false;
 	bool is_investable <- false;
 	bool is_near_water <- false;
