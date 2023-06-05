@@ -63,12 +63,13 @@ global {
 	float min_dbh_native <- 1.0 update: min_dbh_native;
 	int ave_fruits_native <- 100 update: ave_fruits_native;
 	
-	list<float> min_water <- [1500.0, 2000.0];						//best grow, annual
-	list<float> max_water <- [3500.0, 4000.0];						//best grow, annual
-	list<float> min_pH <- [4.5, 6.5];								//temp value - best grow
-	list<float> max_pH <- [7.5, 7.5];								//temp value - best grow
-	list<float> min_temp <- [20.0, 20.0];							//temp value - best grow
-	list<float> max_temp <- [34.0, 7.5];							//true value - best grow	
+	//native, exotic
+	list<float> min_water <- [1500.0, 1400.0];						//best grow, annual, monthly will be taken in consideration during the growth effect
+	list<float> max_water <- [3500.0, 6000.0];						//best grow, annual
+	list<float> min_pH <- [5.0, 6.0];								//temp value - best grow
+	list<float> max_pH <- [6.7, 8.5];								//temp value - best grow
+	list<float> min_temp <- [20.0, 11.0];							//temp value - best grow
+	list<float> max_temp <- [34.0, 39.0];							//true value - best grow	
 
 	//computed K based on Von Bertalanffy Growth Function 
 	float mahogany_von_gr;
@@ -370,9 +371,9 @@ species trees{
 	//growth of tree
 	reflex growDiameter {
 		if(type = NATIVE){ //mayapis
-			dbh <- (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))))*growthCoeff(type);
+			dbh <- (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))));//*growthCoeff(type);
 		}else if(type = EXOTIC){	//mahogany
-			dbh <- (max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))))*growthCoeff(type);
+			dbh <- (max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))));//*growthCoeff(type);
 		}
 		/*if(length(trees overlapping (circle(self.dbh) translated_to self.location)) > 0){
 			dbh <- prev_dbh;	//inhibit growth if it overlaps other trees; update this once height is added
@@ -391,7 +392,9 @@ species trees{
 			coeff <- -((curr/(max-ave))+(max/(max-ave)));
 		}
 		
-		if(coeff< 0.01 or coeff > 1.0){coeff <- 1.0;}	//for the meantime if the coeff is very small or curr is greater than the max  value, do nothing
+		
+		if(coeff< 0.8){coeff <- 0.8;}
+		if(coeff>1.0){coeff <- 1.0;}	//for the meantime if the coeff is very small or curr is greater than the max  value, do nothing
 		return coeff;
 	}
 	
