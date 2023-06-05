@@ -22,10 +22,13 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 	
 	parameter "Number of initial investors" category: "Investors" var: investor_count min: 0 step: 1;
 	parameter "Size of investable plot" category: "Investors" var: plot_size min: 1 step: 1;
+	parameter "ITP native" category: "Investors" var: plant_native;
+	parameter "ITP exotic" category: "Investors" var: plant_exotic;
 	
 	parameter "Number of laborers" category: "Management" var: laborer_count min: 1 step: 1;
 	parameter "Planting age" category: "Management" var: planting_age min: 1;
 	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
+	parameter "DBH policy" category: "Management" var: dbh_policy min: 50.0 max: 70.0;
 	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
 	
 	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 1 step: 1;
@@ -44,6 +47,7 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 			species trees aspect: geom3D;
 			species university; 
 			species labour;
+			species investor;
 			
 			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
 			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
@@ -65,19 +69,21 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 			}		
 		}
 		
-//		display chart3{	
-//			chart "Population of Nurseries" type: series
-//			{
-//				data "Number of Nurseries" value: length(plot where each.is_nursery) color: #blue;
-//			}
-//		}
-		
 		display chart2 type: java2D{	
 			chart "Population of Trees in Nurseries" type: series
 			{
 				data "Number of Trees" value: (plot where each.is_nursery) sum_of length(each.plot_trees) color: #blue;
 			}
 		}
+		
+		display chart3 type: java2D{	
+			chart "Population of Investor and ITP" type: series
+			{
+				data "Number of Investors" value: length(investor where !empty(each.my_plots)) color: #blue;
+				data "Number of ITPs" value: length(investor accumulate each.my_plots) color: #green;
+			}
+		}
+		
 		
 //		display chart2{
 //			chart "Population of New Trees" type: series{

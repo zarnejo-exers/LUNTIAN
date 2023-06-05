@@ -262,8 +262,8 @@ species trees{
 	aspect geom3D{
 		//draw cylinder(min(0.1, self.dbh/100), min(1, self.dbh/100)) color: #saddlebrown at: {location.x,location.y,elev[point(location.x, location.y)]+450};
 		//draw line([{location.x,location.y,elev[point(location.x, location.y)]+400},{location.x,location.y,elev[point(location.x, location.y)]+450}]) depth: self.dbh color: #brown wireframe: true; 
-		draw circle(mh/4) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: mh/4;
-		draw sphere(self.dbh) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+(mh/4)};
+		draw circle(mh/2) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: mh;
+		draw sphere(self.dbh) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+(mh)};
 	}
 	
 	//kill tree that are inside a basin
@@ -380,6 +380,7 @@ species trees{
 	}	
 	
 	//the best range
+	//TO Update: use specific max and min per focused species
 	float reduceGrowth(float curr, float min, float max){
 		float ave <- (max + min)/2;
 		float coeff;
@@ -389,7 +390,7 @@ species trees{
 		}else{
 			coeff <- -((curr/(max-ave))+(max/(max-ave)));
 		}
-		write "coeff: "+coeff;
+		
 		if(coeff< 0.01 or coeff > 1.0){coeff <- 1.0;}	//for the meantime if the coeff is very small or curr is greater than the max  value, do nothing
 		return coeff;
 	}
@@ -440,13 +441,15 @@ species plot{
 	list<trees> plot_trees<- [] update: plot_trees where !dead(each);
 	soil my_soil <- soil closest_to location;
 	climate my_climate <- climate closest_to location;
-	float investment_value;
-	list<investor> my_investors;
+	float investment_cost;
+	float projected_profit;
+	list<investor> my_investors<-[];
 	bool is_nursery <- false;
 	bool is_investable <- false;
 	bool is_near_water <- false;
 	bool has_road <- false;
 	bool is_candidate_nursery <- false; //true if there exist a mother tree in one of its trees;
+	int rotation_years <- 0; 	//only set once an investor decided to invest on a plot
 	
 	aspect default{
 		if(is_nursery){
