@@ -60,6 +60,7 @@ global{
 //plot's projected profit is determined by the university
 species investor{
 	list<plot> my_plots <- [];
+	list<int> harvest_monitor <- [];
 	float total_profit <- 0.0;
 	float investment <- 0.0;
 	//has behavior
@@ -79,6 +80,7 @@ species investor{
 			}			
 			if(investment_status){	//investment successful, put investor on investor's list of plot 
 				add self to: chosen_plot.my_investors;
+				add 0 to: harvest_monitor;
 				chosen_plot.is_investable <- false;
 			}//else, investment denied
 		}else{
@@ -93,6 +95,20 @@ species investor{
 		
 		//set plots rotation years
 		
+	}
+	
+	//to signal when to harvest and earn
+	reflex updateRotationYears{
+		int plot_length <- length(my_plots);
+		loop while: (plot_length>0){
+			harvest_monitor[plot_length-1] <- harvest_monitor[plot_length-1] + 1;
+			write "HM: "+harvest_monitor[plot_length-1];
+			if(harvest_monitor[plot_length-1] = 12){
+				my_plots[plot_length-1].rotation_years <- my_plots[plot_length-1].rotation_years - 1;
+				harvest_monitor[plot_length-1] <- 0;
+			} 
+			plot_length <- plot_length - 1;
+		}
 	}
 }
 
@@ -174,6 +190,9 @@ species university{
 	
 	//returns true if successful, else false
 	bool investOnPlot(investor investing_investor, plot chosen_plot){
+		ask my_nurseries{
+			do updateTrees;
+		}
 		available_seeds <- (my_nurseries accumulate each.plot_trees) where (each.age < 3);
 		//check available seeds in nursery
 		int no_trees_for_planting <- chosen_plot.getAvailableSpaces((plant_native)?0:1);
