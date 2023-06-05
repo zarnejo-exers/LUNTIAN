@@ -445,6 +445,7 @@ species plot{
 	float projected_profit;
 	list<investor> my_investors<-[];
 	bool is_nursery <- false;
+	bool is_itp <- false;
 	bool is_investable <- false;
 	bool is_near_water <- false;
 	bool has_road <- false;

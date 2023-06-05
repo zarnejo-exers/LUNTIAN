@@ -11,6 +11,7 @@ import "llg.gaml"
 /* Insert your model definition here */
 global{
 	int NURSERY_LABOUR <- 12; //labor required per nursery, constant
+	int LABOUR_CAPACITY <- 10;	//number of trees that the laborer can plant/manage
 	
 	int investor_count <- 1 update: investor_count;
 	int plot_size <- 1 update: plot_size;
@@ -25,6 +26,7 @@ global{
 	float dbh_policy <- 50.0 update: dbh_policy; 
 	bool plant_native <- true update: plant_native;
 	bool plant_exotic <- false update: plant_exotic;
+	int itp_type; //0 ->plant native, 1->plant exotic, 2->plant mix
 	
 	bool assignedNurseries <- false;
 	init{
@@ -32,6 +34,8 @@ global{
 		create university;
 		create investor number: investor_count;
 		create labour number: laborer_count;
+		
+		itp_type <- (plant_native and plant_exotic)?2:(plant_native?0:1);
 	}
 	
 	//automatically execute when there are no laborers assigned to nurseries
@@ -41,13 +45,14 @@ global{
 			if(length(my_nurseries) >= nursery_count){	//start ITP if there's enough nurseries
 				write "Starting ITP: "+length(my_nurseries)+" with: "+nursery_count;
 				do assignLaborerToNursery(my_nurseries);
-				do determineInvestablePlots((plant_native)?0:1);	//invest on native only, in the meantime 
+				do determineInvestablePlots(itp_type);	 
 				assignedNurseries <- true;
 			}else{
 				write "Let environment grow";
 			}	
 		}
 	}
+	
 }
 
 //behavior of investor detemines the profit threshold that it will tolerate
@@ -62,11 +67,6 @@ species investor{
 	//computes for the rate of return on the invested plots
 	//once investment has been successfully completed; university starts the planting and assigns rotation years per plot.
 	reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
-		write "Number of investable plots: "+length(plot where each.is_investable);
-		
-		write "Investor: "+name+" is looking to invest!"; 
-		
-		
 		list<plot> investable_plots <- plot where each.is_investable;	//gets investable plots
 		//decide investment
 		//if investment is 0, no previous investment, invests on the plot that have road, with highest profit
@@ -80,9 +80,7 @@ species investor{
 			if(investment_status){	//investment successful, put investor on investor's list of plot 
 				add self to: chosen_plot.my_investors;
 				chosen_plot.is_investable <- false;
-			}else{
-				write "Investment denied.";
-			}
+			}//else, investment denied
 		}else{
 			write "??";
 			//investor decides based on the result of the prior investment
@@ -103,6 +101,8 @@ species university{
 	list<plot> my_nurseries <- (plot where each.is_nursery) update: (plot where each.is_nursery);	//list of nurseries managed by university
 	list<plot> investable_plots;
 	
+	list<trees> available_seeds<- [];
+	
 	float mcost_of_native <- 5.0; //management cost in man hours of labor
 	float mcost_of_exotic <- 4.0; //management cost in man hours of labor
 	float pcost_of_native <- 1.0;	//planting cost in man hours of labor
@@ -115,9 +115,6 @@ species university{
 		Given the current number of trees in the plot, 
         determine the cost needed to plant new trees (how many trees are to be planted)
 	 */
-	action determineReqInvestment{
-		
-	}
 
 	float getPlantingCost(int t_type){
 		return ((t_type = 1)?pcost_of_exotic:pcost_of_native);
@@ -177,32 +174,46 @@ species university{
 	
 	//returns true if successful, else false
 	bool investOnPlot(investor investing_investor, plot chosen_plot){
+		available_seeds <- (my_nurseries accumulate each.plot_trees) where (each.age < 3);
 		//check available seeds in nursery
-		list<trees> available_seeds <- (my_nurseries accumulate each.plot_trees) where (each.age < 3);
 		int no_trees_for_planting <- chosen_plot.getAvailableSpaces((plant_native)?0:1);
 		
 		write "Available seeds: "+length(available_seeds)+" Needed seeds: "+no_trees_for_planting;
 		if(length(available_seeds)< no_trees_for_planting){	//check if the available seeds is sufficient to start investment on plot, if no, deny investment
-			write "Returning...";
 			return false;
+		}else{
+			available_seeds <- (length(available_seeds)>no_trees_for_planting ? available_seeds[0::no_trees_for_planting]:available_seeds);
 		}
 
-		write "Investment successful at: "+chosen_plot.name;
 		//confirm investment 
 		chosen_plot.is_nursery <- false;
 		add chosen_plot to: investing_investor.my_plots;
 		investing_investor.investment <- chosen_plot.investment_cost;
-		list<labour> assigned_laborers <- assignLaborerToPlot(chosen_plot, no_trees_for_planting, available_seeds); 
-		//TO DO
 		//assign laborer and get available seeds from the nursery 		
+		list<labour> assigned_laborers <- assignLaborerToPlot(chosen_plot); 
 		//laborer has the seeds: transplant in the chosen plot, action replantAlert(plot new_plot)
 		ask assigned_laborers{
 			current_plot <- chosen_plot;
+			do replantAlert(chosen_plot);
 		}
-
+		//set rotation years to plot
+		do setRotationYears(chosen_plot);
+		chosen_plot.is_itp <- true;
 		return true;
 	}
 
+	//type 0: automatically base on harvesting age of native
+	//type 1: automatically base on harvesting age of exotic
+	action setRotationYears(plot the_plot){
+		float mean_age_tree <- mean((the_plot.plot_trees where (each.type = itp_type)) accumulate each.age); //get the minimum age of the tree in the plot
+		
+		if(itp_type = 0){	//if itp type is native, or it is a mix itp and the youngest is native
+			the_plot.rotation_years <- int(harvesting_age_native - mean_age_tree);
+		}else if(itp_type = 1){
+			the_plot.rotation_years <- int(harvesting_age_exotic - mean_age_tree);
+		}		
+	}
+	
 	/*
 	 * the_plot: needs trees_to_be_planted in order to convert the plot into an ITP implementing selective logging
 	 * Assign laborer to ITP plot: 
@@ -213,43 +224,59 @@ species university{
 	 * Add more laborers if the plot isn't filled yet
 	 * All this happens in one step: in one month
 	 */	
-	list<labour> assignLaborerToPlot(plot the_plot, int trees_to_be_planted, list<trees> available_seeds){
+	list<labour> assignLaborerToPlot(plot the_plot){
 		//check if there are vacant, non-nursery laborers
+		
 		list<labour> itp_laborers <- labour where (!each.is_nursery_labour and empty(each.my_plots));
 		list<labour> assigned_laborers <- [];
-		int total_laborer_capacity <- 0;
 		
 		if(!empty(itp_laborers)){	//there's vacant laborer
-			//as much as each one can, replant the ITP
-			//update total_laborer_capacity
-			write "There's vacant laborer";
-			loop itp_l over: itp_laborers{
-				if(empty(available_seeds) or trees_to_be_planted = 0){break;}	//there's no more seeds to be planted 
-				add the_plot to: itp_l.my_plots;	//add the itp plot to the list of laborer's my_plots
-				add itp_l to: the_plot.my_laborers;	//put the laborer to the list of plot's laborers
-				
-				if(length(available_seeds)>itp_l.carrying_capacity){	//there's more trees than laborer can handle
-					itp_l.my_trees <<+ available_seeds[0::itp_l.carrying_capacity];	//give the available seeds to itp_l trees	
-					available_seeds >>- available_seeds[0::itp_l.carrying_capacity];						
-				}else{	//the laborer can handle all
-					itp_l.my_trees <<+ available_seeds;
-					available_seeds <- [];
-				}
-				total_laborer_capacity <- total_laborer_capacity + length(itp_l.my_trees);
-				add itp_l to: assigned_laborers;				 	
-			}
+			write "There's vacant laborer: "+itp_laborers;
+			assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
 		}
 		
-		if(trees_to_be_planted > total_laborer_capacity){	//there's more tree to be planted, more laborer is needed
+		if(!empty(available_seeds)){	//there's more tree to be planted, more laborer is needed
+			itp_laborers <- [];
 			ask my_nurseries where (length(each.my_laborers) >1){	//get laborers from nursery with more than one laborer
 				itp_laborers <<+ (my_laborers where (each.current_plot = self));
-				//update total_laborer_capacity
 			}
 			
-			if(trees_to_be_planted > total_laborer_capacity){
+			if(!empty(itp_laborers)){
+				write "Getting vacant laborer from nurseries";
+				assigned_laborers <<+updateAssignment(the_plot, itp_laborers);
+				ask assigned_laborers{
+					is_nursery_labour <- false;
+				}
+				
+			}
+			
+			if(!empty(available_seeds)){
 				write "Hire new laborer";
+				//depending on remaining available_seeds, create n new laborer
+				int new_laborer_needed <- int(length(available_seeds)/LABOUR_CAPACITY)+1;
+				create labour number: new_laborer_needed;
+				itp_laborers <- labour where empty(each.my_plots);
+				assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
 			}
 		}
+		return assigned_laborers;
+	}
+	
+	//as much as each one can, replant the ITP
+	//update total_laborer_capacity
+	list<labour> updateAssignment(plot the_plot, list<labour> itp_laborers){
+		list<labour> assigned_laborers <- [];
+		
+		loop itp_l over: itp_laborers{
+			if(empty(available_seeds)){break;}	//there's no more seeds to be planted 
+			add the_plot to: itp_l.my_plots;	//add the itp plot to the list of laborer's my_plots
+			add itp_l to: the_plot.my_laborers;	//put the laborer to the list of plot's laborers
+			
+			available_seeds <- itp_l.getTrees(available_seeds);
+				
+			add itp_l to: assigned_laborers;				 	
+		}
+		
 		return assigned_laborers;
 	}
 	
@@ -424,7 +451,7 @@ species labour{
 	plot current_plot;
 	list<trees> my_trees <- [];		//list of wildlings that the laborer currently carries
 	list<int> man_months <- [0,0];	//assigned, serviced 
-	int carrying_capacity <- 10;	//total number of wildlings that a laborer can carry to the nursery and to the ITP
+	int carrying_capacity <- LABOUR_CAPACITY;	//total number of wildlings that a laborer can carry to the nursery and to the ITP
 	bool is_nursery_labour <- false;
 	
 	aspect default{

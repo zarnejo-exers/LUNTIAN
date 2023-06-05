@@ -80,21 +80,8 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 			chart "Population of Investor and ITP" type: series
 			{
 				data "Number of Investors" value: length(investor where !empty(each.my_plots)) color: #blue;
-				data "Number of ITPs" value: length(investor accumulate each.my_plots) color: #green;
+				data "Number of ITPs" value: plot where each.is_itp color: #green;
 			}
 		}
-		
-		
-//		display chart2{
-//			chart "Population of New Trees" type: series{
-//				data "New Tree" value: length(trees where each.is_new_tree) color: #blue; 
-//			}
-//		}
-//		
-//		display chart3{
-//			chart "Population of Mother trees" type: series{
-//				data "Mother Trees" value: length(trees where each.is_mother_tree) color: #blue;
-//			}
-//		}
 	}
 }
