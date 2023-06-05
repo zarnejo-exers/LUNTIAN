@@ -102,7 +102,6 @@ species investor{
 		int plot_length <- length(my_plots);
 		loop while: (plot_length>0){
 			harvest_monitor[plot_length-1] <- harvest_monitor[plot_length-1] + 1;
-			write "HM: "+harvest_monitor[plot_length-1];
 			if(harvest_monitor[plot_length-1] = 12){
 				my_plots[plot_length-1].rotation_years <- my_plots[plot_length-1].rotation_years - 1;
 				harvest_monitor[plot_length-1] <- 0;
@@ -197,7 +196,7 @@ species university{
 		//check available seeds in nursery
 		int no_trees_for_planting <- chosen_plot.getAvailableSpaces((plant_native)?0:1);
 		
-		write "Available seeds: "+length(available_seeds)+" Needed seeds: "+no_trees_for_planting;
+		//write "Available seeds: "+length(available_seeds)+" Needed seeds: "+no_trees_for_planting;
 		if(length(available_seeds)< no_trees_for_planting){	//check if the available seeds is sufficient to start investment on plot, if no, deny investment
 			return false;
 		}else{
@@ -250,7 +249,7 @@ species university{
 		list<labour> assigned_laborers <- [];
 		
 		if(!empty(itp_laborers)){	//there's vacant laborer
-			write "There's vacant laborer: "+itp_laborers;
+			//write "There's vacant laborer: "+itp_laborers;
 			assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
 		}
 		
@@ -261,7 +260,7 @@ species university{
 			}
 			
 			if(!empty(itp_laborers)){
-				write "Getting vacant laborer from nurseries";
+				//write "Getting vacant laborer from nurseries";
 				assigned_laborers <<+updateAssignment(the_plot, itp_laborers);
 				ask assigned_laborers{
 					is_nursery_labour <- false;
@@ -270,7 +269,7 @@ species university{
 			}
 			
 			if(!empty(available_seeds)){
-				write "Hire new laborer";
+				//write "Hire new laborer";
 				//depending on remaining available_seeds, create n new laborer
 				int new_laborer_needed <- int(length(available_seeds)/LABOUR_CAPACITY)+1;
 				create labour number: new_laborer_needed;
@@ -332,7 +331,7 @@ species university{
 		list<labour> free_laborers <- labour where !each.is_nursery_labour;
 		
 		if(length(to_assign_nurseries) <= length(free_laborers)){	//there are sufficient laborers for the nurseries
-			write "Total Nurseries: "+length(to_assign_nurseries)+" of max capacity: "+nlaborer_count+" given Total Labor: "+length(free_laborers);
+			//write "Total Nurseries: "+length(to_assign_nurseries)+" of max capacity: "+nlaborer_count+" given Total Labor: "+length(free_laborers);
 		
 			loop an from: 0 to: length(to_assign_nurseries)-1{
 				//update the status of the laborer
@@ -348,7 +347,7 @@ species university{
 			
 			//if nurseries can have more than one laborer and if there are unassigned laborers, assign the remaining laborers to the nurseries (provided the restriction on teh allowed number of laborers per nursery) 
 			if(nlaborer_count > 1 and length(remaining_laborers) > 0){	//nurseries can have more than 1 laborer
-				write "Nurseries are given multiple laborers -- max: "+nlaborer_count+" for: "+length(remaining_laborers);
+				//write "Nurseries are given multiple laborers -- max: "+nlaborer_count+" for: "+length(remaining_laborers);
 
 				loop an over: to_assign_nurseries{
 					list<labour> laborers;
@@ -376,13 +375,13 @@ species university{
 		}else{	//there are more nurseries than the laborers
 //			int nurseries_per_laborer <- int(length(to_assign_nurseries)/length(free_laborers));
 // 			5 nurseries, 2 laborers: laborer_1=2, laborer_2=3
-			write "Laborers are assigned to multiple nurseries... To do";
+			//write "Laborers are assigned to multiple nurseries... To do";
 			float nurseries_per_laborer <- length(to_assign_nurseries)/length(free_laborers);	//get how many nurseries will be assigned to one laborer
 			
 			ask free_laborers{
 				int no_nurseries; 
 				if(length(to_assign_nurseries) > 0){
-					write "nurseries left: "+length(to_assign_nurseries); 
+					//write "nurseries left: "+length(to_assign_nurseries); 
 					if(length(to_assign_nurseries)>int(nurseries_per_laborer)+1){
 						no_nurseries <- int(nurseries_per_laborer);
 					}else{
@@ -418,7 +417,7 @@ species university{
 	//move the nursery laborer to the plot where there are new trees
 	//let the laborer get as much new trees as it can carry (meaning, some new trees will not be transplanted to the nursery)
 	action newTreeAlert(plot source_plot, list<trees> new_trees){
-		write "Plot: "+source_plot.name+" Trees: "+length(new_trees);
+		//write "Plot: "+source_plot.name+" Trees: "+length(new_trees);
 		
 		//get any laborer that is on the same plot (current_plot = source_plot) and is still able to get more trees
 		loop while: length(new_trees) > 0{
@@ -439,7 +438,7 @@ species university{
 					ask closest_labor{
 						location <- closest_nursery.location;	//return to closest_nursery;
 						current_plot <- closest_nursery;
-						write "In university, planting at: "+closest_nursery.name;
+						//write "In university, planting at: "+closest_nursery.name;
 						do replantAlert(closest_nursery);
 					}		
 				}

@@ -20,8 +20,8 @@ global {
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/soil_group_pH.shp");
-	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
-//	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
+//	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
+	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
 	file Plot_shapefile <- shape_file("../includes/parcel-polygon-100mx100m.shp");
 	
 	graph road_network;
@@ -111,22 +111,22 @@ global {
 		
 		create trees from: trees_shapefile{
 			//Actual
-			dbh <- float(read("Book2_DBH"));	
-			mh <- float(read("Book2_MH"));		
-			r <- float(read("Book2_R"));		
-			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
+//			dbh <- float(read("Book2_DBH"));	
+//			mh <- float(read("Book2_MH"));		
+//			r <- float(read("Book2_R"));		
+//			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
 			
 			//Dummy
-//			dbh <- float(read("Dummy_Data"));	//Dummy_Data
-//			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
-//			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
-//			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
+			dbh <- float(read("Dummy_Data"));	//Dummy_Data
+			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
+			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
+			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
 			
 			if(type = EXOTIC){ //exotic trees, mahogany
-				age <- float(self.dbh/growth_rate_exotic);
+				age <- self.dbh/growth_rate_exotic;
 				shade_tolerant <- false;
 			}else{	//native trees are shade tolerant
-				age <- float(self.dbh/growth_rate_native);
+				age <- self.dbh/growth_rate_native;
 				shade_tolerant <- true;
 			}
 		}	
@@ -305,17 +305,17 @@ species trees{
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
 		geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
-		if(dbh >= 75 and ([0,1,2,7,11] contains current_month) and type = 1){		//exotic tree
+		if(type=EXOTIC and age >= 15 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
 			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
 				t_space <- (t_space - (circle((self.dbh)+(10)) translated_to mother_location)) inter (circle((self.dbh)+(20), mother_location));
 				if(t_space != nil){
-					//write "\nbefore tspace: "+t_space.area;
+					write "Exotic bearing fruit: "+total_no_seeds;
 					do recruitTree(total_no_seeds, t_space);
 				}
 			}else{is_mother_tree <- false;}
-		}else if(type = NATIVE and age > 15 and current_month = 8){						//native tree
+		}else if(type = NATIVE and age > 15 and current_month = 8){						//native tree, produces fruit every September
 			total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
@@ -371,9 +371,9 @@ species trees{
 	//growth of tree
 	reflex growDiameter {
 		if(type = NATIVE){ //mayapis
-			dbh <- (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))));//*growthCoeff(type);
+			dbh <- (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))))*growthCoeff(type);
 		}else if(type = EXOTIC){	//mahogany
-			dbh <- (max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))));//*growthCoeff(type);
+			dbh <- (max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))))*growthCoeff(type);
 		}
 		/*if(length(trees overlapping (circle(self.dbh) translated_to self.location)) > 0){
 			dbh <- prev_dbh;	//inhibit growth if it overlaps other trees; update this once height is added
@@ -387,11 +387,10 @@ species trees{
 		float coeff;
 		
 		if(curr <= ave){
-			coeff <- ((curr/(ave-min)) + (min/(min - ave)));
+			coeff <- ((curr/(ave-min))+(min/(min - ave)));
 		}else{
 			coeff <- -((curr/(max-ave))+(max/(max-ave)));
 		}
-		
 		
 		if(coeff< 0.8){coeff <- 0.8;}
 		if(coeff>1.0){coeff <- 1.0;}	//for the meantime if the coeff is very small or curr is greater than the max  value, do nothing
