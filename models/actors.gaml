@@ -497,7 +497,16 @@ species labour{
 	}
 	
 	reflex checkIfMustReplant when: carrying_capacity = length(my_trees){
-		list<plot> available_plots <- my_plots where (each.getRemainingSpace() != nil);	//all plots with remaining space
+		ask university{
+			loop mp over: myself.my_plots{
+				ask mp{
+					do updateTrees;
+				}
+				geometry space <- mp.removeOccupiedSpace(mp.shape, mp.plot_trees);
+			}
+		}
+		
+		list<plot> available_plots <- my_plots where (each.removeOccupiedSpace(each.shape, each.plot_trees) != nil);	//all plots with remaining space
 		if(length(available_plots) > 0){
 			plot nursery <- available_plots closest_to current_plot;
 			if(nursery != nil){
@@ -514,7 +523,7 @@ species labour{
 	//Invoked by university to command labour to return and plant all that is in its hands
 	//For replanting to nursery, and to the new plot (for ITP)
 	action replantAlert(plot new_plot){		
-		geometry remaining_space <- new_plot.getRemainingSpace();
+		geometry remaining_space <- new_plot.removeOccupiedSpace(new_plot.shape, new_plot.plot_trees);
 		loop while: remaining_space != nil and length(my_trees) > 0{	//use the same plot while there are spaces; plant while there are trees to plant
 			trees to_plant <- one_of(my_trees);	//get one of the trees
 			to_plant.is_new_tree <- false;

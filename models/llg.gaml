@@ -136,15 +136,17 @@ global {
 			if(water_content[self.location] <= 400){
 				do die;
 			}
-			
-			 plot_trees <- trees inside self;
-			 loop p over: plot_trees{
-			 	p.my_plot <- self;
-			 }
+			plot_trees <- trees inside self;
+			loop p over: plot_trees{
+				p.my_plot <- self;
+			}
 			 
-			 if(length(road crossing self)>0){
-			 	has_road <- true;
-			 }
+			if(length(road crossing self)>0){
+				has_road <- true;
+			}
+		}
+		ask plot{
+			do compute_neighbors;
 		}
 		
 		//clean data, with the given options
@@ -255,16 +257,22 @@ species trees{
 	bool is_new_tree <- false;
 	
 	int count_fruits; 
+	int temp;
 	
 	aspect default{
 		draw circle(self.dbh, self.location) color: (type = NATIVE)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
 	}
 	
-	aspect geom3D{
-		//draw cylinder(min(0.1, self.dbh/100), min(1, self.dbh/100)) color: #saddlebrown at: {location.x,location.y,elev[point(location.x, location.y)]+450};
-		//draw line([{location.x,location.y,elev[point(location.x, location.y)]+400},{location.x,location.y,elev[point(location.x, location.y)]+450}]) depth: self.dbh color: #brown wireframe: true; 
+	aspect geom3D{ 
+		if(temp = 1){	//new tree
+			draw sphere(self.dbh) color: #yellow at: {location.x,location.y,elev[point(location.x, location.y)]+400+(mh)};
+		}if(self.is_mother_tree){
+			draw sphere(self.dbh) color: #turquoise at: {location.x,location.y,elev[point(location.x, location.y)]+400+(mh)};
+		}else{
+			draw sphere(self.dbh) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+(mh)};	
+		}
 		draw circle(mh/2) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: mh;
-		draw sphere(self.dbh) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+(mh)};
+		
 	}
 	
 	//kill tree that are inside a basin
@@ -304,14 +312,15 @@ species trees{
 		
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
-		geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
-		if(type=EXOTIC and age >= 15 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
+		//geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
+		if(type=EXOTIC and dbh >= 75 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
 			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
-				t_space <- (t_space - (circle((self.dbh)+(10)) translated_to mother_location)) inter (circle((self.dbh)+(20), mother_location));
+				geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+40, mother_location) - circle(self.dbh+20, mother_location));
+				t_space <- my_plot.removeOccupiedSpace(t_space, trees inside t_space);	
 				if(t_space != nil){
-					write "Exotic bearing fruit: "+total_no_seeds;
+					self.temp <- 0;
 					do recruitTree(total_no_seeds, t_space);
 				}
 			}else{is_mother_tree <- false;}
@@ -319,26 +328,27 @@ species trees{
 			total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
-				t_space <- (t_space - (circle(self.dbh) translated_to mother_location)) inter (circle((self.dbh)+(20), mother_location));//do not include the area occupied by the tree
+				geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+20, mother_location) - circle(self.dbh, mother_location));
+				t_space <- my_plot.removeOccupiedSpace(t_space, trees inside t_space);
 				if(t_space != nil){
-					//write "\nbefore tspace: "+t_space.area;
+					self.temp <- 0;
 					do recruitTree(total_no_seeds, t_space);
 				}
 			}else{is_mother_tree <- false;}
-		}	
+		}
 	}
 	
 	//if there is no nursery, put the recruit on the same plot as with the mother tree
 	action recruitTree(int total_no_seeds, geometry t_space){
 		//create new trees	
-		int fc <- 0;
+		list<trees> new_trees;
 		loop i from: 0 to: total_no_seeds-1 {
 			float new_dbh <- 0.7951687878;
 			//setting location of the new tree 
 			//make sure that there is sufficient space before putting the tree in the new location
 			point new_location <- any_location_in(t_space);
-			if(new_location = nil){return;}	//don't add seeds if there are no space
-			fc <- fc + 1;
+			if(new_location = nil){break;}	//don't add seeds if there are no space
+
 			trees instance;
 			create trees{			
 				age <- 1.0;
@@ -350,24 +360,26 @@ species trees{
 				shape <- circle(dbh) translated_to location;
 				my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
 				is_new_tree <- true;
-
-				t_space <- t_space - circle(dbh+20) translated_to new_location;
 				instance <- self;
+				temp <- 1;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	add new tree to parcel's list of trees
 			
-			if(length(instance.my_plot.plot_trees overlapping (circle(instance.dbh) translated_to instance.location)) > 0){
+			if(!empty(instance.my_plot.plot_trees overlapping instance)){	//check if the instance overlaps another tree
 				ask instance{
 					remove self from: my_plot.plot_trees;
 					do die;
 				}
+			}else{
+				add instance to: new_trees;		//add new tree to list of new trees
+				t_space <- t_space - circle(instance.dbh+20, new_location); 	//remove the tree's occupied space from the available space 
 			}
 		}
 		if(t_space != nil){
 		//	write "after adding trees tspace: "+t_space.area;
 		}
-		count_fruits <- fc;
+		count_fruits <- length(new_trees);
 	}
-	
+
 	//growth of tree
 	reflex growDiameter {
 		if(type = NATIVE){ //mayapis
@@ -440,6 +452,7 @@ species trees{
 
 species plot{
 	list<labour> my_laborers;
+	geometry neighborhood_shape <- nil;
 	list<trees> plot_trees<- [] update: plot_trees where !dead(each);
 	soil my_soil <- soil closest_to location;
 	climate my_climate <- climate closest_to location;
@@ -453,6 +466,16 @@ species plot{
 	bool has_road <- false;
 	bool is_candidate_nursery <- false; //true if there exist a mother tree in one of its trees;
 	int rotation_years <- 0; 	//only set once an investor decided to invest on a plot
+	
+	action compute_neighbors {
+		list<plot> my_neighborhood <- (plot select ((each distance_to self) < 5));
+		
+		loop mn over: my_neighborhood{
+			neighborhood_shape <- neighborhood_shape + mn.shape;
+		}
+		
+		write "My area: "+self.shape.area+" Neighbors area: "+neighborhood_shape.area;
+	}
 	
 	aspect default{
 		if(is_nursery){
@@ -481,16 +504,26 @@ species plot{
 		is_candidate_nursery <- (mother_count > 0)?true:false;
 	}
 	
-	action computeReqInvestment{
+	//removes spaces occupied by trees
+	//temp_shape can be the shape of a parcel
+	//trees_inside can be the parcel_trees
+	geometry removeOccupiedSpace(geometry temp_shape, list<trees> trees_inside){
+		//remove from occupied spaces
+		loop pt over: trees_inside{
+			if(dead(pt)){ continue; }
+			//geometry occupied_space <- circle(pt.dbh, pt.location);
+			temp_shape <- temp_shape - pt.shape;//occupied_space;
+		}
 		
+		return temp_shape;
 	}
 	
 	//compute the number of new tree that the plot can accommodate
 	//given type of tree, returns the number of spaces that can be accommodate wildlings
 	int getAvailableSpaces(int type){
 		//remove from occupied spaces
-		geometry temp_shape <- getRemainingSpace();
-		
+		do updateTrees();
+		geometry temp_shape <- removeOccupiedSpace(self.shape, self.plot_trees);
 		
 		float temp_dbh;
 		ask university{
@@ -513,24 +546,11 @@ species plot{
 				if(length(my_nurseries) > 0){
 					do newTreeAlert(myself, new_trees);	
 				}else{
-					write "There are no nursery yet.";
+					//write "There are no nursery yet.";
 				}
 				
 			}
 		}
-	}
-	
-	geometry getRemainingSpace{
-		do updateTrees;
-		
-		//remove from occupied spaces
-		geometry temp_shape <- self.shape;
-		loop pt over: plot_trees{
-			geometry occupied_space <- circle(pt.dbh) translated_to pt.location;
-			temp_shape <- temp_shape - occupied_space;
-		}
-		
-		return temp_shape;
 	}
 	
 }

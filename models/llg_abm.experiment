@@ -67,28 +67,43 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 //			}		
 //		}
 		
-		display chart2 type: java2D{	
-			chart "Population of Trees in Nurseries" type: series
-			{
-				data "Number of Trees" value: (plot where each.is_nursery) sum_of length(each.plot_trees) color: #blue;
-			}
-		}
+//		display chart2 type: java2D{	
+//			chart "Population of Trees in Nurseries" type: series
+//			{
+//				data "Number of Trees" value: (plot where each.is_nursery) sum_of length(each.plot_trees) color: #blue;
+//			}
+//		}
 	
-		display chart3 type: java2D{	
-			chart "Population of Investor and ITP" type: series
+//		display chart3 type: java2D{	
+//			chart "Population of Investor and ITP" type: series
+//			{
+//				data "Number of Investors" value: length(investor where !empty(each.my_plots)) color: #blue;
+//				data "Number of ITPs" value: plot where each.is_itp color: #green;
+//			}
+//		}
+		
+//		display chart4 type: java2D{	
+//			chart "Rotation year remaining before ITP harvesting" type: series
+//			{
+//            	loop i over: investor{
+//            		data i.name value: (empty(i.my_plots)?0:one_of(i.my_plots).rotation_years);
+//            	}
+//
+//			}
+//		}
+		
+		display chart5 type: java2D{
+			chart "Population of New Trees" type: series
 			{
-				data "Number of Investors" value: length(investor where !empty(each.my_plots)) color: #blue;
-				data "Number of ITPs" value: plot where each.is_itp color: #green;
+				data "Native Trees" value: length(trees where (each.type=0 and each.is_new_tree)) color: #green;
+				data "Exotic Trees" value: length(trees where (each.type=1 and each.is_new_tree)) color: #blue;	
 			}
 		}
-		
-		display chart4 type: java2D{	
-			chart "Rotation year remaining before ITP harvesting" type: series
-			{
-            	loop i over: investor{
-            		data i.name value: (empty(i.my_plots)?0:one_of(i.my_plots).rotation_years);
-            	}
-
+//		
+		display chart6 type: java2D{
+			chart "Population of Mother Trees" type: histogram{
+				data "Number of Native Trees" value: length(trees where (each.is_mother_tree and each.type=0)) color: #green;
+				data "Number of Exotic Trees" value: length(trees where (each.is_mother_tree and each.type=1)) color: #blue;
 			}
 		}
 //		display chart2 type: java2D{
