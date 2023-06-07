@@ -11,7 +11,7 @@ import "llg.gaml"
 /* Insert your model definition here */
 global{
 	int NURSERY_LABOUR <- 12; //labor required per nursery, constant
-	int LABOUR_CAPACITY <- 10;	//number of trees that the laborer can plant/manage
+	int LABOUR_PCAPACITY <- 10;	//number of trees that the laborer can plant/manage
 	
 	int investor_count <- 1 update: investor_count;
 	int plot_size <- 1 update: plot_size;
@@ -193,6 +193,7 @@ species university{
 			do updateTrees;
 		}
 		available_seeds <- (my_nurseries accumulate each.plot_trees) where (each.age < 3);
+		
 		//check available seeds in nursery
 		int no_trees_for_planting <- chosen_plot.getAvailableSpaces((plant_native)?0:1);
 		
@@ -212,6 +213,7 @@ species university{
 		//laborer has the seeds: transplant in the chosen plot, action replantAlert(plot new_plot)
 		ask assigned_laborers{
 			current_plot <- chosen_plot;
+			is_itp_labour <- true;
 			do replantAlert(chosen_plot);
 		}
 		//set rotation years to plot
@@ -249,7 +251,6 @@ species university{
 		list<labour> assigned_laborers <- [];
 		
 		if(!empty(itp_laborers)){	//there's vacant laborer
-			//write "There's vacant laborer: "+itp_laborers;
 			assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
 		}
 		
@@ -260,7 +261,6 @@ species university{
 			}
 			
 			if(!empty(itp_laborers)){
-				//write "Getting vacant laborer from nurseries";
 				assigned_laborers <<+updateAssignment(the_plot, itp_laborers);
 				ask assigned_laborers{
 					is_nursery_labour <- false;
@@ -269,9 +269,12 @@ species university{
 			}
 			
 			if(!empty(available_seeds)){
-				//write "Hire new laborer";
 				//depending on remaining available_seeds, create n new laborer
-				int new_laborer_needed <- int(length(available_seeds)/LABOUR_CAPACITY)+1;
+				int new_laborer_needed <- int(length(available_seeds)/LABOUR_PCAPACITY);
+				if(length(available_seeds) mod LABOUR_PCAPACITY != 0){
+					new_laborer_needed <- new_laborer_needed + 1;
+				}
+				
 				create labour number: new_laborer_needed;
 				itp_laborers <- labour where empty(each.my_plots);
 				assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
@@ -291,6 +294,7 @@ species university{
 			add itp_l to: the_plot.my_laborers;	//put the laborer to the list of plot's laborers
 			
 			available_seeds <- itp_l.getTrees(available_seeds);
+			write "Labour: "+itp_l.name+" seeds taken: "+length(itp_l.my_trees);
 				
 			add itp_l to: assigned_laborers;				 	
 		}
@@ -469,8 +473,9 @@ species labour{
 	plot current_plot;
 	list<trees> my_trees <- [];		//list of wildlings that the laborer currently carries
 	list<int> man_months <- [0,0];	//assigned, serviced 
-	int carrying_capacity <- LABOUR_CAPACITY;	//total number of wildlings that a laborer can carry to the nursery and to the ITP
+	int carrying_capacity <- LABOUR_PCAPACITY;	//total number of wildlings that a laborer can carry to the nursery and to the ITP
 	bool is_nursery_labour <- false;
+	bool is_itp_labour <- false;
 	
 	aspect default{
 		draw triangle(length(my_trees)+50) color: #orange rotate: 90.0;
@@ -527,8 +532,9 @@ species labour{
 		loop while: remaining_space != nil and length(my_trees) > 0{	//use the same plot while there are spaces; plant while there are trees to plant
 			trees to_plant <- one_of(my_trees);	//get one of the trees
 			to_plant.is_new_tree <- false;
-			to_plant.my_plot <- new_plot;	//update plot of tree
+			remove to_plant from: to_plant.my_plot.plot_trees; 
 			new_plot.plot_trees << to_plant;	//put tree to the tree list of the new_plot
+			to_plant.my_plot <- new_plot;	//update plot of tree
 			to_plant.location <- any_location_in(remaining_space);	//plant anywhere inside the remaining_space;
 			remove to_plant from: my_trees;
 			geometry new_occupied_space <- circle(to_plant.dbh) translated_to to_plant.location;
@@ -541,7 +547,7 @@ species labour{
 	list<trees> getTrees(list<trees> treeToBeAlloc){
 		if(length(treeToBeAlloc) >= self.carrying_capacity){			//there are more trees than the laborer can hold
 			self.my_trees <<+ treeToBeAlloc[0::self.carrying_capacity];
-			treeToBeAlloc >>- treeToBeAlloc[0::self.carrying_capacity];			
+			treeToBeAlloc >>- treeToBeAlloc[0::self.carrying_capacity];		
 		}else{	//the number of trees isn't enough to make the laborer go back to the nursery to plant
 			self.my_trees <<+ treeToBeAlloc;	//get all the trees
 			treeToBeAlloc <- [];		//set the new unassigned trees to empty
@@ -550,7 +556,6 @@ species labour{
 		ask self.my_trees where each.is_new_tree{	//all allocated trees are no longer new trees
 			is_new_tree <- false;
 		}
-		
 		return treeToBeAlloc;
 	}
 }

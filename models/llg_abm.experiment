@@ -102,8 +102,8 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 //		
 		display chart6 type: java2D{
 			chart "Population of Mother Trees" type: histogram{
-				data "Number of Native Trees" value: length(trees where (each.is_mother_tree and each.type=0)) color: #green;
-				data "Number of Exotic Trees" value: length(trees where (each.is_mother_tree and each.type=1)) color: #blue;
+				data "Native Trees" value: length(trees where (each.is_mother_tree and each.type=0)) color: #green;
+				data "Exotic Trees" value: length(trees where (each.is_mother_tree and each.type=1)) color: #blue;
 			}
 		}
 //		display chart2 type: java2D{
