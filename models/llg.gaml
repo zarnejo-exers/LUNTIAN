@@ -315,7 +315,7 @@ species trees{
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
 		//geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
-		if(type=EXOTIC and dbh >= 75 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
+		if(type=EXOTIC and age > 15 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
 			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
@@ -365,8 +365,11 @@ species trees{
 				instance <- self;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	add new tree to parcel's list of trees
 			
-			
-			if(!empty(instance.my_plot.plot_trees overlapping instance)){	//check if the instance overlaps another tree
+			ask instance.my_plot{
+				do updateTrees();
+			}
+			trees closest_tree <- instance.my_plot.plot_trees closest_to instance;
+			if(closest_tree != nil and circle(closest_tree.dbh+10) overlaps circle(instance.dbh+10)){	//check if the instance overlaps another tree
 				ask instance{
 					remove self from: my_plot.plot_trees;
 					do die;
