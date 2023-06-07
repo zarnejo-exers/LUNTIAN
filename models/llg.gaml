@@ -20,8 +20,8 @@ global {
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/soil_group_pH.shp");
-	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
-//	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
+//	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
+	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
 	file Plot_shapefile <- shape_file("../includes/parcel-polygon-100mx100m.shp");
 	
 	graph road_network;
@@ -111,16 +111,16 @@ global {
 		
 		create trees from: trees_shapefile{
 			//Actual
-			dbh <- float(read("Book2_DBH"));	
-			mh <- float(read("Book2_MH"));		
-			r <- float(read("Book2_R"));		
-			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
+//			dbh <- float(read("Book2_DBH"));	
+//			mh <- float(read("Book2_MH"));		
+//			r <- float(read("Book2_R"));		
+//			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
 			
 			//Dummy
-//			dbh <- float(read("Dummy_Data"));	//Dummy_Data
-//			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
-//			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
-//			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
+			dbh <- float(read("Dummy_Data"));	//Dummy_Data
+			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
+			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
+			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
 			
 			if(type = EXOTIC){ //exotic trees, mahogany
 				age <- self.dbh/growth_rate_exotic;
@@ -315,7 +315,7 @@ species trees{
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
 		//geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
-		if(type=EXOTIC and age > 15 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
+		if(type=EXOTIC and dbh >= 75 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
 			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
@@ -326,7 +326,7 @@ species trees{
 					do recruitTree(total_no_seeds, t_space);
 				}
 			}else{is_mother_tree <- false;}
-		}else if(type = NATIVE and age > 15 and current_month = 8){						//native tree, produces fruit every September
+		}else if(type = NATIVE and age > 15 and current_month = 8){		//age >=15				//native tree, produces fruit every September
 			total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
@@ -368,7 +368,6 @@ species trees{
 			
 			if(!empty(instance.my_plot.plot_trees overlapping instance)){	//check if the instance overlaps another tree
 				ask instance{
-					write "removing..";
 					remove self from: my_plot.plot_trees;
 					do die;
 				}
@@ -515,7 +514,7 @@ species plot{
 		loop pt over: trees_inside{
 			if(dead(pt)){ continue; }
 			//geometry occupied_space <- circle(pt.dbh, pt.location);
-			temp_shape <- temp_shape - pt.shape;//occupied_space;
+			temp_shape <- temp_shape - circle(pt.dbh+20);//occupied_space; dbh+ room for growth
 		}
 		
 		return temp_shape;
@@ -532,7 +531,7 @@ species plot{
 		ask university{
 			temp_dbh <- managementDBHEstimate(type, planting_age);
 		}
-		geometry tree_shape <- circle(temp_dbh);
+		geometry tree_shape <- circle(temp_dbh+20);
 		
 		if(temp_shape = nil){return 0;}
 		else{

@@ -294,7 +294,6 @@ species university{
 			add itp_l to: the_plot.my_laborers;	//put the laborer to the list of plot's laborers
 			
 			available_seeds <- itp_l.getTrees(available_seeds);
-			write "Labour: "+itp_l.name+" seeds taken: "+length(itp_l.my_trees);
 				
 			add itp_l to: assigned_laborers;				 	
 		}
@@ -423,38 +422,42 @@ species university{
 	action newTreeAlert(plot source_plot, list<trees> new_trees){
 		//write "Plot: "+source_plot.name+" Trees: "+length(new_trees);
 		
-		//get any laborer that is on the same plot (current_plot = source_plot) and is still able to get more trees
+		//get the nursery laborer that is on the same plot and get more trees as long as carrying capacity permits
+		list<labour> closest_laborers <- labour where (each.current_plot = source_plot and each.is_nursery_labour and each.carrying_capacity > length(each.my_trees)); 
 		loop while: length(new_trees) > 0{
-			labour closest_laborer <- labour where (each.carrying_capacity != length(each.my_trees)) closest_to source_plot;
-			if(closest_laborer.current_plot = source_plot){	//laborer is on the same plot, get the new trees
-				new_trees <- closest_laborer.getTrees(new_trees);
+			if(!empty(closest_laborers)){	//laborer is on the same plot, get the new trees
+				labour cl <- one_of(closest_laborers);
+				new_trees <- cl.getTrees(new_trees);
+				remove cl from: closest_laborers;
 			}else{ break; }	
 		}
-		
-		//there are more trees to be allocated
-		// and there is there is no/ no more laborer in the plot, get available laborers that is currently in one of its nursery plot
+
 		if(length(new_trees) > 0){
-			plot closest_nursery <- (plot where each.is_nursery) closest_to source_plot;	//get closest nursery to plot with new tree	
-			list<labour> available_laborers <- closest_nursery.my_laborers where (each.current_plot = closest_nursery);
-			if(length(available_laborers) = 0){		//let the closest laborer go back to the nursery and plant all the widlings that it had gathered
-				labour closest_labor <- (closest_nursery.my_laborers where each.is_nursery_labour) closest_to source_plot;
+			plot closest_nursery <- my_nurseries closest_to source_plot;	//get closest nursery to plot with new tree
+			list<labour> available_nlaborers <- closest_nursery.my_laborers where (each.current_plot = closest_nursery);
+			if(!empty(available_nlaborers)){	//if there are more trees to be allocated, check if there are nursery laborers that is in the nursery and move that laborer to the plot where the new tree is spotted
+				loop an over: available_nlaborers{
+					an.current_plot <- source_plot;							//go to the source plot
+					an.location <- source_plot.location;					
+					new_trees <- an.getTrees(new_trees);
+					if(length(new_trees) = 0) {break;}	//if there are no more trees, break
+				}
+			}else{//if there are still more, let the one of the laborers of the closest nursery who  laborer go back to the nursery and plant all the wildlings even if it hasn't exhausted its carrying capacity yet
+				labour closest_labor <- (closest_nursery.my_laborers - available_nlaborers) closest_to source_plot;
 				if(closest_labor != nil){
 					ask closest_labor{
 						location <- closest_nursery.location;	//return to closest_nursery;
 						current_plot <- closest_nursery;
 						//write "In university, planting at: "+closest_nursery.name;
 						do replantAlert(closest_nursery);
-					}		
+					}
 				}
-			}else{	//choose one laborer and move the laborer to source_plot
-				loop al over: available_laborers{
-					if(length(new_trees) = 0) {break;}	//if there are no more trees, break
-					al.current_plot <- source_plot;							//go to the source plot
-					al.location <- source_plot.location;					
-					new_trees <- al.getTrees(new_trees);
-				}
-			}	
+			}
 		}
+	}
+	
+	action checkAvailableNurseryLaborer{
+		
 	}	
 }
 
@@ -480,7 +483,8 @@ species labour{
 	aspect default{
 		draw triangle(length(my_trees)+50) color: #orange rotate: 90.0;
 	}
-	
+
+	//when tree dies, it is removed from the plot but the laborer isn't aware yet that it has died	
 	reflex removeDeadTrees{
 		my_trees <- my_trees where !dead(each);
 	}
@@ -493,10 +497,8 @@ species labour{
 		
 		if(length(my_plots where each.has_road) > 0){	//one of the plot has a road, put the laborer on one of the plots with a road
 			current_plot <- one_of(my_plots where each.has_road);
-			write self.name+" at current_plot "+current_plot.name;
 		}else{	//put the laborer randomly
 			current_plot <- one_of(my_plots);
-			write self.name+" at current_plot "+current_plot.name;
 		}
 		self.location <- current_plot.location;
 	}
@@ -517,11 +519,9 @@ species labour{
 			if(nursery != nil){
 				location <- nursery.location;		//go back to the nursery and plant the trees
 				current_plot <- nursery;
-				write "Planting at: "+nursery.name;
 				do replantAlert(nursery);	
 			}
 		}//else, do nothing; meaning, just wait until there are available plots
-		
 	}
 	
 	//Invoked by labour reflex when the capacity of the laborer is reached, plant the trees to the nursery
