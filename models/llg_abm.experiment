@@ -59,13 +59,13 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 			}
 		}
 		
-//		display chart1 type: java2D{	
-//			chart "Population of Trees" type: series
-//			{
-//				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
-//				data "Native Trees" value: length(trees where (each.type = 0)) color: #green;
-//			}		
-//		}
+		display chart1 type: java2D{	
+			chart "Population of Trees" type: series
+			{
+				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
+				data "Native Trees" value: length(trees where (each.type = 0)) color: #green;
+			}		
+		}
 		
 		display chart2 type: java2D{	
 			chart "Population of Trees in Nurseries" type: series
@@ -74,13 +74,13 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 			}
 		}
 	
-		display chart3 type: java2D{	
-			chart "Population of Investor and ITP" type: series
-			{
-				data "Number of Investors" value: length(investor where !empty(each.my_plots)) color: #blue;
-				data "Number of ITPs" value: plot where each.is_itp color: #green;
-			}
-		}
+//		display chart3 type: java2D{	
+//			chart "Population of Investor and ITP" type: series
+//			{
+//				data "Number of Investors" value: length(investor where !empty(each.my_plots)) color: #blue;
+//				data "Number of ITPs" value: plot where each.is_itp color: #green;
+//			}
+//		}
 		
 		display chart4 type: java2D{	
 			chart "Rotation year remaining before ITP harvesting" type: series
