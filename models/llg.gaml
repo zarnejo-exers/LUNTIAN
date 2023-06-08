@@ -269,11 +269,10 @@ species trees{
 	}
 	
 	aspect geom3D{
-//		if(self.is_mother_tree){
-//			draw sphere(self.dbh) color: #turquoise at: {location.x,location.y,elev[point(location.x, location.y)]+400+(mh)};
-//		}
-		 
-		if(is_new_tree){	//new tree
+		if(temp = 3){
+			draw sphere(self.dbh) color: #turquoise at: {location.x,location.y,elev[point(location.x, location.y)]+400+(th)};
+		}
+		else if(is_new_tree){	//new tree
 			draw sphere(self.dbh) color: #yellow at: {location.x,location.y,elev[point(location.x, location.y)]+400+(th)};
 		}else{
 			draw sphere(self.dbh) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+(th)};	
@@ -293,11 +292,6 @@ species trees{
 				do die;
 			}
 		} 
-	}
-	
-	//once the tree reaches 5 years old, it cannot be moved to a nursery anymore 
-	reflex updateTreeStats when: age > 2{
-		is_new_tree <- false;
 	}
 	
 	//recruitment of tree
@@ -449,8 +443,14 @@ species trees{
 	}
 	
 	//tree age
+	//once the tree reaches 5 years old, it cannot be moved to a nursery anymore
 	reflex stepAge {
 		age <- age + (1/12);
+		
+		if(age > 3 and age< 4){
+			is_new_tree <- false;		
+		}
+	
 	}
 	
 	//tree mortality

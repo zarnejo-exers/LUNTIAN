@@ -533,12 +533,21 @@ species labour{
 			trees to_plant <- one_of(my_trees);	//get one of the trees
 			to_plant.is_new_tree <- false;
 			remove to_plant from: to_plant.my_plot.plot_trees; 
-			new_plot.plot_trees << to_plant;	//put tree to the tree list of the new_plot
 			to_plant.my_plot <- new_plot;	//update plot of tree
 			to_plant.location <- any_location_in(remaining_space);	//plant anywhere inside the remaining_space;
+			to_plant.my_plot.plot_trees << to_plant;	//put tree to the tree list of the new_plot
 			remove to_plant from: my_trees;
-			geometry new_occupied_space <- circle(to_plant.dbh) translated_to to_plant.location;
-			remaining_space <- remaining_space - new_occupied_space;
+			trees closest_tree <- to_plant.my_plot.plot_trees closest_to to_plant;
+			if(closest_tree != nil and circle(closest_tree.dbh+1) overlaps circle(to_plant.dbh+1)){	//check if the instance overlaps another tree
+				ask to_plant{//if it overlaps, undo the replanting
+					remove self from: my_plot.plot_trees;
+					do die;
+				}
+			}else{	//confirm planting and remove the area from the remaining space
+				geometry new_occupied_space <- circle(to_plant.dbh+5) translated_to to_plant.location;	//+5 allows for spacing between plants
+				remaining_space <- remaining_space - new_occupied_space; 
+			}
+			
 		}	
 	}
 	
