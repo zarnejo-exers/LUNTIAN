@@ -19,8 +19,8 @@ global{
 	int nlaborer_count<- 1 update: nlaborer_count;
 	float planting_space <- 1.0 update: planting_space; 
 	int planting_age <- 1 update: planting_age;
-	int harvesting_age_exotic <- 50 update: harvesting_age_exotic;
-	int harvesting_age_native <- 70 update: harvesting_age_native;
+	int harvesting_age_exotic <- 20 update: harvesting_age_exotic;
+	int harvesting_age_native <- 30 update: harvesting_age_native;
 	int nursery_count <- 2 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
 	float dbh_policy <- 50.0 update: dbh_policy; 

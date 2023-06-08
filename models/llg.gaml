@@ -315,7 +315,7 @@ species trees{
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
 		//geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
-		if(type=EXOTIC and age > 15 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
+		if(type=EXOTIC and dbh >= 75 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
 			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
@@ -421,8 +421,8 @@ species trees{
 		float percent_precip <- my_plot.my_climate.precipitation[current_month]/my_plot.my_climate.total_precipitation;
 		
 		float g_coeff <- 1.0;
-		//g_coeff <- g_coeff * reduceGrowth(curr_temp, min_temp[t_type], max_temp[t_type]);	//coefficient given temperature
-		//g_coeff <- g_coeff * reduceGrowth(curr_pH, min_pH[t_type], max_pH[t_type]);			//coefficient given soil pH
+		g_coeff <- g_coeff * reduceGrowth(curr_temp, min_temp[t_type], max_temp[t_type]);	//coefficient given temperature
+		g_coeff <- g_coeff * reduceGrowth(curr_pH, min_pH[t_type], max_pH[t_type]);			//coefficient given soil pH
 		g_coeff <- g_coeff * reduceGrowth(curr_water, min_water[t_type]*percent_precip, max_water[t_type]*percent_precip);//coefficient given water (considering only the percentage of precipitation given current month over the total annual precipitation)
 		
 		return g_coeff;
@@ -472,6 +472,8 @@ species trees{
 			do die;
 		}
 	}
+	
+	//set different mortality for trees in the nursery
 }
 
 species plot{
