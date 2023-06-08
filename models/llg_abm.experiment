@@ -92,20 +92,20 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 //			}
 //		}
 		
-		display chart5 type: java2D{
-			chart "Population of New Trees" type: series
-			{
-				data "Native Trees" value: length(trees where (each.type=0 and each.is_new_tree)) color: #green;
-				data "Exotic Trees" value: length(trees where (each.type=1 and each.is_new_tree)) color: #blue;	
-			}
-		}
+//		display chart5 type: java2D{
+//			chart "Population of New Trees" type: series
+//			{
+//				data "Native Trees" value: length(trees where (each.type=0 and each.is_new_tree)) color: #green;
+//				data "Exotic Trees" value: length(trees where (each.type=1 and each.is_new_tree)) color: #blue;	
+//			}
+//		}
 //		
-		display chart6 type: java2D{
-			chart "Population of Mother Trees" type: histogram{
-				data "Native Trees" value: length(trees where (each.is_mother_tree and each.type=0)) color: #green;
-				data "Exotic Trees" value: length(trees where (each.is_mother_tree and each.type=1)) color: #blue;
-			}
-		}
+//		display chart6 type: java2D{
+//			chart "Population of Mother Trees" type: histogram{
+//				data "Native Trees" value: length(trees where (each.is_mother_tree and each.type=0)) color: #green;
+//				data "Exotic Trees" value: length(trees where (each.is_mother_tree and each.type=1)) color: #blue;
+//			}
+//		}
 //		display chart2 type: java2D{
 //			chart "Population of New Trees" type: series{
 //				data "New Tree" value: length(trees where each.is_new_tree) color: #blue; 

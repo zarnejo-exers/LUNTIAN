@@ -118,7 +118,7 @@ global {
 			
 			//Dummy
 			dbh <- float(read("Dummy_Data"));	//Dummy_Data
-			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
+			th <- float(read("Dummy_Da_1"));		//Dummy_Da_1
 			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
 			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
 			
@@ -129,7 +129,8 @@ global {
 				age <- self.dbh/growth_rate_native;
 				shade_tolerant <- true;
 			}
-		}	
+		}
+		
 		do computeGrowthRate;
 		
 		create plot from: Plot_shapefile{
@@ -147,6 +148,10 @@ global {
 		}
 		ask plot{
 			do compute_neighbors;
+			ask plot_trees{
+				dbh <- calculateDBH();
+				th <- calculateHeight();	
+			}
 		}
 		
 		//clean data, with the given options
@@ -240,7 +245,7 @@ global {
 
 species trees{
 	float dbh; //diameter at breast height
-	float mh; //merchantable height
+	float th; //total height
 	float r; //distance from tree to a point 
 	int type;  //0-mayapis; 1-mahogany; 2-fruit tree
 	
@@ -269,11 +274,11 @@ species trees{
 //		}
 		 
 		if(is_new_tree){	//new tree
-			draw sphere(self.dbh) color: #yellow at: {location.x,location.y,elev[point(location.x, location.y)]+400+(mh)};
+			draw sphere(self.dbh) color: #yellow at: {location.x,location.y,elev[point(location.x, location.y)]+400+(th)};
 		}else{
-			draw sphere(self.dbh) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+(mh)};	
+			draw sphere(self.dbh) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+(th)};	
 		}
-		draw circle(mh/2) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: mh;
+		draw circle(th/2) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: th;
 		
 	}
 	
@@ -386,11 +391,11 @@ species trees{
 	}
 
 	//growth of tree
-	reflex growDiameter {
+	float calculateDBH{
 		if(type = NATIVE){ //mayapis
-			dbh <- (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))))*growthCoeff(type);
+			return (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))))*growthCoeff(type);
 		}else if(type = EXOTIC){	//mahogany
-			dbh <- (max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))))*growthCoeff(type);
+			return(max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))))*growthCoeff(type);
 		}
 		/*if(length(trees overlapping (circle(self.dbh) translated_to self.location)) > 0){
 			dbh <- prev_dbh;	//inhibit growth if it overlaps other trees; update this once height is added
@@ -431,11 +436,16 @@ species trees{
 	//height of tree
 	//list<float> native_hcoeffs <- [6.364, 0.1308]; //a, b	
 	//list<float> exotic_hcoeffs <- [6.9418, 0.0759]; //a, b
-	reflex updateHeight{
+	float calculateHeight{
 		matrix<float> hcoeffs <- matrix([[6.364, 0.1308],[6.9418, 0.0759]]);
 		
 		//1.4 + (b+a/dbh)^-2.5
-		mh <- 1.4 + (hcoeffs[{type,1}] + hcoeffs[{type,0}] / dbh)^-2.5;
+		return 1.4 + (hcoeffs[{type,1}] + hcoeffs[{type,0}] / dbh)^-2.5;
+	}
+	
+	reflex growTree{
+		dbh <- calculateDBH();
+		th <- calculateHeight();
 	}
 	
 	//tree age
