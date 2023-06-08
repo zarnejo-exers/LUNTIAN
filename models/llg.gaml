@@ -112,7 +112,7 @@ global {
 		create trees from: trees_shapefile{
 			//Actual
 //			dbh <- float(read("Book2_DBH"));	
-//			mh <- float(read("Book2_MH"));		
+//			th <- float(read("Book2_MH"));		
 //			r <- float(read("Book2_R"));		
 //			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
 			
@@ -167,6 +167,7 @@ global {
 		//computed the connected components of the graph (for visualization purpose)
 		connected_components <- list<list<point>>(connected_components_of(river_network));
 		loop times: length(connected_components) {colors << rnd_color(255);}
+		
 	}
 	
 	action computeGrowthRate{
@@ -277,7 +278,7 @@ species trees{
 		}else{
 			draw sphere(self.dbh) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+(th)};	
 		}
-		draw circle(th/2) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: th;
+		draw circle(th/3) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: th;
 		
 	}
 	
@@ -314,7 +315,7 @@ species trees{
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
 		//geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
-		if(type=EXOTIC and dbh>=75 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
+		if(type=EXOTIC and age > 15 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
 			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
@@ -368,7 +369,7 @@ species trees{
 				do updateTrees();
 			}
 			trees closest_tree <- instance.my_plot.plot_trees closest_to instance;
-			if(closest_tree != nil and circle(closest_tree.dbh) overlaps circle(instance.dbh)){	//check if the instance overlaps another tree
+			if(closest_tree != nil and circle(closest_tree.dbh+5) overlaps circle(instance.dbh+5)){	//check if the instance overlaps another tree
 				ask instance{
 					remove self from: my_plot.plot_trees;
 					do die;
@@ -420,8 +421,8 @@ species trees{
 		float percent_precip <- my_plot.my_climate.precipitation[current_month]/my_plot.my_climate.total_precipitation;
 		
 		float g_coeff <- 1.0;
-		g_coeff <- g_coeff * reduceGrowth(curr_temp, min_temp[t_type], max_temp[t_type]);	//coefficient given temperature
-		g_coeff <- g_coeff * reduceGrowth(curr_pH, min_pH[t_type], max_pH[t_type]);			//coefficient given soil pH
+		//g_coeff <- g_coeff * reduceGrowth(curr_temp, min_temp[t_type], max_temp[t_type]);	//coefficient given temperature
+		//g_coeff <- g_coeff * reduceGrowth(curr_pH, min_pH[t_type], max_pH[t_type]);			//coefficient given soil pH
 		g_coeff <- g_coeff * reduceGrowth(curr_water, min_water[t_type]*percent_precip, max_water[t_type]*percent_precip);//coefficient given water (considering only the percentage of precipitation given current month over the total annual precipitation)
 		
 		return g_coeff;
@@ -439,9 +440,14 @@ species trees{
 	
 	reflex growTree{
 		trees closest_tree <-(my_plot.plot_trees closest_to self); 
-		if(closest_tree = nil or !(circle(self.dbh) overlaps circle(closest_tree.dbh))){
-			dbh <- calculateDBH();
-			th <- calculateHeight();	
+		float prev_dbh <- dbh;
+		float prev_th <- th;
+		
+		dbh <- calculateDBH();
+		th <- calculateHeight();
+		if(closest_tree != nil and (circle(self.dbh) overlaps circle(closest_tree.dbh))){	//if it will overlap if it will grow, inhibit growth
+			dbh <- prev_dbh;
+			th <- prev_th;	
 		}
 	}
 	
@@ -450,14 +456,14 @@ species trees{
 	reflex stepAge {
 		age <- age + (1/12);
 		
-		if(age > 3 and age< 4){
+		if(age > 3){
 			is_new_tree <- false;		
 		}
 	
 	}
 	
 	//tree mortality
-	reflex determineMortality{
+	reflex determineMortality when: !self.my_plot.is_nursery{
 		float e <- exp(-2.917 - 1.897 * ((shade_tolerant)?1:0) - 0.079 * dbh);
 		float proba_dead <- (e/(e+1));
 		
@@ -530,7 +536,7 @@ species plot{
 		loop pt over: trees_inside{
 			if(dead(pt)){ continue; }
 			//geometry occupied_space <- circle(pt.dbh, pt.location);
-			temp_shape <- temp_shape - circle(pt.dbh+20);//occupied_space; dbh+ room for growth
+			temp_shape <- temp_shape - circle(pt.dbh);//occupied_space; dbh+ room for growth
 		}
 		
 		return temp_shape;
@@ -547,7 +553,7 @@ species plot{
 		ask university{
 			temp_dbh <- managementDBHEstimate(type, planting_age);
 		}
-		geometry tree_shape <- circle(temp_dbh+20);
+		geometry tree_shape <- circle(temp_dbh);
 		
 		if(temp_shape = nil){return 0;}
 		else{
