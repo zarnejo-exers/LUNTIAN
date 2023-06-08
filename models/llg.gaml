@@ -369,7 +369,7 @@ species trees{
 				do updateTrees();
 			}
 			trees closest_tree <- instance.my_plot.plot_trees closest_to instance;
-			if(closest_tree != nil and circle(closest_tree.dbh+5) overlaps circle(instance.dbh+5)){	//check if the instance overlaps another tree
+			if(closest_tree != nil and circle(closest_tree.dbh+5, closest_tree.location) overlaps circle(instance.dbh+5, instance.location)){	//check if the instance overlaps another tree
 				ask instance{
 					remove self from: my_plot.plot_trees;
 					do die;

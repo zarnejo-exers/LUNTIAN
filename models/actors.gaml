@@ -569,12 +569,13 @@ species labour{
 		geometry remaining_space <- new_plot.removeOccupiedSpace(new_plot.shape, new_plot.plot_trees);
 		loop while: remaining_space != nil and length(my_trees) > 0{	//use the same plot while there are spaces; plant while there are trees to plant
 			trees to_plant <- one_of(my_trees);	//get one of the trees
+			point prev_location <- to_plant.location;
 			to_plant.location <- any_location_in(remaining_space);	//put plant on the location
-			trees closest_tree <- to_plant.my_plot.plot_trees closest_to to_plant;	//get the closest tree to the newly planted plant
-			if(closest_tree != nil and (circle(closest_tree.dbh+5) overlaps circle(to_plant.dbh+5))){	//if the closest tree overlaps with the tree that will be planted, do not continue planting the tree 
+			trees closest_tree <- new_plot.plot_trees closest_to to_plant;	//get the closest tree to the newly planted plant
+			if(closest_tree != nil and (circle(closest_tree.dbh+5, closest_tree.location) overlaps circle(to_plant.dbh+5, to_plant.location))){	//if the closest tree overlaps with the tree that will be planted, do not continue planting the tree 
 				ask to_plant{
 					remove self from: myself.my_trees;	//remove the plant from the 
-					do die;
+					self.location <- prev_location; 	//return the plant from where it's from
 				}
 			}else{	//plant the tree
 				to_plant.is_new_tree <- false;
