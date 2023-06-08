@@ -56,7 +56,6 @@ global{
 	//start checking once all investor already have investments
 	//stop simulation when the rotation years of all investor is finished
 	reflex stop_simulation when: (length(investor where !empty(each.my_plots)) = length(investor)) {
-    	write "checking stop";
     	int is_finished <- length(investor);
     	bool to_pause <- true;
     	loop i over: investor{
@@ -124,8 +123,10 @@ species investor{
 		loop plot_length from: 0 to: length(my_plots)-1{	//number of plots where investor have put his/her investment
 			harvest_monitor[plot_length] <- 1+harvest_monitor[plot_length];
 			if(harvest_monitor[plot_length] = 12){
-				my_plots[plot_length].rotation_years <- my_plots[plot_length].rotation_years - 1;
-				harvest_monitor[plot_length] <- 0;
+				if(my_plots[plot_length].rotation_years != 0){
+					my_plots[plot_length].rotation_years <- my_plots[plot_length].rotation_years - 1;
+					harvest_monitor[plot_length] <- 0;	
+				}
 			} 
 		}
 	}
