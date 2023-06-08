@@ -314,7 +314,7 @@ species trees{
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
 		//geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
-		if(type=EXOTIC and age > 15 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
+		if(type=EXOTIC and dbh>=75 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
 			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
@@ -368,14 +368,14 @@ species trees{
 				do updateTrees();
 			}
 			trees closest_tree <- instance.my_plot.plot_trees closest_to instance;
-			if(closest_tree != nil and circle(closest_tree.dbh+10) overlaps circle(instance.dbh+10)){	//check if the instance overlaps another tree
+			if(closest_tree != nil and circle(closest_tree.dbh) overlaps circle(instance.dbh)){	//check if the instance overlaps another tree
 				ask instance{
 					remove self from: my_plot.plot_trees;
 					do die;
 				}
 			}else{
 				add instance to: new_trees;		//add new tree to list of new trees
-				t_space <- t_space - circle(instance.dbh+20, new_location); 	//remove the tree's occupied space from the available space 
+				t_space <- t_space - circle(instance.dbh, new_location); 	//remove the tree's occupied space from the available space 
 			}
 		}
 		if(t_space != nil){
@@ -438,8 +438,11 @@ species trees{
 	}
 	
 	reflex growTree{
-		dbh <- calculateDBH();
-		th <- calculateHeight();
+		trees closest_tree <-(my_plot.plot_trees closest_to self); 
+		if(closest_tree = nil or !(circle(self.dbh) overlaps circle(closest_tree.dbh))){
+			dbh <- calculateDBH();
+			th <- calculateHeight();	
+		}
 	}
 	
 	//tree age
