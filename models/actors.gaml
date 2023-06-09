@@ -55,7 +55,7 @@ global{
 	
 	//start checking once all investor already have investments
 	//stop simulation when the rotation years of all investor is finished
-	reflex stop_simulation when: (length(investor where !empty(each.my_plots)) = length(investor)) {
+	reflex stop_simulation when: length(investor)>0 and (length(investor where !empty(each.my_plots)) = length(investor)) {
     	int is_finished <- length(investor);
     	bool to_pause <- true;
     	loop i over: investor{
