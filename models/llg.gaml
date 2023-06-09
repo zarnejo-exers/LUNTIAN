@@ -278,8 +278,9 @@ species trees{
 		}else{
 			draw sphere(self.dbh) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+(th)};	
 		}
-		draw circle(th/3) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: th;
-		
+		if(th>= 1){
+			draw circle(th/3) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: th;	
+		}
 	}
 	
 	//kill tree that are inside a basin
@@ -315,7 +316,7 @@ species trees{
 		//Trees 75 cm DBH were also more consistent producers.
 		//produces more than 700 fruits/year 
 		//geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
-		if(type=EXOTIC and dbh >= 75 and (fruiting_months contains current_month)){		//exotic tree, dbh >= 75
+		if(type=EXOTIC and age>=12 and (fruiting_months contains current_month)){		//exotic tree, age >= 40 and age <= 60
 			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 			if(total_no_seeds > 0){
 				is_mother_tree <- true;
@@ -445,7 +446,7 @@ species trees{
 		
 		dbh <- calculateDBH();
 		th <- calculateHeight();
-		if(closest_tree != nil and (circle(self.dbh) overlaps circle(closest_tree.dbh))){	//if it will overlap if it will grow, inhibit growth
+		if(closest_tree != nil and (circle(self.dbh, self.location) overlaps circle(closest_tree.dbh, closest_tree.location))){	//if it will overlap if it will grow, inhibit growth
 			dbh <- prev_dbh;
 			th <- prev_th;	
 		}
@@ -538,7 +539,7 @@ species plot{
 		loop pt over: trees_inside{
 			if(dead(pt)){ continue; }
 			//geometry occupied_space <- circle(pt.dbh, pt.location);
-			temp_shape <- temp_shape - circle(pt.dbh);//occupied_space; dbh+ room for growth
+			temp_shape <- temp_shape - circle(pt.dbh, pt.location);//occupied_space; dbh+ room for growth
 		}
 		
 		return temp_shape;

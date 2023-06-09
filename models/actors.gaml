@@ -19,7 +19,7 @@ global{
 	int nlaborer_count<- 1 update: nlaborer_count;
 	float planting_space <- 1.0 update: planting_space; 
 	int planting_age <- 1 update: planting_age;
-	int harvesting_age_exotic <- 20 update: harvesting_age_exotic;
+	int harvesting_age_exotic <- 40 update: harvesting_age_exotic;
 	int harvesting_age_native <- 30 update: harvesting_age_native;
 	int nursery_count <- 2 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
@@ -39,7 +39,7 @@ global{
 	}
 	
 	//automatically execute when there are no laborers assigned to nurseries
-	reflex assignLaborersToNurseries when: !assignedNurseries{
+	reflex assignLaborersToNurseries when: (!assignedNurseries and (nursery_count > 0)){
 		ask university{
 			do assignNurseries;
 			if(length(my_nurseries) >= nursery_count){	//start ITP if there's enough nurseries
@@ -53,9 +53,14 @@ global{
 		}
 	}
 	
+	//stop simulation at year 50
+	reflex stopAtYear100 when: cycle=1200{
+		do pause;
+	}
+	
 	//start checking once all investor already have investments
 	//stop simulation when the rotation years of all investor is finished
-	reflex stop_simulation when: length(investor)>0 and (length(investor where !empty(each.my_plots)) = length(investor)) {
+	reflex stopSimulation when: length(investor)>0 and (length(investor where !empty(each.my_plots)) = length(investor)) {
     	int is_finished <- length(investor);
     	bool to_pause <- true;
     	loop i over: investor{
@@ -566,9 +571,10 @@ species labour{
 	//Invoked by labour reflex when the capacity of the laborer is reached, plant the trees to the nursery
 	//Invoked by university to command labour to return and plant all that is in its hands
 	//For replanting to nursery, and to the new plot (for ITP)
-	action replantAlert(plot new_plot){		
+	action replantAlert(plot new_plot){	
+		int my_trees_length <- length(my_trees);	
 		geometry remaining_space <- new_plot.removeOccupiedSpace(new_plot.shape, new_plot.plot_trees);
-		loop while: remaining_space != nil and length(my_trees) > 0{	//use the same plot while there are spaces; plant while there are trees to plant
+		loop while: (remaining_space.area > 0 and my_trees_length > 0){	//use the same plot while there are spaces; plant while there are trees to plant
 			trees to_plant <- one_of(my_trees);	//get one of the trees
 			point prev_location <- to_plant.location;
 			to_plant.location <- any_location_in(remaining_space);	//put plant on the location
@@ -584,9 +590,10 @@ species labour{
 				to_plant.my_plot <- new_plot;	//update plot of tree
 				to_plant.my_plot.plot_trees << to_plant;	//put tree to the tree list of the new_plot
 				remove to_plant from: my_trees;
-				geometry new_occupied_space <- circle(to_plant.dbh) translated_to to_plant.location;	//+5 allows for spacing between plants
+				geometry new_occupied_space <- circle(to_plant.dbh+5) translated_to to_plant.location;	//+5 allows for spacing between plants
 				remaining_space <- remaining_space - new_occupied_space; 
 			}
+			my_trees_length <- my_trees_length - 1;
 		}	
 	}
 	

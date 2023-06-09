@@ -25,13 +25,13 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 	parameter "ITP native" category: "Investors" var: plant_native;
 	parameter "ITP exotic" category: "Investors" var: plant_exotic;
 	
-	parameter "Number of laborers" category: "Management" var: laborer_count min: 1 step: 1;
+	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
 	parameter "Planting age" category: "Management" var: planting_age min: 1;
 	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
 	parameter "DBH policy" category: "Management" var: dbh_policy min: 50.0 max: 70.0;
 	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
 	
-	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 1 step: 1;
+	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
 	parameter "Number of laborers per nursery" category: "Nursery Management" var: nlaborer_count min: 0 step: 1;
 	
 	output {
@@ -59,20 +59,20 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 			}
 		}
 		
-//		display chart1 type: java2D{	
-//			chart "Population of Trees" type: series
-//			{
-//				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
-//				data "Native Trees" value: length(trees where (each.type = 0)) color: #green;
-//			}		
-//		}
-//		
-//		display chart2 type: java2D{	
-//			chart "Population of Trees in Nurseries" type: series
-//			{
-//				data "Number of Trees" value: (plot where each.is_nursery) sum_of length(each.plot_trees) color: #blue;
-//			}
-//		}
+		display chart1 type: java2D{	
+			chart "Population of Trees" type: series
+			{
+				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
+				data "Native Trees" value: length(trees where (each.type = 0)) color: #green;
+			}		
+		}
+		
+		display chart2 type: java2D{	
+			chart "Population of Trees in Nurseries" type: series
+			{
+				data "Number of Trees" value: (plot where each.is_nursery) sum_of length(each.plot_trees) color: #blue;
+			}
+		}
 	
 //		display chart3 type: java2D{	
 //			chart "Population of Investor and ITP" type: series
@@ -104,17 +104,6 @@ experiment LLG_ABM model: "actors.gaml" type: gui {
 //			chart "Population of Mother Trees" type: series{
 //				data "Native Trees" value: length(trees where (each.is_mother_tree and each.type=0)) color: #green;
 //				data "Exotic Trees" value: length(trees where (each.is_mother_tree and each.type=1)) color: #blue;
-//			}
-//		}
-//		display chart2 type: java2D{
-//			chart "Population of New Trees" type: series{
-//				data "New Tree" value: length(trees where each.is_new_tree) color: #blue; 
-//			}
-//		}
-//		
-//		display chart3 type: java2D{
-//			chart "Population of Mother trees" type: series{
-//				data "Mother Trees" value: length(trees where each.is_mother_tree) color: #blue;
 //			}
 //		}	
 	}
