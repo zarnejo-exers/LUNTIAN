@@ -502,7 +502,7 @@ species plot{
 			neighborhood_shape <- neighborhood_shape + mn.shape;
 		}
 		
-		write "My area: "+self.shape.area+" Neighbors area: "+neighborhood_shape.area;
+		//write "My area: "+self.shape.area+" Neighbors area: "+neighborhood_shape.area;
 	}
 	
 	aspect default{

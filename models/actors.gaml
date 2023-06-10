@@ -107,7 +107,7 @@ species investor{
 				add 0 to: harvest_monitor;
 				chosen_plot.is_investable <- false;
 			}else{
-				write "Investment denied";	
+				//write "Investment denied";	
 			} 
 		}else{
 			write "??";
@@ -226,7 +226,7 @@ species university{
 		//check available seeds in nursery
 		int no_trees_for_planting <- chosen_plot.getAvailableSpaces((plant_native)?0:1);
 		
-		write "Available seeds: "+length(available_seeds)+" Needed seeds: "+no_trees_for_planting;
+		//write "Available seeds: "+length(available_seeds)+" Needed seeds: "+no_trees_for_planting;
 		if(length(available_seeds)< no_trees_for_planting){	//check if the available seeds is sufficient to start investment on plot, if no, deny investment
 			return false;
 		}else{
@@ -238,12 +238,14 @@ species university{
 		add chosen_plot to: investing_investor.my_plots;
 		investing_investor.investment <- chosen_plot.investment_cost;
 		//assign laborer and get available seeds from the nursery 		
-		list<labour> assigned_laborers <- assignLaborerToPlot(chosen_plot); 
+		list<labour> assigned_laborers <- assignLaborerToPlot(chosen_plot);
+		 
 		if(length(assigned_laborers) = 0){
 			write "No available laborers";
 			return false;
 		}
 		//laborer has the seeds: transplant in the chosen plot, action replantAlert(plot new_plot)
+		
 		ask assigned_laborers{
 			current_plot <- chosen_plot;
 			self.is_itp_labour <- true;
@@ -326,7 +328,7 @@ species university{
 			add the_plot to: itp_l.my_plots;	//add the itp plot to the list of laborer's my_plots
 			add itp_l to: the_plot.my_laborers;	//put the laborer to the list of plot's laborers
 			
-			available_seeds <- itp_l.getTrees(available_seeds);
+			available_seeds <- itp_l.getTrees(available_seeds where (each.type = itp_type)); //get only trees that is relevant to ITP
 				
 			add itp_l to: assigned_laborers;				 	
 		}
@@ -463,7 +465,7 @@ species university{
 		}
 		
 		if(length(nurseries_with_space) = 0){
-			write "No more space in nursery";
+			//write "No more space in nursery";
 			return;
 		}
 		
@@ -576,6 +578,7 @@ species labour{
 	action replantAlert(plot new_plot){	
 		int my_trees_length <- length(my_trees);	
 		geometry remaining_space <- new_plot.removeOccupiedSpace(new_plot.shape, new_plot.plot_trees);
+		
 		loop while: (remaining_space.area > 0 and my_trees_length > 0){	//use the same plot while there are spaces; plant while there are trees to plant
 			trees to_plant <- one_of(my_trees);	//get one of the trees
 			point prev_location <- to_plant.location;
@@ -587,6 +590,7 @@ species labour{
 					self.location <- prev_location; 	//return the plant from where it's from
 				}
 			}else{	//plant the tree
+				write "Type: "+to_plant.type;
 				to_plant.is_new_tree <- false;
 				remove to_plant from: to_plant.my_plot.plot_trees;
 				to_plant.my_plot <- new_plot;	//update plot of tree
