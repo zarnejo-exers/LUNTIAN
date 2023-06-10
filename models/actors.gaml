@@ -54,9 +54,9 @@ global{
 	}
 	
 	//stop simulation at year 50
-	reflex stopAtYear100 when: cycle=1200{
-		do pause;
-	}
+//	reflex stopAtYear100 when: cycle=1200{
+//		do pause;
+//	}
 	
 	//start checking once all investor already have investments
 	//stop simulation when the rotation years of all investor is finished
@@ -246,6 +246,8 @@ species university{
 		//laborer has the seeds: transplant in the chosen plot, action replantAlert(plot new_plot)
 		ask assigned_laborers{
 			current_plot <- chosen_plot;
+			self.is_itp_labour <- true;
+			self.location <- chosen_plot.location;
 			do replantAlert(chosen_plot);
 		}
 		//set rotation years to plot
@@ -594,7 +596,7 @@ species labour{
 				remaining_space <- remaining_space - new_occupied_space; 
 			}
 			my_trees_length <- my_trees_length - 1;
-		}	
+		}
 	}
 	
 	//laborer gets as much tree as it can get 
