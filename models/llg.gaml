@@ -464,7 +464,8 @@ species trees{
 	}
 	
 	//tree mortality
-	reflex determineMortality when: (!(self.my_plot.is_nursery and self.age<=3)){ //if it is a nursery, assume 0 mortality for trees of age <= 3
+	//assume itp plot has 0 mortality
+	reflex determineMortality when: (!(self.my_plot.is_nursery and self.age<=3) and !self.my_plot.is_itp){ //if it is a nursery, assume 0 mortality for trees of age <= 3
 		float e <- exp(-2.917 - 1.897 * ((shade_tolerant)?1:0) - 0.079 * dbh);
 		float proba_dead <- (e/(e+1));
 		
