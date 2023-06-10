@@ -642,5 +642,8 @@ species river {
 			}
 			do die;
 		}
+		ask plot at_distance(5){
+			is_near_water <- true;
+		}
 	}
 }
