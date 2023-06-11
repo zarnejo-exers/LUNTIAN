@@ -20,8 +20,8 @@ global {
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/soil_group_pH.shp");
-//	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
-	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
+	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
+//	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
 	file Plot_shapefile <- shape_file("../includes/parcel-polygon-100mx100m.shp");
 	
 	graph road_network;
@@ -111,16 +111,16 @@ global {
 		
 		create trees from: trees_shapefile{
 			//Actual
-//			dbh <- float(read("Book2_DBH"));	
-//			th <- float(read("Book2_MH"));		
-//			r <- float(read("Book2_R"));		
-//			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
+			dbh <- float(read("Book2_DBH"));	
+			th <- float(read("Book2_MH"));		
+			r <- float(read("Book2_R"));		
+			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
 			
 			//Dummy
-			dbh <- float(read("Dummy_Data"));	//Dummy_Data
-			th <- float(read("Dummy_Da_1"));		//Dummy_Da_1
-			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
-			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
+//			dbh <- float(read("Dummy_Data"));	//Dummy_Data
+//			th <- float(read("Dummy_Da_1"));		//Dummy_Da_1
+//			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
+//			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
 			
 			if(type = EXOTIC){ //exotic trees, mahogany
 				age <- self.dbh/growth_rate_exotic;
@@ -387,11 +387,12 @@ species trees{
 	}
 
 	//growth of tree
+	//assume: growth coefficient doesn't apply on plots for ITP 
 	float calculateDBH{
 		if(type = NATIVE){ //mayapis
-			return (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))))*growthCoeff(type);
+			return (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))))*((self.my_plot.is_itp)?1:growthCoeff(type));
 		}else if(type = EXOTIC){	//mahogany
-			return(max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))))*growthCoeff(type);
+			return(max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))))*((self.my_plot.is_itp)?1:growthCoeff(type));
 		}
 		/*if(length(trees overlapping (circle(self.dbh) translated_to self.location)) > 0){
 			dbh <- prev_dbh;	//inhibit growth if it overlaps other trees; update this once height is added
@@ -439,17 +440,18 @@ species trees{
 		return 1.4 + (hcoeffs[{type,1}] + hcoeffs[{type,0}] / dbh)^-2.5;
 	}
 	
+	//doesn't inhibit growth of tree
 	reflex growTree{
-		trees closest_tree <-(my_plot.plot_trees closest_to self); 
-		float prev_dbh <- dbh;
-		float prev_th <- th;
+//		trees closest_tree <-(my_plot.plot_trees closest_to self); 
+//		float prev_dbh <- dbh;
+//		float prev_th <- th;
 		
 		dbh <- calculateDBH();
 		th <- calculateHeight();
-		if(closest_tree != nil and (circle(self.dbh, self.location) overlaps circle(closest_tree.dbh, closest_tree.location))){	//if it will overlap if it will grow, inhibit growth
-			dbh <- prev_dbh;
-			th <- prev_th;	
-		}
+		//if(closest_tree != nil and (circle(self.dbh, self.location) overlaps circle(closest_tree.dbh, closest_tree.location))){	//if it will overlap if it will grow, inhibit growth
+		//	dbh <- prev_dbh;
+		//	th <- prev_th;	
+		//}
 	}
 	
 	//tree age

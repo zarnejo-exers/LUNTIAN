@@ -19,8 +19,8 @@ global{
 	int nlaborer_count<- 1 update: nlaborer_count;
 	float planting_space <- 1.0 update: planting_space; 
 	int planting_age <- 1 update: planting_age;
-	int harvesting_age_exotic <- 40 update: harvesting_age_exotic;
-	int harvesting_age_native <- 30 update: harvesting_age_native;
+	int harvesting_age_exotic <- 60 update: harvesting_age_exotic;	//temp
+	int harvesting_age_native <- 60 update: harvesting_age_native;	//actual 40
 	int nursery_count <- 2 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
 	float dbh_policy <- 50.0 update: dbh_policy; 
@@ -29,11 +29,12 @@ global{
 	int itp_type; //0 ->plant native, 1->plant exotic, 2->plant mix
 	
 	bool assignedNurseries <- false;
+	bool start_harvest <- false;
 	init{
 		create market;
-		create university;
 		create investor number: investor_count;
 		create labour number: laborer_count;
+		create university;
 		
 		itp_type <- (plant_native and plant_exotic)?2:(plant_native?0:1);
 	}
@@ -45,7 +46,8 @@ global{
 			if(length(my_nurseries) >= nursery_count){	//start ITP if there's enough nurseries
 				write "Starting ITP: "+length(my_nurseries)+" with: "+nursery_count;
 				do assignLaborerToNursery(my_nurseries);
-				do determineInvestablePlots(itp_type);	 
+				do determineInvestablePlots(itp_type);
+				do updateInvestors;	 
 				assignedNurseries <- true;
 			}else{
 				write "Let environment grow";
@@ -71,11 +73,25 @@ global{
     			}
     		}
     	}
-    	if(to_pause){
+    	if(to_pause){	//harvest the plots
+    		list<labour> available_labors <- labour where each.is_itp_labour;	//get all itp labours
+    		loop i over: investor{
+    			write "Investor: "+i.name;
+    			loop mp over: i.my_plots{
+    				write "Trees in ITP plot: "+(mp.plot_trees accumulate each.dbh);
+    				labour chosen_labour <- one_of(available_labors closest_to mp);
+    				list<trees> selected_trees <- chosen_labour.selectiveHarvestITP(mp, i);
+    				ask university{
+    					write "Selected DBH: "+(selected_trees accumulate each.dbh);
+    					put selected_trees at: i in: harvested_trees_per_investor;
+    					write "In htpi: "+harvested_trees_per_investor[i];
+    					i.harvested_trees <- length(harvested_trees_per_investor[i]);
+    				}
+    			}
+    		}
     		do pause ;	
     	}
     } 
-	
 }
 
 //previous
@@ -87,6 +103,7 @@ species investor{
 	list<int> harvest_monitor <- [];	//corresponds to the position of the plot, like a timer to signal if a year already passed
 	float total_profit <- 0.0;
 	float investment <- 0.0;
+	int harvested_trees<-0;
 	//has behavior
 	
 	//computes for the rate of return on the invested plots
@@ -141,6 +158,9 @@ species university{
 	list<plot> my_invested_plots;		//list of plots invested by the university
 	list<plot> my_nurseries <- (plot where each.is_nursery) update: (plot where each.is_nursery);	//list of nurseries managed by university
 	list<plot> investable_plots;
+	list<investor> current_investors <- [];
+	
+	map<investor, list<trees>> harvested_trees_per_investor <- investor as_map (each::[]);
 	
 	list<trees> available_seeds<- [];
 	
@@ -156,7 +176,13 @@ species university{
 		Given the current number of trees in the plot, 
         determine the cost needed to plant new trees (how many trees are to be planted)
 	 */
+	 
+	 
 
+	action updateInvestors{
+		current_investors <- investor where !empty(each.my_plots);
+	}
+	
 	float getPlantingCost(int t_type){
 		return ((t_type = 1)?pcost_of_exotic:pcost_of_native);
 	}
@@ -264,9 +290,9 @@ species university{
 		float mean_age_tree <- mean((the_plot.plot_trees where (each.type = itp_type)) accumulate each.age); //get the minimum age of the tree in the plot
 		
 		if(itp_type = 0){	//if itp type is native, or it is a mix itp and the youngest is native
-			the_plot.rotation_years <- int(harvesting_age_native - mean_age_tree);
+			the_plot.rotation_years <- (harvesting_age_native < mean_age_tree)?harvesting_age_native:int(harvesting_age_native - mean_age_tree);
 		}else if(itp_type = 1){
-			the_plot.rotation_years <- int(harvesting_age_exotic - mean_age_tree);
+			the_plot.rotation_years <- (harvesting_age_exotic < mean_age_tree)?harvesting_age_exotic:int(harvesting_age_exotic - mean_age_tree);
 		}		
 	}
 
@@ -618,6 +644,39 @@ species labour{
 			is_new_tree <- false;
 		}
 		return treeToBeAlloc;
+	}
+	
+	//harvests upto capacity
+	list<trees> selectiveHarvestITP(plot plot_to_harvest, investor inv){
+		list<trees> trees_to_harvest <- [];
+		
+		list<trees> tree60to70 <- plot_to_harvest.plot_trees where (each.dbh >= 60 and each.dbh < 70);
+		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
+		if(length(tree60to70) >= carrying_capacity){//get only upto capacity
+			trees_to_harvest <- tree60to70[0::carrying_capacity];
+		}else{
+			trees_to_harvest <- tree60to70;
+			list<trees> tree70to80 <- plot_to_harvest.plot_trees where (each.dbh >= 70 and each.dbh < 80);
+			tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
+			if(length(tree70to80) >= (carrying_capacity - length(trees_to_harvest))){
+				trees_to_harvest <<+ tree70to80[0::(carrying_capacity - length(trees_to_harvest))];
+			}else{
+				list<trees> tree80up <- plot_to_harvest.plot_trees where (each.dbh >= 80);
+				if(length(tree80up) >= (carrying_capacity - length(trees_to_harvest))){
+					trees_to_harvest <<+ tree70to80[0::(carrying_capacity - length(trees_to_harvest))];
+				}else{
+					trees_to_harvest <<+ tree80up;
+				}
+			}
+			
+		}
+
+		plot_to_harvest.plot_trees <- (plot_to_harvest.plot_trees - trees_to_harvest);
+		ask plot_to_harvest.plot_trees{
+			age <- age + 5; 	//to correspond to TSI
+		} 
+		man_months[1] <- man_months[1]+1;
+		return trees_to_harvest;
 	}
 }
 
