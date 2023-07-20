@@ -6,7 +6,7 @@
 */
 
 model llg
-import "actors.gaml"
+import "university.gaml"
 
 global {
 	int NB_TS <- 12; //monthly timestep, constant
@@ -20,8 +20,8 @@ global {
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/soil_group_pH.shp");
-	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
-//	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
+//	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
+	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
 	file Plot_shapefile <- shape_file("../includes/parcel-polygon-100mx100m.shp");
 	
 	graph road_network;
@@ -111,16 +111,20 @@ global {
 		
 		create trees from: trees_shapefile{
 			//Actual
-			dbh <- float(read("Book2_DBH"));	
-			th <- float(read("Book2_MH"));		
-			r <- float(read("Book2_R"));		
-			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
+//			dbh <- float(read("Book2_DBH"));
+//			mh <- float(read("Book2_MH"));		
+//			th <- float(read("Book2_TH"));		
+//			r <- float(read("Book2_R"));		
+//			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
 			
 			//Dummy
-//			dbh <- float(read("Dummy_Data"));	//Dummy_Data
-//			th <- float(read("Dummy_Da_1"));		//Dummy_Da_1
-//			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
-//			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
+			dbh <- float(read("Dummy_Data"));	//Dummy_Data
+			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
+			th <- float(read("Dummy_Da_2"));		//Dummy_Da_1
+			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
+			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
+			cr <- 1 - (mh / th);
+			cd <- cr*(dbh) + dbh; 
 			
 			if(type = EXOTIC){ //exotic trees, mahogany
 				age <- self.dbh/growth_rate_exotic;
@@ -247,8 +251,11 @@ global {
 species trees{
 	float dbh; //diameter at breast height
 	float th; //total height
+	float mh;	//merchantable height
 	float r; //distance from tree to a point 
 	int type;  //0-mayapis; 1-mahogany; 2-fruit tree
+	float cr; 	//crown ratio
+	float cd <- 0.0 update: cr*(dbh) + dbh;	//crown diameter
 	
 	float ba;
 	float dipy;
@@ -265,24 +272,27 @@ species trees{
 	int count_fruits; 
 	int temp;
 	
-	aspect default{
-		draw circle(self.dbh, self.location) color: (type = NATIVE)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
-	}
+//	aspect default{
+//		draw circle(self.cd/2, self.location) color: (type = NATIVE)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
+//	}
 	
 	aspect geom3D{
-		if(temp = 3){
-			draw sphere(self.dbh) color: #turquoise at: {location.x,location.y,elev[point(location.x, location.y)]+400+(th)};
-		}
-		else if(is_new_tree){	//new tree
-			draw sphere(self.dbh) color: #yellow at: {location.x,location.y,elev[point(location.x, location.y)]+400+(th)};
-		}else{
-			draw sphere(self.dbh) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+(th)};	
-		}
-		if(th>= 1){
-			draw circle(th/3) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: th;	
-		}
+		if(cd != 0){
+			//this is the crown
+			if(temp = 3){
+				draw sphere(self.cd/2) color: #turquoise at: {location.x,location.y,elev[point(location.x, location.y)]+400+mh};
+			}
+			else if(is_new_tree){	//new tree
+				draw sphere(self.cd/2) color: #yellow at: {location.x,location.y,elev[point(location.x, location.y)]+400+mh};
+			}else{
+				draw sphere(self.cd/2) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+mh};	
+			}
+			
+			//this is the stem
+			draw circle(dbh/2) at: {location.x,location.y,elev[point(location.x, location.y)]+400-mh} color: #brown depth: mh;
+		}	
 	}
-	
+
 	//kill tree that are inside a basin
 	reflex killTree{
 		point tree_loc <- shape.location;
@@ -390,9 +400,9 @@ species trees{
 	//assume: growth coefficient doesn't apply on plots for ITP 
 	float calculateDBH{
 		if(type = NATIVE){ //mayapis
-			return (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))))*((self.my_plot.is_itp)?1:growthCoeff(type));
+			return (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))));//*((self.my_plot.is_itp)?1:growthCoeff(type));
 		}else if(type = EXOTIC){	//mahogany
-			return(max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))))*((self.my_plot.is_itp)?1:growthCoeff(type));
+			return(max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))));//*((self.my_plot.is_itp)?1:growthCoeff(type));
 		}
 		/*if(length(trees overlapping (circle(self.dbh) translated_to self.location)) > 0){
 			dbh <- prev_dbh;	//inhibit growth if it overlaps other trees; update this once height is added
@@ -442,16 +452,18 @@ species trees{
 	
 	//doesn't inhibit growth of tree
 	reflex growTree{
-//		trees closest_tree <-(my_plot.plot_trees closest_to self); 
-//		float prev_dbh <- dbh;
-//		float prev_th <- th;
+		trees closest_tree <-(my_plot.plot_trees closest_to self); 
+		float prev_dbh <- dbh;
+		float prev_th <- th;
 		
-		dbh <- calculateDBH();
-		th <- calculateHeight();
-		//if(closest_tree != nil and (circle(self.dbh, self.location) overlaps circle(closest_tree.dbh, closest_tree.location))){	//if it will overlap if it will grow, inhibit growth
-		//	dbh <- prev_dbh;
-		//	th <- prev_th;	
-		//}
+		self.dbh <- calculateDBH();
+		self.th <- calculateHeight();
+		if(!my_plot.is_itp and closest_tree != nil and (circle(self.cd/2, self.location) overlaps circle(closest_tree.cd/2, closest_tree.location))){	//if it will overlap if it will grow, inhibit growth
+			dbh <- prev_dbh;
+			th <- prev_th;	
+		}
+		//update crown diameter 
+		self.mh <- th - (cr * th);
 	}
 	
 	//tree age
