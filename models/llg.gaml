@@ -289,7 +289,7 @@ species trees{
 			}
 			
 			//this is the stem
-			draw circle(dbh/2) at: {location.x,location.y,elev[point(location.x, location.y)]+400-mh} color: #brown depth: mh;
+			draw circle(dbh/2) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: mh;
 		}	
 	}
 
