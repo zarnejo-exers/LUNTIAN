@@ -30,58 +30,48 @@ global{
 //profit threshold will dictate whether the investor will continue on investing on a plot or not
 //plot's projected profit is determined by the university
 species investor control: fsm{
-	list<plot> my_plots <- [];
-	list<int> harvest_monitor <- [];	//corresponds to the position of the plot, like a timer to signal if a year already passed
+	plot my_plots;
+	int harvest_monitor;	//corresponds to the position of the plot, like a timer to signal if a year already passed
 	float total_profit <- 0.0;
 	float investment <- 0.0;
 	int harvested_trees<-0; 
+	bool done_harvesting;
 	
 	int rt;	//risk type
 	
+	//investor is deciding whether to invest or not
 	//computes for the rate of return on the invested plots
 	//once investment has been successfully completed; university starts the planting and assigns rotation years per plot.
-	reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
+	action decideInvestment{	////reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
 		list<plot> investable_plots <- plot where each.is_investable;	//gets investable plots
 		//decide investment
 		//if investment is 0, no previous investment, invests on the plot that have road, with highest profit
-		if(investment = 0){
-			list<plot> plot_wroad <- investable_plots where each.has_road;	//get plots with road
-			plot chosen_plot <- ((length(plot_wroad)>0)? plot_wroad:investable_plots) with_max_of each.projected_profit;	//get the chosen plot from those with road, or if there's no plot with road, just get the plot with max profit
-			bool investment_status <- false;
-			ask university{
-				investment_status <- investOnPlot(myself, chosen_plot);
-			}			
-			if(investment_status){	//investment successful, put investor on investor's list of plot 
-				add self to: chosen_plot.my_investors;
-				add 0 to: harvest_monitor;
-				chosen_plot.is_investable <- false;
-			}else{
-				//write "Investment denied";	
-			} 
+		list<plot> plot_wroad <- investable_plots where each.has_road;	//get plots with road
+		plot chosen_plot <- ((length(plot_wroad)>0)? plot_wroad:investable_plots) with_max_of each.projected_profit;	//get the chosen plot from those with road, or if there's no plot with road, just get the plot with max profit
+		bool investment_status <- false;
+		ask university{
+			investment_status <- investOnPlot(myself, chosen_plot);
+		}			
+		if(investment_status){	//investment successful, put investor on investor's list of plot 
+			add self to: chosen_plot.my_investors;
+			harvest_monitor <- 0;
+			chosen_plot.is_investable <- false;
 		}else{
-			write "??";
-			//investor decides based on the result of the prior investment
-			//profit >= expected; stay on the same plot
-			//profit < expected and profit > 70% of expected; invest on different plot
-			//profit < 70% of expected; investor stop investing 
-			
-			//if all investor gained on the prior investment round, additional investor are added in the system
-		}
-		
-		//set plots rotation years
+			//write "Investment denied";	
+		}	
 		
 	}
 	
 	//to signal when to harvest and earn
-	reflex updateRotationYears when: length(my_plots) > 0{
-		loop plot_length from: 0 to: length(my_plots)-1{	//number of plots where investor have put his/her investment
-			harvest_monitor[plot_length] <- 1+harvest_monitor[plot_length];
-			if(harvest_monitor[plot_length] = 12){
-				if(my_plots[plot_length].rotation_years != 0){
-					my_plots[plot_length].rotation_years <- my_plots[plot_length].rotation_years - 1;
-					harvest_monitor[plot_length] <- 0;	
-				}
-			} 
+	//harvest_monitor ticks to monitor the month, when harvest_monitor = 12, it means a year has passed
+	//each plot have rotation_years, there is a set rotation year for each ITP, so you decrement the rotation_year whenever the harvest_monitor reaches 12
+	action updateRotationYears{	// when: length(my_plots) > 0
+		harvest_monitor <- 1 + harvest_monitor;
+		if(harvest_monitor = 12){
+			if(my_plots.rotation_years != 0){
+				my_plots.rotation_years <- my_plots.rotation_years - 1;
+				harvest_monitor <- 0;
+			}
 		}
 	}
 	
@@ -90,13 +80,13 @@ species investor control: fsm{
 	        write " "+risk_types.keys[rt]+" Enter in: " + state; 
 	    } 
 	 
+	 	do decideInvestment;
 	    write "Current state: "+state ; 
 	 
-	    transition to: active when: (length(my_plots)>0) { 
+	    transition to: active when: (my_plots != nil) { 
 	        write "Plot count: "+length(my_plots);
 	        write "transition: interested_passive -> active"; 
 	    } 
-	    
 	 
 	    exit { 
 	        write "EXIT from "+state; 
@@ -107,10 +97,13 @@ species investor control: fsm{
 	 
 	    enter {write 'Enter in: '+state;} 
 	 
-	    write "Current state: "+state;
+	 	do updateRotationYears;
+	    write "Current state: "+state+" remaining rotation years: "+my_plots.rotation_years;
 	    
-	    transition to: not_interested_passive when: (cycle > 2) { 
+	    transition to: interested_passive when: (done_harvesting) { 
 	        write "transition: active -> not_interested_passive"; 
+	        done_harvesting <- false;
+	        my_plots <- nil;
 	    }  
 	 
 	    exit {write 'EXIT from '+state;} 

@@ -22,8 +22,8 @@ global{
 	int nlaborer_count<- 1 update: nlaborer_count;
 	float planting_space <- 1.0 update: planting_space; 
 	int planting_age <- 1 update: planting_age;
-	int harvesting_age_exotic <- 60 update: harvesting_age_exotic;	//temp
-	int harvesting_age_native <- 60 update: harvesting_age_native;	//actual 40
+	int harvesting_age_exotic <- 1 update: harvesting_age_exotic;	//temp
+	int harvesting_age_native <- 1 update: harvesting_age_native;	//actual 40
 	int nursery_count <- 2 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
 	float dbh_policy <- 50.0 update: dbh_policy; 
@@ -64,35 +64,34 @@ global{
 	
 	//start checking once all investor already have investments
 	//stop simulation when the rotation years of all investor is finished
-	reflex stopSimulation when: length(investor)>0 and (length(investor where !empty(each.my_plots)) = length(investor)) {
-    	int is_finished <- length(investor);
+	reflex stopSimulation when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
     	bool to_pause <- true;
-    	loop i over: investor{
-    		loop mp over: i.my_plots{
-    			if(mp.rotation_years > 0){
-    				to_pause <- false;
-    				break;
-    			}
+    	loop i over: investor where (each.my_plots != nil){
+    		if(i.my_plots.rotation_years =0){
+    			do harvestOnInvestment(i);
+    			i.done_harvesting <- true;
+    		}else{
+    			to_pause <- false;
     		}
     	}
-    	if(to_pause){	//harvest the plots
-    		list<labour> available_labors <- labour where each.is_itp_labour;	//get all itp labours
-    		loop i over: investor{
-    			write "Investor: "+i.name;
-    			loop mp over: i.my_plots{
-    				write "Trees in ITP plot: "+(mp.plot_trees accumulate each.dbh);
-    				labour chosen_labour <- one_of(available_labors closest_to mp);
-    				list<trees> selected_trees <- chosen_labour.selectiveHarvestITP(mp, i);
-    				ask university{
-    					write "Selected DBH: "+(selected_trees accumulate each.dbh);
-    					put selected_trees at: i in: harvested_trees_per_investor;
-    					write "In htpi: "+harvested_trees_per_investor[i];
-    					i.harvested_trees <- length(harvested_trees_per_investor[i]);
-    				}
-    			}
-    		}
+    	
+    	if(to_pause){	//not all investor have harvested    		
     		do pause ;	
     	}
+    }
+    
+    action harvestOnInvestment (investor i){
+		list<labour> available_labors <- labour where each.is_itp_labour;	//get all itp labours
+    	write "Investor: "+i.name;
+    	write "Trees in ITP plot: "+(i.my_plots.plot_trees accumulate each.dbh);
+    	labour chosen_labour <- one_of(available_labors closest_to i.my_plots);
+    	list<trees> selected_trees <- chosen_labour.selectiveHarvestITP(i.my_plots, i);
+    	ask university{
+    		write "Selected DBH: "+(selected_trees accumulate each.dbh);
+    		put selected_trees at: i in: harvested_trees_per_investor;
+    		write "In htpi: "+harvested_trees_per_investor[i];
+    		i.harvested_trees <- length(harvested_trees_per_investor[i]);
+    	}    	
     } 
 }
 
@@ -203,7 +202,7 @@ species university{
 
 		//confirm investment 
 		chosen_plot.is_nursery <- false;
-		add chosen_plot to: investing_investor.my_plots;
+		investing_investor.my_plots <- chosen_plot;
 		investing_investor.investment <- chosen_plot.investment_cost;
 		//assign laborer and get available seeds from the nursery 		
 		list<labour> assigned_laborers <- assignLaborerToPlot(chosen_plot);
