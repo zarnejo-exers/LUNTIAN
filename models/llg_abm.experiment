@@ -34,6 +34,8 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
 	parameter "Number of laborers per nursery" category: "Nursery Management" var: nlaborer_count min: 0 step: 1;
 	
+	parameter "Number of initial members" category: "Members" var: member_count min: 0 step: 1;
+	
 	output {
 		layout #split;
 		display ITP type: opengl camera:#isometric{

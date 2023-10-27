@@ -10,6 +10,7 @@ import "llg.gaml"
 import "market.gaml"
 import "investor.gaml"
 import "labour.gaml"
+import "comm_member.gaml"
 
 /* Insert your model definition here */
 global{
@@ -17,6 +18,7 @@ global{
 	int LABOUR_PCAPACITY <- 5;	//number of trees that the laborer can plant/manage
 	
 	int investor_count <- 1 update: investor_count;
+	int member_count <- 1 update: member_count;
 	int plot_size <- 1 update: plot_size;
 	int laborer_count <- 5 update: laborer_count;
 	int nlaborer_count<- 1 update: nlaborer_count;
@@ -38,6 +40,7 @@ global{
 		create investor number: investor_count;
 		create labour number: laborer_count;
 		create university;
+		create comm_member number: member_count;
 		
 		itp_type <- (plant_native and plant_exotic)?2:(plant_native?0:1);
 	}

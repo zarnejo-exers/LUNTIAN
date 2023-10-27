@@ -15,13 +15,12 @@ import "university.gaml"
 //behavior of investor detemines the profit threshold that it will tolerate
 //profit threshold will dictate whether the investor will continue on investing on a plot or not
 //plot's projected profit is determined by the university
-species investor{
+species investor control: fsm{
 	list<plot> my_plots <- [];
 	list<int> harvest_monitor <- [];	//corresponds to the position of the plot, like a timer to signal if a year already passed
 	float total_profit <- 0.0;
 	float investment <- 0.0;
-	int harvested_trees<-0;
-	//has behavior
+	int harvested_trees<-0; 
 	
 	//computes for the rate of return on the invested plots
 	//once investment has been successfully completed; university starts the planting and assigns rotation years per plot.
@@ -68,5 +67,48 @@ species investor{
 				}
 			} 
 		}
+	}
+	
+	state interested_passive initial: true { 
+	    enter {  
+	        write "Enter in: " + state; 
+	    } 
+	 
+	    write "Current state: "+state; 
+	 
+	    transition to: active when: (cycle > 2) { 
+	        write "transition: interested_passive -> active"; 
+	    } 
+	    
+	 
+	    exit { 
+	        write "EXIT from "+state; 
+	    } 
+	} 
+	
+	state active { 
+	 
+	    enter {write 'Enter in: '+state;} 
+	 
+	    write "Current state: "+state;
+	    
+	    transition to: not_interested_passive when: (cycle > 2) { 
+	        write "transition: active -> not_interested_passive"; 
+	    }  
+	 
+	    exit {write 'EXIT from '+state;} 
+	}
+	
+	state not_interested_passive { 
+	 
+	    enter {write 'Enter in: '+state;} 
+	 
+	    write "Current state: "+state;
+	    
+	    transition to: interested_passive when: (cycle > 2) { 
+	        write "transition: not_interested_passive -> interested_passive"; 
+	    }  
+	 
+	    exit {write 'EXIT from '+state;} 
 	}
 }

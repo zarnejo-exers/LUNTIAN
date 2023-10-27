@@ -458,11 +458,11 @@ species trees{
 		
 		self.dbh <- calculateDBH();
 		self.th <- calculateHeight();
-		if(!my_plot.is_itp and closest_tree != nil and (circle(self.cd/2, self.location) overlaps circle(closest_tree.cd/2, closest_tree.location))){	//if it will overlap if it will grow, inhibit growth
+		if(!my_plot.is_itp and closest_tree != nil and (circle(self.cd/2, self.location) overlaps circle(closest_tree.cd/2, closest_tree.location))){	//inhibit growth if will overlap
 			dbh <- prev_dbh;
 			th <- prev_th;	
 		}
-		//update crown diameter 
+		//update merchantable height 
 		self.mh <- th - (cr * th);
 	}
 	
