@@ -10,8 +10,16 @@ model comm_member
 import "university.gaml"
 
 /* Insert your model definition here */
+global{
+	int member_count <- 1 update: member_count;
+	
+	init{
+		create comm_member number: member_count; 
+	}
+}
 
 species comm_member control: fsm{
+	
 	
 	state cooperating_available initial: true { 
 	    enter {  

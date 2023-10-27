@@ -20,7 +20,6 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 	parameter "Number of fruits per year (N)" category: "Native Setup" var: ave_fruits_native;
 	parameter "Harvesting age (N)" category: "Native Setup" var: harvesting_age_native;
 	
-	parameter "Number of initial investors" category: "Investors" var: investor_count min: 0 step: 1;
 	parameter "Size of investable plot" category: "Investors" var: plot_size min: 1 step: 1;
 	parameter "ITP native" category: "Investors" var: plant_native;
 	parameter "ITP exotic" category: "Investors" var: plant_exotic;
@@ -33,8 +32,6 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 	
 	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
 	parameter "Number of laborers per nursery" category: "Nursery Management" var: nlaborer_count min: 0 step: 1;
-	
-	parameter "Number of initial members" category: "Members" var: member_count min: 0 step: 1;
 	
 	output {
 		layout #split;
