@@ -43,22 +43,59 @@ species investor control: fsm{
 	//computes for the rate of return on the invested plots
 	//once investment has been successfully completed; university starts the planting and assigns rotation years per plot.
 	action decideInvestment{	////reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
-		list<plot> investable_plots <- plot where each.is_investable;	//gets investable plots
-		//decide investment
-		//if investment is 0, no previous investment, invests on the plot that have road, with highest profit
-		list<plot> plot_wroad <- investable_plots where each.has_road;	//get plots with road
-		plot chosen_plot <- ((length(plot_wroad)>0)? plot_wroad:investable_plots) with_max_of each.projected_profit;	//get the chosen plot from those with road, or if there's no plot with road, just get the plot with max profit
-		bool investment_status <- false;
-		ask university{
-			investment_status <- investOnPlot(myself, chosen_plot);
-		}			
-		if(investment_status){	//investment successful, put investor on investor's list of plot 
-			add self to: chosen_plot.my_investors;
-			harvest_monitor <- 0;
-			chosen_plot.is_investable <- false;
+		
+		list<plot> investable_plots <- plot where (each.is_investable);	//gets investable plots
+		
+		//decide investment based on risk type
+		plot chosen_plot <- getSuitablePlot(investable_plots, rt);
+		if(chosen_plot != nil){
+			bool investment_status <- false;
+			
+			ask university{
+				investment_status <- investOnPlot(myself, chosen_plot);
+				write "Investment status: "+investment_status;
+			}			
+			if(investment_status){	//investment successful, put investor on investor's list of plot 
+				add self to: chosen_plot.my_investors;
+				harvest_monitor <- 0;
+				chosen_plot.is_investable <- false;
+			}else{
+				write "Investment denied";	
+			}
 		}else{
-			//write "Investment denied";	
+			write "Risk not satisfied!";
 		}	
+		
+	}
+	
+	/* list<plot> plot_wroad <- investable_plots where each.has_road;	//get plots with road
+		plot chosen_plot <- ((length(plot_wroad)>0)? plot_wroad:investable_plots) with_max_of each.projected_profit;	//get the chosen plot from those with road, or if there's no plot with road, just get the plot with max profit
+	 */
+	plot getSuitablePlot(list<plot> ip, int risk_type){
+		string risk <- risk_types.keys[risk_type];
+		if(risk = "Neutral"){
+			risk_type <- flip(risk_types[risk])?0:1;
+			risk <- risk_types.keys[risk_type];
+			write "entering neutral then "+risk; 
+		}
+		
+		list<plot> candidate_plots <- [];
+		if(risk = "Averse"){
+			write "entering averse... ";
+			candidate_plots <- ip where ((1-(each.investment_cost / each.projected_profit)) < risk_types[risk]);
+		}else{	//risk = "Loving"
+			write "entering loving...";
+			candidate_plots <- ip where ((1-(each.investment_cost / each.projected_profit)) >= risk_types[risk]);
+		}
+		if(length(candidate_plots) = 0){
+			return nil;	
+		}else{
+			//get random plot from candidate plots
+			int r_pos <- rnd(length(candidate_plots)-1);
+			write "Cost: "+candidate_plots[r_pos].investment_cost+" Profit: "+candidate_plots[r_pos].projected_profit;
+			write "Investment risk: "+(1-(candidate_plots[r_pos].investment_cost/candidate_plots[r_pos].projected_profit));
+			return candidate_plots[r_pos];
+		}
 		
 	}
 	
@@ -101,7 +138,7 @@ species investor control: fsm{
 	    write "Current state: "+state+" remaining rotation years: "+my_plots.rotation_years;
 	    
 	    transition to: interested_passive when: (done_harvesting) { 
-	        write "transition: active -> not_interested_passive"; 
+	        write "transition: active -> interested_passive"; 
 	        done_harvesting <- false;
 	        my_plots <- nil;
 	    }  

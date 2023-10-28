@@ -91,6 +91,8 @@ global{
     		put selected_trees at: i in: harvested_trees_per_investor;
     		write "In htpi: "+harvested_trees_per_investor[i];
     		i.harvested_trees <- length(harvested_trees_per_investor[i]);
+    		
+    		//determine the total gain here
     	}    	
     } 
 }

@@ -121,18 +121,18 @@ species labour{
 	list<trees> selectiveHarvestITP(plot plot_to_harvest, investor inv){
 		list<trees> trees_to_harvest <- [];
 		
-		list<trees> tree60to70 <- plot_to_harvest.plot_trees where (each.dbh >= 60 and each.dbh < 70);
+		list<trees> tree60to70 <- plot_to_harvest.plot_trees where (each.dbh >= 30 and each.dbh < 40); //(each.dbh >= 60 and each.dbh < 70);
 		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
 		if(length(tree60to70) >= carrying_capacity){//get only upto capacity
 			trees_to_harvest <- tree60to70[0::carrying_capacity];
 		}else{
 			trees_to_harvest <- tree60to70;
-			list<trees> tree70to80 <- plot_to_harvest.plot_trees where (each.dbh >= 70 and each.dbh < 80);
+			list<trees> tree70to80 <- plot_to_harvest.plot_trees where (each.dbh >= 40 and each.dbh < 50);//(each.dbh >= 70 and each.dbh < 80);
 			tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
 			if(length(tree70to80) >= (carrying_capacity - length(trees_to_harvest))){
 				trees_to_harvest <<+ tree70to80[0::(carrying_capacity - length(trees_to_harvest))];
 			}else{
-				list<trees> tree80up <- plot_to_harvest.plot_trees where (each.dbh >= 80);
+				list<trees> tree80up <- plot_to_harvest.plot_trees where (each.dbh >= 50);// (each.dbh >= 80);
 				if(length(tree80up) >= (carrying_capacity - length(trees_to_harvest))){
 					trees_to_harvest <<+ tree70to80[0::(carrying_capacity - length(trees_to_harvest))];
 				}else{
