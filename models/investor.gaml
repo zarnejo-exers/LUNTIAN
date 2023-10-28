@@ -14,7 +14,7 @@ global{
 	float risk_averse <- 0.5; 	//type = 0
 	float risk_loving <- 1.0;	//type = 1
 	int investor_count <- 1 update: investor_count;
-	map<string,float> risk_types <-["Averse"::0.5, "Loving"::1.0, "Neutral"::0.5];
+	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.75, "Neutral"::0.5];
 	
 	init{
 		//assign risk type for each investor randomly
@@ -33,7 +33,9 @@ species investor control: fsm{
 	plot my_plots;
 	int harvest_monitor;	//corresponds to the position of the plot, like a timer to signal if a year already passed
 	float total_profit <- 0.0;
+	float recent_profit;
 	float investment <- 0.0;
+	float promised_profit; 
 	int harvested_trees<-0; 
 	bool done_harvesting;
 	
@@ -59,6 +61,8 @@ species investor control: fsm{
 				add self to: chosen_plot.my_investors;
 				harvest_monitor <- 0;
 				chosen_plot.is_investable <- false;
+				investment <- chosen_plot.investment_cost;
+				promised_profit <- chosen_plot.projected_profit;
 			}else{
 				write "Investment denied";	
 			}
@@ -74,8 +78,7 @@ species investor control: fsm{
 	plot getSuitablePlot(list<plot> ip, int risk_type){
 		string risk <- risk_types.keys[risk_type];
 		if(risk = "Neutral"){
-			risk_type <- flip(risk_types[risk])?0:1;
-			risk <- risk_types.keys[risk_type];
+			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
 			write "entering neutral then "+risk; 
 		}
 		
@@ -137,13 +140,23 @@ species investor control: fsm{
 	 	do updateRotationYears;
 	    write "Current state: "+state+" remaining rotation years: "+my_plots.rotation_years;
 	    
-	    transition to: interested_passive when: (done_harvesting) { 
-	        write "transition: active -> interested_passive"; 
+	    transition to: interested_passive when: (done_harvesting and (recent_profit >= promised_profit)) {
+	        write "transition: active->interested_passive";
+	        done_harvesting <- false;
+	        my_plots <- nil;
+	    }
+	    
+	    transition to: not_interested_passive when: (done_harvesting and (recent_profit < promised_profit)) {
+	        write "transition: active->not_interested_passive";
 	        done_harvesting <- false;
 	        my_plots <- nil;
 	    }  
 	 
-	    exit {write 'EXIT from '+state;} 
+	    exit {
+	    	total_profit <- total_profit + recent_profit;	//record final profit
+	    	recent_profit <- 0.0;
+	    	write 'EXIT from '+state;
+	    } 
 	}
 	
 	state not_interested_passive { 
@@ -151,8 +164,17 @@ species investor control: fsm{
 	    enter {write 'Enter in: '+state;} 
 	 
 	    write "Current state: "+state;
+	    //determine if to transition to interested
 	    
-	    transition to: interested_passive when: (cycle > 2) { 
+	    string risk <- risk_types.keys[rt];
+		if(risk = "Neutral"){
+			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
+			write "entering neutral then "+risk; 
+		}
+		write "Risk type: "+risk;
+		bool to_transition <- flip(risk_types[risk]);
+	    
+	    transition to: interested_passive when: (to_transition) { 
 	        write "transition: not_interested_passive -> interested_passive"; 
 	    }  
 	 

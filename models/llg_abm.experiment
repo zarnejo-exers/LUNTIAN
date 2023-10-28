@@ -13,16 +13,18 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
 	parameter "Number of fruits per year (E)" category: "Exotic Setup" var: ave_fruits_exotic;
 	parameter "Harvesting age (E)" category: "Exotic Setup" var: harvesting_age_exotic;
+	parameter "Price per Volume (E)" category: "Exotic Setup" var: exotic_price_per_volume;
 	
 	parameter "Growth rate (N)" category: "Native Setup" var:growth_rate_native;
 	parameter "Max DBH (N)" category: "Native Setup"  var:max_dbh_native;
 	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
 	parameter "Number of fruits per year (N)" category: "Native Setup" var: ave_fruits_native;
 	parameter "Harvesting age (N)" category: "Native Setup" var: harvesting_age_native;
+	parameter "Price per Volume (N)" category: "Native Setup" var: native_price_per_volume;
 	
 	parameter "Size of investable plot" category: "Investors" var: plot_size min: 1 step: 1;
-	parameter "ITP native" category: "Investors" var: plant_native;
-	parameter "ITP exotic" category: "Investors" var: plant_exotic;
+	parameter "ITP native" category: "Investors" var: plant_native;	//sets what whether to plant native trees
+	parameter "ITP exotic" category: "Investors" var: plant_exotic;	//sets what whether to plant exotic trees
 	
 	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
 	parameter "Planting age" category: "Management" var: planting_age min: 1;

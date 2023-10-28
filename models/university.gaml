@@ -88,11 +88,17 @@ global{
     	list<trees> selected_trees <- chosen_labour.selectiveHarvestITP(i.my_plots, i);
     	ask university{
     		write "Selected DBH: "+(selected_trees accumulate each.dbh);
-    		put selected_trees at: i in: harvested_trees_per_investor;
+    		write "Selected TH: "+(selected_trees accumulate each.th);
+    		put selected_trees at: i in: harvested_trees_per_investor;	//puts the selected trees on the investor list
     		write "In htpi: "+harvested_trees_per_investor[i];
     		i.harvested_trees <- length(harvested_trees_per_investor[i]);
     		
-    		//determine the total gain here
+    		float total_profit <- 0.0;
+    		loop s over: selected_trees{
+    			//use specific price per type
+    			total_profit <- total_profit + (((s.type = 1)?exotic_price_per_volume:native_price_per_volume) * (#pi * (s.dbh/2)^2 * s.th) ); 
+    		}
+    		i.recent_profit <- total_profit;
     	}    	
     } 
 }

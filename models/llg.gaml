@@ -57,11 +57,13 @@ global {
 	float max_dbh_exotic <- 110.8 update: max_dbh_exotic;
 	float min_dbh_exotic <- 1.0 update: min_dbh_exotic;
 	int ave_fruits_exotic <- 700 update: ave_fruits_exotic;
+	float exotic_price_per_volume <- 70.0 update: exotic_price_per_volume;
 	
 	float growth_rate_native <- 2.0 update: growth_rate_native;
 	float max_dbh_native <- 130.0 update: max_dbh_native;
 	float min_dbh_native <- 1.0 update: min_dbh_native;
 	int ave_fruits_native <- 100 update: ave_fruits_native;
+	float native_price_per_volume <- 70.0 update: native_price_per_volume;
 	
 	//native, exotic
 	list<float> min_water <- [1500.0, 1400.0];						//best grow, annual, monthly will be taken in consideration during the growth effect
