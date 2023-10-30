@@ -67,6 +67,7 @@ species investor control: fsm{
 				}
 				harvest_monitor <- 0;
 				chosen_plot.is_investable <- false;
+				chosen_plot.is_invested <- true;
 				investment <- chosen_plot.investment_cost;
 				promised_profit <- chosen_plot.projected_profit;
 			}else{
@@ -153,17 +154,16 @@ species investor control: fsm{
 	    
 	    transition to: interested_passive when: (done_harvesting and (recent_profit >= promised_profit)) {
 	        write "transition: active->interested_passive";
-	        done_harvesting <- false;
-	        my_plots <- nil;
 	    }
 	    
 	    transition to: not_interested_passive when: (done_harvesting and (recent_profit < promised_profit)) {
 	        write "transition: active->not_interested_passive";
-	        done_harvesting <- false;
-	        my_plots <- nil;
 	    }  
 	 
 	    exit {
+	    	done_harvesting <- false;
+	    	my_plots.is_invested <- false;
+	        my_plots <- nil;
 	    	total_profit <- total_profit + recent_profit;	//record final profit
 	    	recent_profit <- 0.0;
 	    	write 'EXIT from '+state;

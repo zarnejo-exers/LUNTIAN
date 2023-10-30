@@ -81,6 +81,7 @@ global{
     	}
     }
     
+    //harvest on the plot of investor i
     action harvestOnInvestment (investor i){
 		list<labour> available_labors <- labour where each.is_itp_labour;	//get all itp labours
     	write "Investor: "+i.name;

@@ -21,7 +21,7 @@ global{
 	int planting_age <- 1 update: planting_age;
 	int harvesting_age_exotic <- 1 update: harvesting_age_exotic;	//temp
 	int harvesting_age_native <- 1 update: harvesting_age_native;	//actual 40
-	int nursery_count <- 2 update: nursery_count;
+	int nursery_count <- 1 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
 	float dbh_policy <- 50.0 update: dbh_policy; 
 	bool plant_native <- true update: plant_native;

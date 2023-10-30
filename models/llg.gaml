@@ -273,9 +273,9 @@ species trees{
 	int count_fruits; 
 	int temp;
 	
-//	aspect default{
-//		draw circle(self.cd/2, self.location) color: (type = NATIVE)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
-//	}
+	aspect default{
+		draw circle(self.cd/2, self.location) color: (type = NATIVE)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
+	}
 	
 	aspect geom3D{
 		if(cd != 0){
@@ -509,6 +509,8 @@ species plot{
 	bool is_candidate_nursery <- false; //true if there exist a mother tree in one of its trees;
 	int rotation_years <- 0; 	//only set once an investor decided to invest on a plot
 	
+	bool is_invested <- false;
+	
 	action compute_neighbors {
 		list<plot> my_neighborhood <- (plot select ((each distance_to self) < 5));
 		
@@ -530,6 +532,18 @@ species plot{
 			}else{
 				draw self.shape color: #black;
 			}
+		}
+	}
+	
+	aspect si{
+		if(is_nursery){
+			draw self.shape color: #gold;
+		}else if(is_investable){
+			draw self.shape color: #green;
+		}else if(is_invested){
+			draw self.shape color: #blue;
+		}else{
+			draw self.shape color: #black;
 		}
 	}
 	
