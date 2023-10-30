@@ -14,7 +14,10 @@ import "comm_member.gaml"
 
 /* Insert your model definition here */
 global{
-	int NURSERY_LABOUR <- 12; //labor required per nursery, constant
+	int NURSERY_LABOUR <- 12; //commitment of nursery worker, in terms of months
+	int HARVESTING_LABOUR <- 1;  //commitment of harvester worker, in terms of months
+	int PLANTING_LABOUR <- 6;  //commitment of planter worker, in terms of months
+	
 	int LABOUR_PCAPACITY <- 5;	//number of trees that the laborer can plant/manage
 	
 	int plot_size <- 1 update: plot_size;
@@ -36,7 +39,9 @@ global{
 	bool start_harvest <- false;
 	init{
 		create market;
-		create labour number: laborer_count;
+		create labour number: laborer_count{
+			labor_type <- OWN_LABOUR;
+		}
 		create university_si;
 		
 		itp_type <- (plant_native and plant_exotic)?2:(plant_native?0:1);
@@ -82,11 +87,27 @@ global{
     }
     
     //harvest on the plot of investor i
+    //STATE: ITP_HARVESTING
     action harvestOnInvestment (investor i){
-		list<labour> available_labors <- labour where each.is_itp_labour;	//get all itp labours
-    	write "Investor: "+i.name;
-    	write "Trees in ITP plot: "+(i.my_plots.plot_trees accumulate each.dbh);
-    	labour chosen_labour <- one_of(available_labors closest_to i.my_plots);
+		list<labour> available_labors <- labour where (each.is_vacant);	//get all vacant laborers
+    	labour chosen_labour;
+    	if(available_labors = nil){	//no vacant laborer
+    		//hire from community
+    		comm_member chosen_member <- first(comm_member where (each.state = "cooperating_available"));
+			write "comm member: "+chosen_member.name;
+			create labour{
+				chosen_member.instance_labour <- self;
+				labor_type <- COMM_LABOUR;
+			}
+			chosen_labour <- chosen_member.instance_labour;
+    	}else{
+    		chosen_labour <- one_of(available_labors closest_to i.my_plots);
+    	}
+    	
+    	chosen_labour.is_itp_harvesting <- true;
+		chosen_labour.man_months <- [HARVESTING_LABOUR, 0, 0];
+    	
+    	
     	list<trees> selected_trees <- selectiveHarvestITP(chosen_labour, i.my_plots, i);
     	ask university_si{
     		write "Selected DBH: "+(selected_trees accumulate each.dbh);
@@ -259,9 +280,10 @@ species university_si{
 		
 		ask assigned_laborers{
 			current_plot <- chosen_plot;
-			self.is_itp_labour <- true;
-			self.location <- chosen_plot.location;
+			is_itp_planting <- true;
+			location <- chosen_plot.location;
 			do replantAlert(chosen_plot);
+			man_months[1] <- man_months[1]+1;	//serviced months, increment
 		}
 		//set rotation years to plot
 		do setRotationYears(chosen_plot);
@@ -281,57 +303,61 @@ species university_si{
 		}		
 	}
 
-	/*
+	/*ITP_planting
 	 * the_plot: needs trees_to_be_planted in order to convert the plot into an ITP implementing selective logging
 	 * Assign laborer to ITP plot: 
 	 * 	Case 1: There's unassigned laborer
-	 *  Case 2: There's available nursery laborer (in waiting phase)
 	 * 	Case 3: Need to hire new laborer
 	 * Depending on the capacity of the laborer, get n trees from the nurseries
 	 * Add more laborers if the plot isn't filled yet
 	 * All this happens in one step: in one month
 	 */	
 	list<labour> assignLaborerToPlot(plot the_plot){
-		//check if there are vacant, non-nursery laborers
 		
-		list<labour> itp_laborers <- labour where (!each.is_nursery_labour and empty(each.my_plots));
+		//get ITP_PLANTING laborers
+		list<labour> itp_laborers <- labour where ((each.is_itp_planting) and empty(each.my_plots));
 		list<labour> assigned_laborers <- [];
 		
 		if(!empty(itp_laborers)){	//there's vacant laborer
-			write "There's vacant laborer: "+itp_laborers;
-			assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
+			write "There's planter laborer: "+itp_laborers;
+			assigned_laborers <<+ updateAssignment(the_plot, itp_laborers, false);
 		}
 		
+		//get VACANT laborers
+		itp_laborers <- labour where ((each.is_vacant) and empty(each.my_plots));
+		if(!empty(available_seeds) and !empty(itp_laborers)){
+			write "There's vacant laborer: "+itp_laborers;
+			assigned_laborers <<+ updateAssignment(the_plot, itp_laborers, true);
+		}
+		
+		//More seeds, hire laborer
+		write "Hire available laborer from the community";
 		if(!empty(available_seeds)){	//there's more tree to be planted, more laborer is needed
-			itp_laborers <- [];
-			ask my_nurseries where (length(each.my_laborers) >1){	//get laborers from nursery with more than one laborer
-				itp_laborers <<+ (my_laborers where (each.current_plot = self));
-			}
+			//depending on remaining available_seeds, create n new laborer
+			int new_laborer_needed <- int(length(available_seeds)/LABOUR_PCAPACITY);
+			list<comm_member> ac_member <- comm_member where (each.state = "cooperating_available");
 			
-			if(!empty(itp_laborers)){
-				write "Getting vacant laborer from nurseries";
-				assigned_laborers <<+updateAssignment(the_plot, itp_laborers);
-				ask assigned_laborers{
-					is_nursery_labour <- false;
+			if(length(ac_member) < new_laborer_needed){	//when a lot more is needed than available
+				new_laborer_needed <- length(ac_member);
+			}
+			write "length of communitiy: "+length(ac_member)+" new laborer needed: "+new_laborer_needed;
+			loop i from: 0 to: new_laborer_needed-1{
+				create labour{
+					labor_type <- COMM_LABOUR;
+					is_itp_planting <- true;
+					ac_member[i].instance_labour <- self;
 				}
-				
 			}
 			
-			if(!empty(available_seeds)){
-				write "Hire new laborer";
-				//depending on remaining available_seeds, create n new laborer
-				int new_laborer_needed <- int(length(available_seeds)/LABOUR_PCAPACITY);
-				create labour number: new_laborer_needed;
-				itp_laborers <- labour where empty(each.my_plots);
-				assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
-			}
+			itp_laborers <- labour where empty(each.my_plots);
+			assigned_laborers <<+ updateAssignment(the_plot, itp_laborers, true);
 		}
 		return assigned_laborers;
 	}
 	
 	//as much as each one can, replant the ITP
 	//update total_laborer_capacity
-	list<labour> updateAssignment(plot the_plot, list<labour> itp_laborers){
+	list<labour> updateAssignment(plot the_plot, list<labour> itp_laborers, bool is_new){
 		list<labour> assigned_laborers <- [];
 		
 		loop itp_l over: itp_laborers{
@@ -341,7 +367,11 @@ species university_si{
 			
 			available_seeds <- itp_l.getTrees(available_seeds where (each.type = itp_type)); //get only trees that is relevant to ITP
 				
-			add itp_l to: assigned_laborers;				 	
+			add itp_l to: assigned_laborers;
+			
+			if(is_new){
+				itp_l.man_months <- [PLANTING_LABOUR, 0, 0];
+			}				 	
 		}
 		
 		return assigned_laborers;
@@ -356,9 +386,10 @@ species university_si{
 	//determine if a plot is to be a nursery or not
 	//	where there is a mother tree, it becomes a nursery
 	action assignNurseries{
+		write "in here!";
 		ask plot{do updateTrees;}
-		
 		list<plot> candidate_plots <- plot where (length(each.plot_trees where each.is_mother_tree)>0);
+		write "assigning nurseries..."+candidate_plots;
 		if(candidate_plots != nil and length(candidate_plots) > nursery_count){
 			candidate_plots <- candidate_plots[0::nursery_count];
 			ask candidate_plots{
@@ -376,7 +407,29 @@ species university_si{
 		//get all unassigned laborers
 		if(nlaborer_count = 0) { write "Nursery not accepting laborers."; return; }
 		
-		list<labour> free_laborers <- labour where !each.is_nursery_labour;
+		//get only OWN_LABOUR that are VACANT
+		list<labour> free_laborers <- labour where (each.is_vacant and each.labor_type = each.OWN_LABOUR);
+
+		//there are more nurseries than the laborers, hire laborers!
+		if(length(to_assign_nurseries) > length(free_laborers)){	
+			int needed_labor <- length(to_assign_nurseries) - length(free_laborers);
+			
+			list<comm_member> ac_member <- comm_member where (each.state = "cooperating_available");
+			
+			if(length(ac_member) < needed_labor){	//when there's more need than available
+				needed_labor <- length(ac_member);
+			}
+			
+			loop i from: 0 to: needed_labor-1{
+				create labour{
+					labor_type <- COMM_LABOUR;
+					is_itp_planting <- true;
+					ac_member[i].instance_labour <- self;
+					man_months <- [NURSERY_LABOUR, 0, 0];
+				}
+				add ac_member[i].instance_labour to: free_laborers;
+			}
+		}
 		
 		if(length(to_assign_nurseries) <= length(free_laborers)){	//there are sufficient laborers for the nurseries
 			//write "Total Nurseries: "+length(to_assign_nurseries)+" of max capacity: "+nlaborer_count+" given Total Labor: "+length(free_laborers);
@@ -385,7 +438,7 @@ species university_si{
 				//update the status of the laborer
 				ask free_laborers[an]{
 					add to_assign_nurseries[an] to: self.my_plots;
-					self.man_months <- [NURSERY_LABOUR, 0];
+					self.man_months <- [NURSERY_LABOUR, 0, 0];
 					self.is_nursery_labour <- true;
 				}
 				add free_laborers[an] to: to_assign_nurseries[an].my_laborers; 
@@ -412,7 +465,7 @@ species university_si{
 					//update the status of the laborer	
 					ask laborers{
 						add an to: self.my_plots;
-						self.man_months <- [NURSERY_LABOUR, 0];
+						self.man_months <- [NURSERY_LABOUR, 0, 0];
 						self.is_nursery_labour <- true;
 					}
 					remaining_laborers >>- laborers;	//remove assigned laborers					
@@ -420,10 +473,7 @@ species university_si{
 			}else{
 				write "Nurseries are given exactly one laborer";
 			}
-		}else{	//there are more nurseries than the laborers
-//			int nurseries_per_laborer <- int(length(to_assign_nurseries)/length(free_laborers));
-// 			5 nurseries, 2 laborers: laborer_1=2, laborer_2=3
-			//write "Laborers are assigned to multiple nurseries... To do";
+		}else{	//there are still nurseries than available laborers
 			float nurseries_per_laborer <- length(to_assign_nurseries)/length(free_laborers);	//get how many nurseries will be assigned to one laborer
 			
 			ask free_laborers{
@@ -440,7 +490,7 @@ species university_si{
 					break;
 				}
 				self.my_plots <<+ to_assign_nurseries[0::no_nurseries];
-				self.man_months <- [NURSERY_LABOUR, 0];
+				self.man_months <- [NURSERY_LABOUR, 0, 0];
 				self.is_nursery_labour <- true;
 				to_assign_nurseries >>- to_assign_nurseries[0::no_nurseries];
 			}
@@ -449,11 +499,10 @@ species university_si{
 				labour chosen_laborer <- one_of(free_laborers);
 				ask chosen_laborer{
 					self.my_plots <<+ to_assign_nurseries;
-					self.man_months <- [NURSERY_LABOUR, 0];
+					self.man_months <- [NURSERY_LABOUR, 0, 0];
 					self.is_nursery_labour <- true;
 				}
 			}
-			
 		}
 		
 		ask free_laborers{
@@ -508,6 +557,7 @@ species university_si{
 						current_plot <- closest_nursery;
 						//write "In university, planting at: "+closest_nursery.name;
 						do replantAlert(closest_nursery);
+						man_months[1] <- man_months[1]+1;	//serviced months, increment
 					}
 				}
 			}

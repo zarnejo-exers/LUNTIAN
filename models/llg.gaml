@@ -6,7 +6,7 @@
 */
 
 model llg
-import "university.gaml"
+import "university_si.gaml"
 
 global {
 	int NB_TS <- 12; //monthly timestep, constant
@@ -320,7 +320,7 @@ species trees{
 		
 		list<plot> nurseries;
 		point mother_location <- point(self.location.x, self.location.y);
-		ask university{
+		ask university_si{
 			nurseries <- my_nurseries;
 		}
 		
@@ -582,7 +582,7 @@ species plot{
 		geometry temp_shape <- removeOccupiedSpace(self.shape, self.plot_trees);
 		
 		float temp_dbh;
-		ask university{
+		ask university_si{
 			temp_dbh <- managementDBHEstimate(type, planting_age);
 		}
 		geometry tree_shape <- circle(temp_dbh);
@@ -598,7 +598,7 @@ species plot{
 		
 		list<trees> new_trees <- plot_trees where (each.is_new_tree);
 		if(length(new_trees) > 0){
-			ask university{
+			ask university_si{
 				if(length(my_nurseries) > 0){
 					do newTreeAlert(myself, new_trees);	
 				}else{

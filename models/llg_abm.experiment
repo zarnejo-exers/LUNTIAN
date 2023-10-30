@@ -40,7 +40,7 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 			species river aspect: default;	
 			species road aspect: default;					 
 			species trees aspect: geom3D;
-			species university; 
+			species university_si; 
 			species labour;
 			
 			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
