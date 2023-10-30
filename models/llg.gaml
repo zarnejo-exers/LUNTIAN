@@ -112,7 +112,6 @@ global {
 		}
 		
 		create trees from: trees_shapefile{
-			//Actual
 //			dbh <- float(read("Book2_DBH"));
 //			mh <- float(read("Book2_MH"));		
 //			th <- float(read("Book2_TH"));		
@@ -502,7 +501,6 @@ species plot{
 	climate my_climate <- climate closest_to location;
 	float investment_cost;
 	float projected_profit;
-	list<investor> my_investors<-[];
 	bool is_nursery <- false;
 	bool is_itp <- false;
 	bool is_investable <- false;

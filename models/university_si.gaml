@@ -5,9 +5,12 @@
 * Tags: 
 */
 
-model university
+model university_si
 import "llg.gaml"
+import "market.gaml"
+import "investor.gaml"
 import "labour.gaml"
+import "comm_member.gaml"
 
 /* Insert your model definition here */
 global{
@@ -27,23 +30,27 @@ global{
 	bool plant_native <- true update: plant_native;
 	bool plant_exotic <- false update: plant_exotic;
 	int itp_type; //0 ->plant native, 1->plant exotic, 2->plant mix
+	map<plot, list<investor>> plot_investor; 
 	
 	bool assignedNurseries <- false;
 	bool start_harvest <- false;
 	init{
+		create market;
 		create labour number: laborer_count;
-		create university;
+		create university_si;
 		
 		itp_type <- (plant_native and plant_exotic)?2:(plant_native?0:1);
 	}
 	
 	//automatically execute when there are no laborers assigned to nurseries
 	reflex assignLaborersToNurseries when: (!assignedNurseries and (nursery_count > 0)){
-		ask university{
+		ask university_si{
 			do assignNurseries;
 			if(length(my_nurseries) >= nursery_count){	//start ITP if there's enough nurseries
 				write "Starting ITP: "+length(my_nurseries)+" with: "+nursery_count;
 				do assignLaborerToNursery(my_nurseries);
+				do determineInvestablePlots(itp_type);
+				do updateInvestors;	 
 				assignedNurseries <- true;
 			}else{
 				write "Let environment grow";
@@ -55,13 +62,89 @@ global{
 //	reflex stopAtYear100 when: cycle=1200{
 //		do pause;
 //	}
+	
+	//start checking once all investor already have investments
+	//stop simulation when the rotation years of all investor is finished
+	reflex stopSimulation when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
+    	bool to_pause <- true;
+    	loop i over: investor where (each.my_plots != nil){
+    		if(i.my_plots.rotation_years =0){
+    			do harvestOnInvestment(i);
+    			i.done_harvesting <- true;
+    		}else{
+    			to_pause <- false;
+    		}
+    	}
+    	
+    	if(to_pause){	//not all investor have harvested    		
+    		do pause ;	
+    	}
+    }
+    
+    action harvestOnInvestment (investor i){
+		list<labour> available_labors <- labour where each.is_itp_labour;	//get all itp labours
+    	write "Investor: "+i.name;
+    	write "Trees in ITP plot: "+(i.my_plots.plot_trees accumulate each.dbh);
+    	labour chosen_labour <- one_of(available_labors closest_to i.my_plots);
+    	list<trees> selected_trees <- selectiveHarvestITP(chosen_labour, i.my_plots, i);
+    	ask university_si{
+    		write "Selected DBH: "+(selected_trees accumulate each.dbh);
+    		write "Selected TH: "+(selected_trees accumulate each.th);
+    		put selected_trees at: i in: harvested_trees_per_investor;	//puts the selected trees on the investor list
+    		write "In htpi: "+harvested_trees_per_investor[i];
+    		i.harvested_trees <- length(harvested_trees_per_investor[i]);
+    		
+    		float total_profit <- 0.0;
+    		loop s over: selected_trees{
+    			//use specific price per type
+    			total_profit <- total_profit + (((s.type = 1)?exotic_price_per_volume:native_price_per_volume) * (#pi * (s.dbh/2)^2 * s.th) ); 
+    		}
+    		i.recent_profit <- total_profit;
+    	}    	
+    }
+    
+    	//harvests upto capacity
+	list<trees> selectiveHarvestITP(labour cl, plot plot_to_harvest, investor inv){
+		list<trees> trees_to_harvest <- [];
+		
+		list<trees> tree60to70 <- plot_to_harvest.plot_trees where (each.dbh >= 30 and each.dbh < 40); //(each.dbh >= 60 and each.dbh < 70);
+		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
+		if(length(tree60to70) >= cl.carrying_capacity){//get only upto capacity
+			trees_to_harvest <- tree60to70[0::cl.carrying_capacity];
+		}else{
+			trees_to_harvest <- tree60to70;
+			list<trees> tree70to80 <- plot_to_harvest.plot_trees where (each.dbh >= 40 and each.dbh < 50);//(each.dbh >= 70 and each.dbh < 80);
+			tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
+			if(length(tree70to80) >= (cl.carrying_capacity - length(trees_to_harvest))){
+				trees_to_harvest <<+ tree70to80[0::(cl.carrying_capacity - length(trees_to_harvest))];
+			}else{
+				list<trees> tree80up <- plot_to_harvest.plot_trees where (each.dbh >= 50);// (each.dbh >= 80);
+				if(length(tree80up) >= (cl.carrying_capacity - length(trees_to_harvest))){
+					trees_to_harvest <<+ tree70to80[0::(cl.carrying_capacity - length(trees_to_harvest))];
+				}else{
+					trees_to_harvest <<+ tree80up;
+				}
+			}
+			
+		}
 
+		plot_to_harvest.plot_trees <- (plot_to_harvest.plot_trees - trees_to_harvest);
+		ask plot_to_harvest.plot_trees{
+			age <- age + 5; 	//to correspond to TSI
+		} 
+		cl.man_months[1] <- cl.man_months[1]+1;
+		return trees_to_harvest;
+	}
+	 
 }
 
-species university{
+species university_si{
 	list<plot> my_invested_plots;		//list of plots invested by the university
 	list<plot> my_nurseries <- (plot where each.is_nursery) update: (plot where each.is_nursery);	//list of nurseries managed by university
 	list<plot> investable_plots;
+	list<investor> current_investors <- [];
+	
+	map<investor, list<trees>> harvested_trees_per_investor <- investor as_map (each::[]);
 	
 	list<trees> available_seeds<- [];
 	
@@ -77,6 +160,12 @@ species university{
 		Given the current number of trees in the plot, 
         determine the cost needed to plant new trees (how many trees are to be planted)
 	 */
+	 
+	 
+
+	action updateInvestors{
+		current_investors <- investor where !empty(each.my_plots);
+	}
 	
 	float getPlantingCost(int t_type){
 		return ((t_type = 1)?pcost_of_exotic:pcost_of_native);
@@ -86,6 +175,99 @@ species university{
 		return ((t_type = 1)?mcost_of_exotic:mcost_of_native);
 	}
 	
+	//for each plot, determine if plot is investable or not
+	//investable -> if (profit > cost & profit > threshold)
+	//profit : current trees in n years, where n = rotation of newly planted trees
+	//cost : number of wildlings that needs to be planted + maintenance cost per wildling
+	//note: consider that the policy of the government will have an effect on the actual profit, where only x% can be harvested from a plot of y area
+	action determineInvestablePlots(int t_type){
+		float planting_cost <- getPlantingCost(t_type);
+		float buying_price;
+		int harvest_age <- (t_type=1 ? harvesting_age_exotic: harvesting_age_native);
+		//get the planting cost from the market
+		ask market{
+			buying_price <- getBuyingPrice(t_type);
+		}
+		
+		list<plot> not_investable_plots <- plot where (each.is_near_water or each.is_nursery or (plot_investor[each] != nil));
+		ask not_investable_plots{
+			is_investable <- false;
+		}
+		
+		ask plot - not_investable_plots{
+			int spaces_for_planting <- getAvailableSpaces(t_type);	//get total number of wildlings that the plot can accommodate
+			
+			//given spaces to be filled by plants + planting cost + management cost
+			investment_cost <- (((planting_cost+myself.getManagementCost(t_type)) * spaces_for_planting)*myself.labor_price) ;	//compute total cost in man hours
+			int projected_rotation_years <- harvest_age - planting_age;	//harvest age is the set age when a species becomes harvestable; planting age is the age when the given species is moved from nursery to plantation
+			
+			int tree_to_harvest <- int((length(plot_trees)+spaces_for_planting)*harvest_policy);	//harvest policy: % count of trees allowed to be harvested
+			projected_profit <- 0.0;
+			int t_count <- 0;
+			loop pt over: plot_trees{
+				if(t_count=tree_to_harvest){break;}
+				int future_age <- int(pt.age + projected_rotation_years);
+				float future_dbh <- myself.managementDBHEstimate(pt.type, future_age);
+				if(future_dbh > dbh_policy){	//harvest only trees of specific dbh; restriction by the government
+					projected_profit <- projected_profit + (future_dbh*buying_price);
+					t_count <- t_count + 1;	
+				}
+			}
+			
+			float new_tree_dbh <- myself.managementDBHEstimate(t_type, harvest_age);
+			projected_profit <- projected_profit + (new_tree_dbh*buying_price*(tree_to_harvest - t_count));
+			is_investable <- (projected_profit > investment_cost)?true:false;
+			if(is_investable){
+				add self to: myself.investable_plots;
+			}
+		}
+	}
+
+	//returns true if successful, else false
+	bool investOnPlot(investor investing_investor, plot chosen_plot){
+		ask my_nurseries{
+			do updateTrees;
+		}
+		available_seeds <- (my_nurseries accumulate each.plot_trees) where (each.age < 4);	//can transplant seed from nursery to ITP until before age 4
+		if(length(available_seeds) = 0){
+			write "No available seeds";
+			return false;
+		}
+		//check available seeds in nursery
+		int no_trees_for_planting <- chosen_plot.getAvailableSpaces((plant_native)?0:1);
+		
+		//write "Available seeds: "+length(available_seeds)+" Needed seeds: "+no_trees_for_planting;
+		if(length(available_seeds)< no_trees_for_planting){	//check if the available seeds is sufficient to start investment on plot, if no, deny investment
+			return false;
+		}else{
+			available_seeds <- (length(available_seeds)>no_trees_for_planting ? available_seeds[0::no_trees_for_planting]:available_seeds);
+		}
+
+		//confirm investment 
+		chosen_plot.is_nursery <- false;
+		investing_investor.my_plots <- chosen_plot;
+		investing_investor.investment <- chosen_plot.investment_cost;
+		//assign laborer and get available seeds from the nursery 		
+		list<labour> assigned_laborers <- assignLaborerToPlot(chosen_plot);
+		 
+		if(length(assigned_laborers) = 0){
+			write "No available laborers";
+			return false;
+		}
+		//laborer has the seeds: transplant in the chosen plot, action replantAlert(plot new_plot)
+		
+		ask assigned_laborers{
+			current_plot <- chosen_plot;
+			self.is_itp_labour <- true;
+			self.location <- chosen_plot.location;
+			do replantAlert(chosen_plot);
+		}
+		//set rotation years to plot
+		do setRotationYears(chosen_plot);
+		chosen_plot.is_itp <- true;
+		return true;
+	}
+
 	//type 0: automatically base on harvesting age of native
 	//type 1: automatically base on harvesting age of exotic
 	action setRotationYears(plot the_plot){

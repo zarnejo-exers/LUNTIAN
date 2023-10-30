@@ -22,10 +22,6 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 	parameter "Harvesting age (N)" category: "Native Setup" var: harvesting_age_native;
 	parameter "Price per Volume (N)" category: "Native Setup" var: native_price_per_volume;
 	
-	parameter "Size of investable plot" category: "Investors" var: plot_size min: 1 step: 1;
-	parameter "ITP native" category: "Investors" var: plant_native;	//sets what whether to plant native trees
-	parameter "ITP exotic" category: "Investors" var: plant_exotic;	//sets what whether to plant exotic trees
-	
 	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
 	parameter "Planting age" category: "Management" var: planting_age min: 1;
 	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
@@ -46,7 +42,6 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 			species trees aspect: geom3D;
 			species university; 
 			species labour;
-			species investor;
 			
 			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
 			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
@@ -74,16 +69,6 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 //				data "Number of Trees" value: (plot where each.is_nursery) sum_of length(each.plot_trees) color: #blue;
 //			}
 //		}
-
-		display chart2 type: java2D{	
-			chart "Population of Trees in ITP Plots" type: series
-			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				loop i over: investor{
-            		data i.name value: (empty(i.my_plots)?0:length(one_of(i.my_plots).plot_trees));
-            	}
-			}
-		}
 		
 		display chart2 type: java2D{	
 			chart "Population of Trees" type: series

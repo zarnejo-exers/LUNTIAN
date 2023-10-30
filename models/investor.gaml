@@ -7,7 +7,7 @@
 
 
 model investor
-import "university.gaml"
+import "university_si.gaml"
 
 /* Insert your model definition here */
 global{
@@ -53,12 +53,18 @@ species investor control: fsm{
 		if(chosen_plot != nil){
 			bool investment_status <- false;
 			
-			ask university{
+			ask university_si{
 				investment_status <- investOnPlot(myself, chosen_plot);
 				write "Investment status: "+investment_status;
 			}			
-			if(investment_status){	//investment successful, put investor on investor's list of plot 
-				add self to: chosen_plot.my_investors;
+			if(investment_status){	//investment successful, put investor on investor's list of plot
+				ask university_si{
+					if(plot_investor[chosen_plot] = nil){
+						plot_investor <<+ map<plot, list<investor>>(myself::[chosen_plot]);
+					}else{
+						add myself to: plot_investor[chosen_plot];// chosen_plot.my_investors;
+					}	
+				}
 				harvest_monitor <- 0;
 				chosen_plot.is_investable <- false;
 				investment <- chosen_plot.investment_cost;
@@ -78,8 +84,8 @@ species investor control: fsm{
 	plot getSuitablePlot(list<plot> ip, int risk_type){
 		string risk <- risk_types.keys[risk_type];
 		if(risk = "Neutral"){
+			write "Neutral... Deciding...";
 			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
-			write "entering neutral then "+risk; 
 		}
 		
 		list<plot> candidate_plots <- [];
@@ -115,13 +121,18 @@ species investor control: fsm{
 		}
 	}
 	
-	state interested_passive initial: true { 
+	state interested_passive initial: true{ 
 	    enter {  
 	        write " "+risk_types.keys[rt]+" Enter in: " + state; 
 	    } 
 	 
-	 	do decideInvestment;
-	    write "Current state: "+state ; 
+	 	write "Current state: "+state ;
+	 	if(assignedNurseries){
+	 		write "Assigned Nurseries: "+assignedNurseries;
+	 		do decideInvestment;	
+	 	}else{
+	 		write "Waiting for environment...";
+	 	}
 	 
 	    transition to: active when: (my_plots != nil) { 
 	        write "Plot count: "+length(my_plots);

@@ -5,19 +5,34 @@
 * Tags: 
 */
 
-experiment social_interaction model: "university.gaml" type:gui {
+experiment social_interaction model: "university_si.gaml" type:gui {
 	/** Insert here the definition of the inputs and outputs of the model */
 	
 	/** Parameters can be used to input values to the model **/
 	// parameter "First parameter" var: an_attribute_of_the_model <- an_expression;
 	parameter "Total count of community members" category: "Members" var: member_count min: 0 step: 1;
 	parameter "Total count of investors" category: "Investors" var: investor_count min: 0 step: 1;
+
+	parameter "Size of investable plot" category: "Investors" var: plot_size min: 1 step: 1;
+	parameter "ITP native" category: "Investors" var: plant_native;	//sets what whether to plant native trees
+	parameter "ITP exotic" category: "Investors" var: plant_exotic;	//sets what whether to plant exotic trees
 	
 	output {
 		layout #split;
+	
 		display interaction{
 			species investor;
-			species comm_member;	
+			species comm_member;
+		}
+		
+		display chart2 type: java2D{	
+			chart "Population of Trees in ITP Plots" type: series
+			{
+				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+				loop i over: investor{
+            		data i.name value: ((i.my_plots = nil)?0:length(one_of(i.my_plots).plot_trees));
+            	}
+			}
 		}		
 	}	
 }
