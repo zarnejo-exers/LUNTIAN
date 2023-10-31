@@ -19,6 +19,11 @@ global{
 	int PLANTING_LABOUR <- 6;
 	int LABOUR_PCAPACITY <- 5;	//number of trees that the laborer can plant/manage
 	
+	//fixed rate
+	float NURSERY_LCOST <- 100.0;
+	float HARVEST_LCOST <- 50.0;
+	float PLANTING_LCOST <- 25.0;
+	
 	int plot_size <- 1 update: plot_size;
 	int laborer_count <- 2 update: laborer_count;
 	int nlaborer_count<- 1 update: nlaborer_count;
@@ -82,8 +87,8 @@ global{
     
     //harvest on the plot of investor i
     bool harvestOnInvestment (investor i){
-		list<labour> available_labors <- labour where each.is_itp_labour;	//get all itp labours
-		list<comm_member> chosen_member <- comm_member where (each.state = "vacant");
+		list<labour> available_labors <- labour where each.is_harvest_labour;	//get all harvest labours
+		list<comm_member> chosen_member <- comm_member where (each.state = "cooperating_available");
 		
 		//if no available harvester, hire!
 		if(length(available_labors) = 0 and length(chosen_member) > 0){
@@ -91,6 +96,7 @@ global{
 			create labour{
 				man_months <- [HARVEST_LABOUR, 0, 0];
 				labor_type <- COMM_LABOUR; 
+				is_harvest_labour <- true;
 				cm.instance_labour <- self;
 			}
 			labour chosen_labour <- cm.instance_labour;
@@ -174,7 +180,15 @@ species university_si{
         determine the cost needed to plant new trees (how many trees are to be planted)
 	 */
 	 
-	 
+	//everytime a community laborer completes a task, the university pays them
+	/*	float total_earning <- 0.0;		//total earning for the entire simulation
+	 *  float current_earning <- 0.0; //earning of the community at the current commitment
+	 */ 
+	action payLaborer(labour cl){
+		//serviced * labor_cost
+		
+		//cl.current_earning <- cl.current_earning + (cl.man_months[1]*)
+	}
 
 	action updateInvestors{
 		current_investors <- investor where !empty(each.my_plots);
@@ -271,7 +285,6 @@ species university_si{
 		
 		ask assigned_laborers{
 			current_plot <- chosen_plot;
-			self.is_itp_labour <- true;
 			self.location <- chosen_plot.location;
 			do replantAlert(chosen_plot);
 		}
@@ -306,7 +319,7 @@ species university_si{
 	list<labour> assignLaborerToPlot(plot the_plot){
 		//check if there are vacant, non-nursery laborers
 		
-		list<labour> itp_laborers <- labour where (!each.is_nursery_labour and empty(each.my_plots));
+		list<labour> itp_laborers <- labour where (each.is_planting_labour and empty(each.my_plots));	//get planting labours
 		list<labour> assigned_laborers <- [];
 		
 		if(!empty(itp_laborers)){	//there's vacant laborer
@@ -325,6 +338,8 @@ species university_si{
 				assigned_laborers <<+updateAssignment(the_plot, itp_laborers);
 				ask assigned_laborers{
 					is_nursery_labour <- false;
+					is_planting_labour <- true;
+					man_months <- [PLANTING_LABOUR, 0, 0];
 				}
 				
 			}
@@ -342,6 +357,7 @@ species university_si{
 						man_months <- [PLANTING_LABOUR, 0, 0];
 						labor_type <- COMM_LABOUR;
 						avail_labor[i].instance_labour <- self;
+						is_planting_labour <- true;
 					}	
 				}
 				

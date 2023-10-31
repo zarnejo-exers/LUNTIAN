@@ -22,12 +22,13 @@ species labour{
 	list<int> man_months <- [0,0,0];	//assigned, serviced, lapsed 
 	int carrying_capacity <- LABOUR_PCAPACITY;	//total number of wildlings that a laborer can carry to the nursery and to the ITP
 	bool is_nursery_labour <- false;
-	bool is_itp_labour <- false;
+	bool is_harvest_labour <- false;
+	bool is_planting_labour <- false;
 	
 	aspect default{
 		if(is_nursery_labour){
 			draw triangle(length(my_trees)+50) color: #orange rotate: 90.0;	
-		}else if(is_itp_labour){
+		}else if(is_harvest_labour or is_planting_labour){
 			draw triangle(length(my_trees)+50) color: #violet rotate: 90.0;
 		}
 		

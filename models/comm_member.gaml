@@ -22,6 +22,8 @@ global{
 species comm_member control: fsm{
 	int lapsed_time <- waiting_allowance;
 	labour instance_labour; 
+	float total_earning <- 0.0;		//total earning for the entire simulation
+	float current_earning <- 0.0; //earning of the community at the current commitment
 	
 	reflex tickService when: instance_labour != nil{	//monitor lapsed time
 		instance_labour.man_months[2] <- instance_labour.man_months[2]+1;
@@ -49,6 +51,7 @@ species comm_member control: fsm{
 	} 
 	
 	//wage here
+	//kill instance_labour after
 	state cooperating { 
 	 
 	    enter {write 'Enter in: '+state;} 
