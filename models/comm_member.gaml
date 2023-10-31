@@ -12,6 +12,7 @@ import "university_si.gaml"
 /* Insert your model definition here */
 global{
 	int member_count <- 1 update: member_count;
+	int waiting_allowance <- 12 update: waiting_allowance;
 	
 	init{
 		create comm_member number: member_count; 
@@ -19,21 +20,23 @@ global{
 }
 
 species comm_member control: fsm{
-	
+	int lapsed_time <- waiting_allowance;
 	
 	state cooperating_available initial: true { 
 	    enter {  
 	        write "Enter in: " + state; 
 	    } 
 	 
-	    write "Current state: "+state; 
-	 
-	    transition to: cooperating when: (cycle > 2) { 
-	        write "transition: cooperating_available -> cooperating"; 
+	 	lapsed_time <- lapsed_time - 1;
+	    write "Current state: "+state+" Remaining time: "+lapsed_time; 
+	 	
+	    transition to: competing when: (lapsed_time = 0) { 
+	        write "transition: cooperating_available -> competing"; 
 	    } 
 	    
 	 
 	    exit { 
+	    	lapsed_time <- waiting_allowance;
 	        write "EXIT from "+state; 
 	    } 
 	} 

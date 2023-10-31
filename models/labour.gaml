@@ -12,6 +12,10 @@ import "university_si.gaml"
 /* Insert your model definition here */
 
 species labour{
+	int OWN_LABOUR <- 0; 
+	int COMM_LABOUR <- 1;
+	int labor_type; 	//important when hiring community labor 
+	
 	list<plot> my_plots <- [];
 	plot current_plot;
 	list<trees> my_trees <- [];		//list of wildlings that the laborer currently carries

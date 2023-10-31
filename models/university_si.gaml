@@ -36,7 +36,9 @@ global{
 	bool start_harvest <- false;
 	init{
 		create market;
-		create labour number: laborer_count;
+		create labour number: laborer_count{
+			labor_type <- OWN_LABOUR; 
+		}
 		create university_si;
 		
 		itp_type <- (plant_native and plant_exotic)?2:(plant_native?0:1);
@@ -317,7 +319,6 @@ species university_si{
 				write "Hire new laborer";
 				//depending on remaining available_seeds, create n new laborer
 				int new_laborer_needed <- int(length(available_seeds)/LABOUR_PCAPACITY);
-				create labour number: new_laborer_needed;
 				itp_laborers <- labour where empty(each.my_plots);
 				assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
 			}
