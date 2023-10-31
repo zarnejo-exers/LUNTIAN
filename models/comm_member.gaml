@@ -21,6 +21,7 @@ global{
 
 species comm_member control: fsm{
 	int lapsed_time <- waiting_allowance;
+	labour instance_labour; 
 	
 	state cooperating_available initial: true { 
 	    enter {  
@@ -33,7 +34,9 @@ species comm_member control: fsm{
 	    transition to: competing when: (lapsed_time = 0) { 
 	        write "transition: cooperating_available -> competing"; 
 	    } 
-	    
+	    transition to: cooperating when: (instance_labour != nil){
+	    	write "transition: cooperating_variable -> cooperating";
+	    }
 	 
 	    exit { 
 	    	lapsed_time <- waiting_allowance;
@@ -41,19 +44,24 @@ species comm_member control: fsm{
 	    } 
 	} 
 	
+	//wage here
 	state cooperating { 
 	 
 	    enter {write 'Enter in: '+state;} 
 	 
 	    write "Current state: "+state;
 	    
-	    transition to: competing when: (cycle > 2) { 
+	    transition to: competing when: (cycle = 100) { 
 	        write "transition: cooperating -> competing"; 
 	    }  
 	 
-	    exit {write 'EXIT from '+state;} 
+	    exit {
+	    	//kill instance_labour after
+	    	write 'EXIT from '+state;
+	    } 
 	}
 	
+	//observe competing community members here
 	state competing { 
 	 
 	    enter {write 'Enter in: '+state;} 

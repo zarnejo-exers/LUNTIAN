@@ -70,9 +70,8 @@ global{
 	reflex stopSimulation when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
     	bool to_pause <- true;
     	loop i over: investor where (each.my_plots != nil){
-    		if(i.my_plots.rotation_years =0){
-    			do harvestOnInvestment(i);
-    			i.done_harvesting <- true;
+    		if(i.my_plots.rotation_years <=0){
+    			i.done_harvesting <- harvestOnInvestment(i);
     		}else{
     			to_pause <- false;
     		}
@@ -80,26 +79,38 @@ global{
     }
     
     //harvest on the plot of investor i
-    action harvestOnInvestment (investor i){
+    bool harvestOnInvestment (investor i){
 		list<labour> available_labors <- labour where each.is_itp_labour;	//get all itp labours
-    	write "Investor: "+i.name;
-    	write "Trees in ITP plot: "+(i.my_plots.plot_trees accumulate each.dbh);
-    	labour chosen_labour <- one_of(available_labors closest_to i.my_plots);
-    	list<trees> selected_trees <- selectiveHarvestITP(chosen_labour, i.my_plots, i);
-    	ask university_si{
-    		write "Selected DBH: "+(selected_trees accumulate each.dbh);
-    		write "Selected TH: "+(selected_trees accumulate each.th);
-    		put selected_trees at: i in: harvested_trees_per_investor;	//puts the selected trees on the investor list
-    		write "In htpi: "+harvested_trees_per_investor[i];
-    		i.harvested_trees <- length(harvested_trees_per_investor[i]);
-    		
-    		float total_profit <- 0.0;
-    		loop s over: selected_trees{
-    			//use specific price per type
-    			total_profit <- total_profit + (((s.type = 1)?exotic_price_per_volume:native_price_per_volume) * (#pi * (s.dbh/2)^2 * s.th) ); 
-    		}
-    		i.recent_profit <- total_profit;
-    	}    	
+		list<comm_member> chosen_member <- comm_member where (each.state = "vacant");
+		
+		//if no available harvester, hire!
+		if(length(available_labors) = 0 and length(chosen_member) > 0){
+			comm_member cm <- first(chosen_member);	//use the first member 
+			create labour{
+				labor_type <- COMM_LABOUR; 
+				cm.instance_labour <- self;
+			}
+			labour chosen_labour <- cm.instance_labour;
+			list<trees> selected_trees <- selectiveHarvestITP(chosen_labour, i.my_plots, i);
+	    	ask university_si{
+	    		write "Selected DBH: "+(selected_trees accumulate each.dbh);
+	    		write "Selected TH: "+(selected_trees accumulate each.th);
+	    		put selected_trees at: i in: harvested_trees_per_investor;	//puts the selected trees on the investor list
+	    		write "In htpi: "+harvested_trees_per_investor[i];
+	    		i.harvested_trees <- length(harvested_trees_per_investor[i]);
+	    		
+	    		float total_profit <- 0.0;
+	    		loop s over: selected_trees{
+	    			//use specific price per type
+	    			total_profit <- total_profit + (((s.type = 1)?exotic_price_per_volume:native_price_per_volume) * (#pi * (s.dbh/2)^2 * s.th) ); 
+	    		}
+	    		i.recent_profit <- total_profit;
+	    	}
+	    	return true;  
+		}else{
+			return false;
+		}
+    	   	
     }
     
     	//harvests upto capacity
@@ -279,7 +290,7 @@ species university_si{
 		}		
 	}
 
-	/*
+	/* ITP_Planter
 	 * the_plot: needs trees_to_be_planted in order to convert the plot into an ITP implementing selective logging
 	 * Assign laborer to ITP plot: 
 	 * 	Case 1: There's unassigned laborer
@@ -317,8 +328,19 @@ species university_si{
 			
 			if(!empty(available_seeds)){
 				write "Hire new laborer";
-				//depending on remaining available_seeds, create n new laborer
+				list<comm_member> avail_labor <- comm_member where (each.state = "cooperating_available");
+				
 				int new_laborer_needed <- int(length(available_seeds)/LABOUR_PCAPACITY);
+				if(length(avail_labor) < new_laborer_needed){	//depending on remaining available_seeds, create n new laborer upto # of available community laborer
+					new_laborer_needed <- length(avail_labor)-1;
+				}
+				loop i from: 0 to: new_laborer_needed{
+					create labour{
+						labor_type <- COMM_LABOUR;
+						avail_labor[i].instance_labour <- self;
+					}	
+				}
+				
 				itp_laborers <- labour where empty(each.my_plots);
 				assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
 			}
