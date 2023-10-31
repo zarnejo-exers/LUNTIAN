@@ -12,25 +12,18 @@ import "university_si.gaml"
 /* Insert your model definition here */
 
 species labour{
-	int OWN_LABOUR <- 0;	
-	int COMM_LABOUR <- 1;
-	int labor_type; 
-	
 	list<plot> my_plots <- [];
 	plot current_plot;
 	list<trees> my_trees <- [];		//list of wildlings that the laborer currently carries
-	list<int> man_months <- [50,50,50];	//assigned, serviced, lapsed 
+	list<int> man_months <- [0,0];	//assigned, serviced 
 	int carrying_capacity <- LABOUR_PCAPACITY;	//total number of wildlings that a laborer can carry to the nursery and to the ITP
-	
-	bool is_vacant <- false;
 	bool is_nursery_labour <- false;
-	bool is_itp_planting <- false;
-	bool is_itp_harvesting <- false;
+	bool is_itp_labour <- false;
 	
 	aspect default{
 		if(is_nursery_labour){
 			draw triangle(length(my_trees)+50) color: #orange rotate: 90.0;	
-		}else if(!is_vacant){
+		}else if(is_itp_labour){
 			draw triangle(length(my_trees)+50) color: #violet rotate: 90.0;
 		}
 		
@@ -72,7 +65,6 @@ species labour{
 				location <- nursery.location;		//go back to the nursery and plant the trees
 				current_plot <- nursery;
 				do replantAlert(nursery);	
-				man_months[1] <- man_months[1]+1;	//serviced months, increment
 			}
 		}//else, do nothing; meaning, just wait until there are available plots
 	}
@@ -95,6 +87,7 @@ species labour{
 					self.location <- prev_location; 	//return the plant from where it's from
 				}
 			}else{	//plant the tree
+				write "Type: "+to_plant.type;
 				to_plant.is_new_tree <- false;
 				remove to_plant from: to_plant.my_plot.plot_trees;
 				to_plant.my_plot <- new_plot;	//update plot of tree

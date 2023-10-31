@@ -10,13 +10,12 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	
 	/** Parameters can be used to input values to the model **/
 	// parameter "First parameter" var: an_attribute_of_the_model <- an_expression;
+	parameter "Total count of community members" category: "Members" var: member_count min: 0 step: 1;
 	parameter "Total count of investors" category: "Investors" var: investor_count min: 0 step: 1;
+
 	parameter "Size of investable plot" category: "Investors" var: plot_size min: 1 step: 1;
 	parameter "ITP native" category: "Investors" var: plant_native;	//sets what whether to plant native trees
 	parameter "ITP exotic" category: "Investors" var: plant_exotic;	//sets what whether to plant exotic trees
-	
-	parameter "Total count of community members" category: "Community Members" var: member_count min: 0 step: 1;
-	parameter "(Hiring) Waiting Allowance" category: "Community Members" var: waiting_allowance min: 0 step: 1;
 	
 	output {
 		layout #split;
