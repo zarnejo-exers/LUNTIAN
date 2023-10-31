@@ -25,6 +25,8 @@ species labour{
 	bool is_harvest_labour <- false;
 	bool is_planting_labour <- false;
 	
+	comm_member com_identity;
+	
 	aspect default{
 		if(is_nursery_labour){
 			draw triangle(length(my_trees)+50) color: #orange rotate: 90.0;	

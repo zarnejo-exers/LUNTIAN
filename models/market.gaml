@@ -18,5 +18,7 @@ species market{
 	float getBuyingPrice(int t_type){
 		return ((t_type = 1)?bprice_of_exotic:bprice_of_native);
 	}
+	
+	
 }
 

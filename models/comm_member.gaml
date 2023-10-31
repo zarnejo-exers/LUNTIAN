@@ -13,6 +13,9 @@ import "university_si.gaml"
 global{
 	int member_count <- 1 update: member_count;
 	int waiting_allowance <- 12 update: waiting_allowance;
+	float max_harvest_pay <- HARVEST_LABOUR * HARVEST_LCOST;
+	float max_planting_pay <- PLANTING_LABOUR * PLANTING_LCOST;
+	float max_nursery_pay <- NURSERY_LABOUR * NURSERY_LCOST;
 	
 	init{
 		create comm_member number: member_count; 
@@ -29,6 +32,7 @@ species comm_member control: fsm{
 		instance_labour.man_months[2] <- instance_labour.man_months[2]+1;
 	}
 	
+	//waiting to be hired
 	state cooperating_available initial: true { 
 	    enter {  
 	        write "Enter in: " + state; 
@@ -58,12 +62,30 @@ species comm_member control: fsm{
 	 
 	    write "Current state: "+state;
 	    
-	    transition to: competing when: (cycle = 100) { 
-	        write "transition: cooperating -> competing"; 
+	    bool satisfied; 
+	    if(instance_labour.is_harvest_labour) {
+	    	satisfied <- (current_earning >= max_harvest_pay)?true: false;
+	    }else if(instance_labour.is_planting_labour) {
+	    	satisfied <- (current_earning >= max_planting_pay)?true: false;
+	    }else{
+	    	satisfied <- (current_earning >= max_nursery_pay)?true: false;
+	    }
+	    
+	    transition to: competing when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and !satisfied) { 
+	        write "Service Ended... Transition: cooperating -> competing"; 
+	    }
+	    
+	    transition to: cooperating_available when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and satisfied) { 
+	        write "Service Ended... Transition: cooperating -> cooperating_available"; 
 	    }  
 	 
 	    exit {
-	    	//kill instance_labour after
+	    	total_earning <- total_earning + current_earning;
+	    	current_earning <- 0.0;
+	    	ask instance_labour{
+	    		do die;
+	    	}
+	    	instance_labour <- nil;
 	    	write 'EXIT from '+state;
 	    } 
 	}
