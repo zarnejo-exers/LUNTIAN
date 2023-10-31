@@ -19,7 +19,7 @@ species labour{
 	list<plot> my_plots <- [];
 	plot current_plot;
 	list<trees> my_trees <- [];		//list of wildlings that the laborer currently carries
-	list<int> man_months <- [0,0];	//assigned, serviced 
+	list<int> man_months <- [0,0,0];	//assigned, serviced, lapsed 
 	int carrying_capacity <- LABOUR_PCAPACITY;	//total number of wildlings that a laborer can carry to the nursery and to the ITP
 	bool is_nursery_labour <- false;
 	bool is_itp_labour <- false;
@@ -102,6 +102,7 @@ species labour{
 			}
 			my_trees_length <- my_trees_length - 1;
 		}
+		man_months[1] <- man_months[1]+1;
 	}
 	
 	//laborer gets as much tree as it can get 

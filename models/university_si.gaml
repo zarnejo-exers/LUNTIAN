@@ -15,10 +15,12 @@ import "comm_member.gaml"
 /* Insert your model definition here */
 global{
 	int NURSERY_LABOUR <- 12; //labor required per nursery, constant
+	int HARVEST_LABOUR <- 1;
+	int PLANTING_LABOUR <- 6;
 	int LABOUR_PCAPACITY <- 5;	//number of trees that the laborer can plant/manage
 	
 	int plot_size <- 1 update: plot_size;
-	int laborer_count <- 5 update: laborer_count;
+	int laborer_count <- 2 update: laborer_count;
 	int nlaborer_count<- 1 update: nlaborer_count;
 	float planting_space <- 1.0 update: planting_space; 
 	int planting_age <- 1 update: planting_age;
@@ -87,6 +89,7 @@ global{
 		if(length(available_labors) = 0 and length(chosen_member) > 0){
 			comm_member cm <- first(chosen_member);	//use the first member 
 			create labour{
+				man_months <- [HARVEST_LABOUR, 0, 0];
 				labor_type <- COMM_LABOUR; 
 				cm.instance_labour <- self;
 			}
@@ -332,10 +335,11 @@ species university_si{
 				
 				int new_laborer_needed <- int(length(available_seeds)/LABOUR_PCAPACITY);
 				if(length(avail_labor) < new_laborer_needed){	//depending on remaining available_seeds, create n new laborer upto # of available community laborer
-					new_laborer_needed <- length(avail_labor)-1;
+					new_laborer_needed <- length(avail_labor);
 				}
-				loop i from: 0 to: new_laborer_needed{
+				loop i from: 0 to: new_laborer_needed-1{
 					create labour{
+						man_months <- [PLANTING_LABOUR, 0, 0];
 						labor_type <- COMM_LABOUR;
 						avail_labor[i].instance_labour <- self;
 					}	
@@ -404,7 +408,7 @@ species university_si{
 				//update the status of the laborer
 				ask free_laborers[an]{
 					add to_assign_nurseries[an] to: self.my_plots;
-					self.man_months <- [NURSERY_LABOUR, 0];
+					self.man_months <- [NURSERY_LABOUR, 0, 0];
 					self.is_nursery_labour <- true;
 				}
 				add free_laborers[an] to: to_assign_nurseries[an].my_laborers; 
@@ -431,7 +435,7 @@ species university_si{
 					//update the status of the laborer	
 					ask laborers{
 						add an to: self.my_plots;
-						self.man_months <- [NURSERY_LABOUR, 0];
+						self.man_months <- [NURSERY_LABOUR, 0, 0];
 						self.is_nursery_labour <- true;
 					}
 					remaining_laborers >>- laborers;	//remove assigned laborers					
@@ -459,7 +463,7 @@ species university_si{
 					break;
 				}
 				self.my_plots <<+ to_assign_nurseries[0::no_nurseries];
-				self.man_months <- [NURSERY_LABOUR, 0];
+				self.man_months <- [NURSERY_LABOUR, 0, 0];
 				self.is_nursery_labour <- true;
 				to_assign_nurseries >>- to_assign_nurseries[0::no_nurseries];
 			}
@@ -468,7 +472,7 @@ species university_si{
 				labour chosen_laborer <- one_of(free_laborers);
 				ask chosen_laborer{
 					self.my_plots <<+ to_assign_nurseries;
-					self.man_months <- [NURSERY_LABOUR, 0];
+					self.man_months <- [NURSERY_LABOUR, 0, 0];
 					self.is_nursery_labour <- true;
 				}
 			}
@@ -504,6 +508,7 @@ species university_si{
 		loop while: length(new_trees) > 0{
 			if(!empty(closest_laborers)){	//laborer is on the same plot, get the new trees
 				labour cl <- one_of(closest_laborers);
+				cl.man_months[1] <- cl.man_months[1] + 1;
 				new_trees <- cl.getTrees(new_trees);
 				remove cl from: closest_laborers;
 			}else{ break; }	
@@ -527,6 +532,7 @@ species university_si{
 						current_plot <- closest_nursery;
 						//write "In university, planting at: "+closest_nursery.name;
 						do replantAlert(closest_nursery);
+						man_months[1] <- man_months[1]+1; //increment service
 					}
 				}
 			}

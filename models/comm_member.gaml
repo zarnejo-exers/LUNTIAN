@@ -23,6 +23,10 @@ species comm_member control: fsm{
 	int lapsed_time <- waiting_allowance;
 	labour instance_labour; 
 	
+	reflex tickService when: instance_labour != nil{	//monitor lapsed time
+		instance_labour.man_months[2] <- instance_labour.man_months[2]+1;
+	}
+	
 	state cooperating_available initial: true { 
 	    enter {  
 	        write "Enter in: " + state; 
