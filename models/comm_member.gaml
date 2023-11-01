@@ -32,6 +32,14 @@ species comm_member control: fsm{
 		instance_labour.man_months[2] <- instance_labour.man_months[2]+1;
 	}
 	
+	//get the total number of comm_member with current earning greater than own current earning
+	//if there exist even 1, return true (meaning, someone has better earning than self)
+	bool hasCompetingEarner{
+		int number_of_better_earner <- length(comm_member where (each.state = "competing" and each.current_earning > self.current_earning));
+		
+		return (number_of_better_earner > 0);
+	}
+	
 	//waiting to be hired
 	state cooperating_available initial: true { 
 	    enter {  
@@ -63,13 +71,17 @@ species comm_member control: fsm{
 	    write "Current state: "+state;
 	    
 	    bool satisfied; 
-	    if(instance_labour.is_harvest_labour) {
-	    	satisfied <- (current_earning >= max_harvest_pay)?true: false;
-	    }else if(instance_labour.is_planting_labour) {
-	    	satisfied <- (current_earning >= max_planting_pay)?true: false;
-	    }else{
-	    	satisfied <- (current_earning >= max_nursery_pay)?true: false;
-	    }
+	    	
+	    if(instance_labour.is_harvest_labour) {		
+	    	//not satisfied when earning is less than max earn or when another competing community member has better earning 
+	    	satisfied <- (current_earning < max_harvest_pay or hasCompetingEarner())?false: true;
+	    }else{ //satisifaction based on wage only
+	    	if(instance_labour.is_planting_labour) {
+	    		satisfied <- (current_earning >= (0.8*max_planting_pay))?true: false;
+	    	}else{
+	    		satisfied <- (current_earning >= (0.8*max_nursery_pay))?true: false;
+	    	}	
+	    } 
 	    
 	    transition to: competing when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and !satisfied) { 
 	        write "Service Ended... Transition: cooperating -> competing"; 
@@ -91,6 +103,7 @@ species comm_member control: fsm{
 	}
 	
 	//observe competing community members here
+	//if their gain is more than 
 	state competing { 
 	 
 	    enter {write 'Enter in: '+state;} 

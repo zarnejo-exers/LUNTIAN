@@ -537,13 +537,17 @@ species plot{
 	
 	aspect si{
 		if(is_nursery){
-			draw self.shape color: #gold;
+			draw self.shape color: #yellow;
 		}else if(is_investable){
-			draw self.shape color: #green;
+			draw self.shape color: #lightgreen;
 		}else if(is_invested){
-			draw self.shape color: #blue;
+			draw self.shape color: #lightblue;
 		}else{
-			draw self.shape color: #black;
+			if(length(plot_trees) > 0){
+				draw self.shape color: #darkgreen;
+			}else{
+				draw self.shape color: #gray;
+			}
 		}
 	}
 	

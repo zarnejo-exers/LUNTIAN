@@ -24,6 +24,7 @@ species labour{
 	bool is_nursery_labour <- false;
 	bool is_harvest_labour <- false;
 	bool is_planting_labour <- false;
+	 
 	
 	comm_member com_identity;
 	
@@ -34,6 +35,14 @@ species labour{
 			draw triangle(length(my_trees)+50) color: #violet rotate: 90.0;
 		}
 		
+	}
+	
+	aspect si{
+		if(labor_type = OWN_LABOUR){
+			draw circle(20, location) color: #red;	//if own labor, red; else, pink	
+		}else if(labor_type = COMM_LABOUR){
+			draw circle(20, location) color: #violet;	//if own labor, red; else, pink
+		}
 	}
 
 	//when tree dies, it is removed from the plot but the laborer isn't aware yet that it has died	
@@ -105,6 +114,7 @@ species labour{
 			}
 			my_trees_length <- my_trees_length - 1;
 		}
+		location <- new_plot.location;
 		man_months[1] <- man_months[1]+1;
 	}
 	
