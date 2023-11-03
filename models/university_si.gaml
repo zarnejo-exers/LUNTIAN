@@ -74,7 +74,7 @@ global{
 	
 	//start checking once all investor already have investments
 	//stop simulation when the rotation years of all investor is finished
-	reflex stopSimulation when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
+	reflex waitForHarvest when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
     	bool to_pause <- true;
     	loop i over: investor where (each.my_plots != nil){
     		if(i.my_plots.rotation_years <=0){
@@ -88,19 +88,21 @@ global{
     //harvest on the plot of investor i
     bool harvestOnInvestment (investor i){
     	list<labour> available_harvesters <- labour where (each.labor_type = each.OWN_LABOUR and !each.is_nursery_labour and !each.is_planting_labour);	//get own laborers that are not nursery|planting labours
-		list<comm_member> chosen_member <- comm_member where (each.state = "cooperating_available");
+		list<comm_member> chosen_member <- comm_member where (each.state = "cooperating_available" and each.instance_labour = nil);
 		labour chosen_labour; 
 		
 		if(length(available_harvesters) > 0 or length(chosen_member) > 0){
 			if(length(available_harvesters) > 0){	//hire own laborers that are not nursery
-				chosen_labour <- first(available_harvesters);	
+				chosen_labour <- first(shuffle(available_harvesters));	
 				if(!chosen_labour.is_harvest_labour){	//if it is not yet a harvest laborer, set it 
 					chosen_labour.man_months <- [HARVEST_LABOUR, 0, 0]; 
 					chosen_labour.is_harvest_labour <- true;
 				}			
 			}
 			else{	//hire from community
-				comm_member cm <- first(chosen_member);	//use the first member 
+				comm_member cm <- first(shuffle(chosen_member));	//use the first member 
+				write "inside hiring: ";
+				write "comm member "+cm.name+" state before: "+cm.state;
 				create labour{
 					man_months <- [HARVEST_LABOUR, 0, 0];
 					labor_type <- COMM_LABOUR; 
@@ -109,6 +111,7 @@ global{
 					cm.instance_labour <- self;
 				}
 				chosen_labour <- cm.instance_labour;
+				write "comm member "+cm.name+" state after: "+cm.state+" labor name: "+cm.instance_labour.name;
 			}
 			
 			list<trees> selected_trees <- selectiveHarvestITP(chosen_labour, i.my_plots, i);
