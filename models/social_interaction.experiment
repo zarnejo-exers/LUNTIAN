@@ -23,9 +23,9 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	
 		display interaction{
 			species plot aspect: si;
-			species investor;
+			species investor visible: false;
 			species labour aspect: si;
-			species comm_member;
+			species comm_member visible: false;
 		}
 		
 		display chart2 type: java2D{	
