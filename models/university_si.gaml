@@ -375,7 +375,7 @@ species university_si{
 			
 			if(!empty(available_seeds)){
 				write "Hire new laborer";
-				list<comm_member> avail_labor <- comm_member where (each.state = "cooperating_available");
+				list<comm_member> avail_labor <- shuffle(comm_member where (each.state = "cooperating_available" and each.instance_labour = nil));
 				
 				int new_laborer_needed <- int(length(available_seeds)/LABOUR_PCAPACITY);
 				if(length(avail_labor) < new_laborer_needed){	//depending on remaining available_seeds, create n new laborer upto # of available community laborer
