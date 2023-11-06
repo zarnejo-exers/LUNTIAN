@@ -138,7 +138,7 @@ global{
 		}		 	
     }
     
-    	//harvests upto capacity
+    //harvests upto capacity
 	list<trees> selectiveHarvestITP(labour cl, plot plot_to_harvest, investor inv){
 		list<trees> trees_to_harvest <- [];
 		

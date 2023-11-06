@@ -151,6 +151,7 @@ global {
 				has_road <- true;
 			}
 		}
+		
 		ask plot{
 			do compute_neighbors;
 			ask plot_trees{
@@ -508,7 +509,6 @@ species plot{
 	bool has_road <- false;
 	bool is_candidate_nursery <- false; //true if there exist a mother tree in one of its trees;
 	int rotation_years <- 0; 	//only set once an investor decided to invest on a plot
-	
 	bool is_invested <- false;
 	
 	action compute_neighbors {
