@@ -31,13 +31,14 @@ global{
 	int planting_age <- 1 update: planting_age;
 	int harvesting_age_exotic <- 1 update: harvesting_age_exotic;	//temp
 	int harvesting_age_native <- 1 update: harvesting_age_native;	//actual 40
-	int nursery_count <- 2 update: nursery_count;
+	int nursery_count <- 5 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
 	float dbh_policy <- 50.0 update: dbh_policy; 
 	bool plant_native <- true update: plant_native;
 	bool plant_exotic <- false update: plant_exotic;
 	int itp_type; //0 ->plant native, 1->plant exotic, 2->plant mix
 	map<plot, list<investor>> plot_investor; 
+	bool hiring_prospect <- false;
 	
 	bool assignedNurseries <- false;
 	bool start_harvest <- false;
@@ -75,12 +76,9 @@ global{
 	//start checking once all investor already have investments
 	//stop simulation when the rotation years of all investor is finished
 	reflex waitForHarvest when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
-    	bool to_pause <- true;
     	loop i over: investor where (each.my_plots != nil){
     		if(i.my_plots.rotation_years <=0){
     			i.done_harvesting <- harvestOnInvestment(i);
-    		}else{
-    			to_pause <- false;
     		}
     	}
     }
@@ -88,10 +86,10 @@ global{
     //harvest on the plot of investor i
     bool harvestOnInvestment (investor i){
     	list<labour> available_harvesters <- labour where (each.labor_type = each.OWN_LABOUR and !each.is_nursery_labour and !each.is_planting_labour);	//get own laborers that are not nursery|planting labours
-		list<comm_member> chosen_member <- comm_member where (each.state = "cooperating_available" and each.instance_labour = nil);
+		list<comm_member> avail_member <- comm_member where (each.state = "cooperating_available" and each.instance_labour = nil);
 		labour chosen_labour; 
 		
-		if(length(available_harvesters) > 0 or length(chosen_member) > 0){
+		if(length(available_harvesters) > 0 or length(avail_member) > 0){
 			if(length(available_harvesters) > 0){	//hire own laborers that are not nursery
 				chosen_labour <- first(shuffle(available_harvesters));	
 				if(!chosen_labour.is_harvest_labour){	//if it is not yet a harvest laborer, set it 
@@ -100,18 +98,23 @@ global{
 				}			
 			}
 			else{	//hire from community
-				comm_member cm <- first(shuffle(chosen_member));	//use the first member 
-				write "inside hiring: ";
-				write "comm member "+cm.name+" state before: "+cm.state;
-				create labour{
-					man_months <- [HARVEST_LABOUR, 0, 0];
-					labor_type <- COMM_LABOUR; 
-					is_harvest_labour <- true;
-					com_identity <- cm;
-					cm.instance_labour <- self;
+				if(avail_member != nil){	//there exist an available member 
+					comm_member cm <- first(shuffle(avail_member));	//use the first member 
+					write "inside hiring: ";
+					write "comm member "+cm.name+" state before: "+cm.state;
+					create labour{
+						man_months <- [HARVEST_LABOUR, 0, 0];
+						labor_type <- COMM_LABOUR; 
+						is_harvest_labour <- true;
+						com_identity <- cm;
+						cm.instance_labour <- self;
+					}
+					chosen_labour <- cm.instance_labour;
+					write "comm member "+cm.name+" state after: "+cm.state+" labor name: "+cm.instance_labour.name;
+					hiring_prospect <- false;
+				}else{	//no available member
+					hiring_prospect <- true;
 				}
-				chosen_labour <- cm.instance_labour;
-				write "comm member "+cm.name+" state after: "+cm.state+" labor name: "+cm.instance_labour.name;
 			}
 			
 			list<trees> selected_trees <- selectiveHarvestITP(chosen_labour, i.my_plots, i);
@@ -330,7 +333,7 @@ species university_si{
 		
 		if(itp_type = 0){	//if itp type is native, or it is a mix itp and the youngest is native
 			the_plot.rotation_years <- (harvesting_age_native < mean_age_tree)?harvesting_age_native:int(harvesting_age_native - mean_age_tree);
-		}else if(itp_type = 1){
+		}else{
 			the_plot.rotation_years <- (harvesting_age_exotic < mean_age_tree)?harvesting_age_exotic:int(harvesting_age_exotic - mean_age_tree);
 		}		
 	}
@@ -378,8 +381,11 @@ species university_si{
 				list<comm_member> avail_labor <- shuffle(comm_member where (each.state = "cooperating_available" and each.instance_labour = nil));
 				
 				int new_laborer_needed <- int(length(available_seeds)/LABOUR_PCAPACITY);
-				if(length(avail_labor) < new_laborer_needed){	//depending on remaining available_seeds, create n new laborer upto # of available community laborer
+				if(length(avail_labor) <= new_laborer_needed){	//depending on remaining available_seeds, create n new laborer upto # of available community laborer
 					new_laborer_needed <- length(avail_labor);
+					hiring_prospect <- false;
+				}else{	//there are mo laborer needed that available
+					hiring_prospect <- true;
 				}
 				itp_laborers <- [];
 				if(new_laborer_needed > 0){
@@ -574,7 +580,7 @@ species university_si{
 		if(length(new_trees) > 0){
 			plot closest_nursery <- nurseries_with_space closest_to source_plot;	//get closest nursery to plot with new tree
 			list<labour> available_nlaborers <- closest_nursery.my_laborers where (each.current_plot = closest_nursery);
-			if(!empty(available_nlaborers)){	//if there are more trees to be allocated, check if there are nursery laborers that is in the nursery and move that laborer to the plot where the new tree is spotted
+			if(available_nlaborers != nil){	//if there are more trees to be allocated, check if there are nursery laborers that is in the nursery and move that laborer to the plot where the new tree is spotted
 				loop an over: available_nlaborers{
 					an.current_plot <- source_plot;							//go to the source plot
 					an.location <- source_plot.location;					

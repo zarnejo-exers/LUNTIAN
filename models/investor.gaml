@@ -37,7 +37,7 @@ species investor control: fsm{
 	float investment <- 0.0;
 	float promised_profit; 
 	int harvested_trees<-0; 
-	bool done_harvesting;
+	bool done_harvesting <- false;
 	
 	int rt;	//risk type
 	
@@ -166,6 +166,7 @@ species investor control: fsm{
 	        my_plots <- nil;
 	    	total_profit <- total_profit + recent_profit;	//record final profit
 	    	recent_profit <- 0.0;
+	    	harvest_monitor <- 0;
 	    	write 'EXIT from '+state;
 	    } 
 	}
