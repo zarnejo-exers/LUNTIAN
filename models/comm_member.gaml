@@ -214,9 +214,9 @@ species comm_member control: fsm{
 			}	
 		}
 		current_earning <- computeEarning(harvested_trees);	//compute earning of community member
+		total_earning <- total_earning + current_earning;
  	 
 	    exit {
-	    	total_earning <- total_earning + current_earning;
 	    	if(instance_labour != nil){
 	    		ask instance_labour{ do die; }
 	    		instance_labour <- nil;

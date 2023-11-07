@@ -28,12 +28,23 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 			species comm_member visible: false;
 		}
 		
+//		display chart2 type: java2D{	
+//			chart "Population of Trees in ITP Plots" type: series
+//			{
+//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+//				loop i over: investor{
+//            		data i.name value: ((i.my_plots = nil)?0:length(one_of(i.my_plots).plot_trees));
+//            	}
+//			}
+//		}
+
 		display chart2 type: java2D{	
-			chart "Population of Trees in ITP Plots" type: series
+			chart "Community member according to state" type: series
 			{
 				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				loop i over: investor{
-            		data i.name value: ((i.my_plots = nil)?0:length(one_of(i.my_plots).plot_trees));
+				list<string> states <- ["cooperating_available", "cooperating", "competing"];
+				loop i over: states{
+            		data i value: count(comm_member, each.state = i);
             	}
 			}
 		}
