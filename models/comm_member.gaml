@@ -104,12 +104,13 @@ species comm_member control: fsm{
 	//if returned true, transition to cooperating; else, remain as competitor
 	bool checkHiringProspective{
 		
+		
 		ask university_si{
 			if(!hiring_prospect){
 				return false;		//if there's no hiring prospect, return false right away	
 			}
 		}
-		
+		write "THERE'S HIRING PROSPECT!";
 		//if there is a hiring prospect, check the state of all competitors
 		//shift meaning, become cooperating
 		float shift_chance <- 1/((comm_member count (each.state = "competing")));	//shift chance is a fraction dependent on total number of competition

@@ -98,7 +98,7 @@ global{
 				}			
 			}
 			else{	//hire from community
-				if(avail_member != nil){	//there exist an available member 
+				if(avail_member != nil and length(avail_member)>0){	//there exist an available member 
 					comm_member cm <- first(shuffle(avail_member));	//use the first member 
 					write "inside hiring: ";
 					write "comm member "+cm.name+" state before: "+cm.state;
@@ -113,6 +113,7 @@ global{
 					write "comm member "+cm.name+" state after: "+cm.state+" labor name: "+cm.instance_labour.name;
 					hiring_prospect <- false;
 				}else{	//no available member
+					write "hiring prospect :)";
 					hiring_prospect <- true;
 				}
 			}
@@ -381,11 +382,12 @@ species university_si{
 				list<comm_member> avail_labor <- shuffle(comm_member where (each.state = "cooperating_available" and each.instance_labour = nil));
 				
 				int new_laborer_needed <- int(length(available_seeds)/LABOUR_PCAPACITY);
-				if(length(avail_labor) <= new_laborer_needed){	//depending on remaining available_seeds, create n new laborer upto # of available community laborer
+				if(length(avail_labor) < new_laborer_needed){	//depending on remaining available_seeds, create n new laborer upto # of available community laborer
 					new_laborer_needed <- length(avail_labor);
+					write "hiring prospect!!";
+					hiring_prospect <- true;	//the number of available laborers is less than the need
+				}else if(length(avail_labor) >= new_laborer_needed){	//there are mo laborer needed that available
 					hiring_prospect <- false;
-				}else{	//there are mo laborer needed that available
-					hiring_prospect <- true;
 				}
 				itp_laborers <- [];
 				if(new_laborer_needed > 0){
