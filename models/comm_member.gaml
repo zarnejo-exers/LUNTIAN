@@ -36,27 +36,34 @@ species comm_member control: fsm{
 	//if there exist even 1, return true (meaning, someone has better earning than self)
 	bool hasCompetingEarner{
 		int number_of_better_earner <- length(comm_member where (each.state = "competing" and each.current_earning > self.current_earning));
-		
 		return (number_of_better_earner > 0);
 	}
 	
 	//return random location that is at the fringe
 	plot getFringePlot{
-		return nil;
+		plot chosen_plot;
+		
+		list<plot> plot_with_trees <- entrance_plot where (length(each.plot_trees) > 0);
+		int plot_pos <- rnd(length(plot_with_trees));
+		chosen_plot <- entrance_plot[plot_pos];
+		
+		return chosen_plot;
 	}
 	
 	//get a plot where to harvest
-	plot findPlot{
+	action findPlot{
+		list<comm_member> competing_members <- [];
 		if(instance_labour.my_plots != nil and length(instance_labour.my_plots) > 0){	//if there's already a plot, it means there's nothing to harvest on that plot 
 			//get an adjacent plot
 			list<plot> closest_plot <-  plot closest_to(first(instance_labour.my_plots), 10);	//get the 10 closest plot to current plot
-			return first(sort_by(closest_plot, length(each.plot_trees)));						//return the plot with the most number of trees
+			instance_labour.my_plots <- [];	//remove the contents of the laborer's plots
+			add first(sort_by(closest_plot, length(each.plot_trees))) to: instance_labour.my_plots;						//return the plot with the most number of trees
 		}else{
-			list<comm_member> competing_members <- comm_member where (each.state = "competing");
-			if(competing_members != nil){	//there's another competing community member
-				return first(first(shuffle(competing_members)).instance_labour.my_plots );	//choose who to follow randomly and return one of the plots where it is harvesting
+			competing_members <- comm_member where (each.state = "competing" and each.instance_labour != nil and length(each.instance_labour.my_plots) > 0);
+			if(length(competing_members) > 0){	//there's another competing community member
+				add first(first(shuffle(competing_members)).instance_labour.my_plots ) to: instance_labour.my_plots;	//choose who to follow randomly and return one of the plots where it is harvesting
 			}else{	//this is the first competing community member
-				return getFringePlot();
+				add getFringePlot() to: instance_labour.my_plots;
 			}
 		}
 	}
@@ -65,24 +72,48 @@ species comm_member control: fsm{
 	//gets the biggest trees
 	list<trees> harvestPlot(labour cl, plot plot_to_harvest){
 		list<trees> trees_to_harvest <- reverse(sort_by(plot_to_harvest.plot_trees, each.dbh));
-		if(length(trees_to_harvest) > cl.carrying_capacity){
-			trees_to_harvest <- first(cl.carrying_capacity, sort_by(plot_to_harvest.plot_trees, each.dbh));	//get only according to capacity
+		
+		if(trees_to_harvest = nil){	//nothing to harvest on the plot, move to another plot
+			return nil;
+		}else{
+			if(length(trees_to_harvest) > cl.carrying_capacity){
+				trees_to_harvest <- first(cl.carrying_capacity, sort_by(plot_to_harvest.plot_trees, each.dbh));	//get only according to capacity
+			}
+					
+			plot_to_harvest.plot_trees <- (plot_to_harvest.plot_trees - trees_to_harvest);
+			ask plot_to_harvest.plot_trees{
+				age <- age + 5; 	//to correspond to TSI
+			}
+			return trees_to_harvest;	
 		}
-				
-		plot_to_harvest.plot_trees <- (plot_to_harvest.plot_trees - trees_to_harvest);
-		ask plot_to_harvest.plot_trees{
-			age <- age + 5; 	//to correspond to TSI
-		}
-		return trees_to_harvest;
 	}
 	
-	//to fill out
+	//uses the same metrics as with the university in terms of determining the cost per harvested tree
 	float computeEarning(list<trees> harvested_trees){
-		return 0.0;
+		float temp_earning <- 0.0;
+		
+	    loop s over: harvested_trees{
+	    	//use specific price per type
+	    	temp_earning <- temp_earning + (((s.type = 1)?exotic_price_per_volume:native_price_per_volume) * (#pi * (s.dbh/2)^2 * s.th) ); 
+	    }
+		
+		return temp_earning;
 	}
-	//to fillout
+	
+	//determines hiring prospecti
+	//if returned true, transition to cooperating; else, remain as competitor
 	bool checkHiringProspective{
-		return false;
+		
+		ask university_si{
+			if(!hiring_prospect){
+				return false;		//if there's no hiring prospect, return false right away	
+			}
+		}
+		
+		//if there is a hiring prospect, check the state of all competitors
+		//shift meaning, become cooperating
+		float shift_chance <- 1/((comm_member count (each.state = "competing")));	//shift chance is a fraction dependent on total number of competition
+		return flip(shift_chance);	
 	}
 	
 	//waiting to be hired
@@ -159,20 +190,23 @@ species comm_member control: fsm{
 	        write "transition: competing -> cooperating_available"; 
 	    } 
 	    
-	    //become a competing labour a competing labour
-	    create labour{
-			com_identity <- myself;
-			myself.instance_labour <- self;
-			is_nursery_labour <- nil;
-			is_harvest_labour <- nil;
-			is_planting_labour <- nil;
-		}
+	    if(instance_labour = nil){	//create laborer
+	    	//become a competing labour a competing labour
+		    create labour{
+				com_identity <- myself;
+				myself.instance_labour <- self;
+				is_nursery_labour <- nil;
+				is_harvest_labour <- nil;
+				is_planting_labour <- nil;
+				my_plots <- nil;
+			}	
+	    }
 		
 		labour competing_labour <- self.instance_labour;
 		list<trees> harvested_trees;
 		
-		loop i from: 0 to: 3{
-			add findPlot() to: competing_labour.my_plots;	//find the plot where to harvest
+		loop i from: 0 to: 2{	//will look for plot three times then stop
+			do findPlot();	//find the plot where to harvest
 			competing_labour.current_plot <- first(competing_labour.my_plots); 	//put laborer on the plot, currently plot is a list but in essence it contains only 1, just as preparation
 			harvested_trees <- harvestPlot(competing_labour, competing_labour.current_plot);
 			if(harvested_trees != nil and length(harvested_trees) > 0){

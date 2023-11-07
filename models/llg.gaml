@@ -77,6 +77,8 @@ global {
 	float mahogany_von_gr;
 	float mayapis_von_gr; 
 	
+	list<plot> entrance_plot;
+	
 	init {
 		create climate from: Precip_TAverage {
 			temperature <- [float(get("1_TAvg")),float(get("2_TAvg")),float(get("3_TAvg")),float(get("4_TAvg")),float(get("5_TAvg")),float(get("6_TAvg")),float(get("7_TAvg")),float(get("8_TAvg")),float(get("9_TAvg")),float(get("10_TAvg")),float(get("11_TAvg")),float(get("12_TAvg"))];
@@ -152,6 +154,8 @@ global {
 			}
 		}
 		
+		entrance_plot <- getEntrancePlot();	//determine the entrance plots for competing community
+		
 		ask plot{
 			do compute_neighbors;
 			ask plot_trees{
@@ -174,6 +178,11 @@ global {
 		connected_components <- list<list<point>>(connected_components_of(river_network));
 		loop times: length(connected_components) {colors << rnd_color(255);}
 		
+	}
+	
+	//returns the entrance plots
+	list<plot> getEntrancePlot{
+		return reverse(sort_by(plot where (!each.has_road and each.plot_trees != nil), each.location.y))[0::200];	//entrance_plot is the first 100 lowest point
 	}
 	
 	action computeGrowthRate{
@@ -548,6 +557,14 @@ species plot{
 			}else{
 				draw self.shape color: #gray;
 			}
+		}
+	}
+	
+	aspect entrance{
+		if(self in entrance_plot){
+			draw self.shape color: #green;
+		}else{
+			draw self.shape color: #black;
 		}
 	}
 	
