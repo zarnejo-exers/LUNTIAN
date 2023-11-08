@@ -35,7 +35,7 @@ species comm_member control: fsm{
 	//get the total number of comm_member with current earning greater than own current earning
 	//if there exist even 1, return true (meaning, someone has better earning than self)
 	bool hasCompetingEarner{
-		list<comm_member> competitors <- comm_member where (each.state = "competing");
+		list<comm_member> competitors <- comm_member where (each.state = "not_cooperating");
 		write "HERE ! Current earning: "+self.current_earning;
 		int number_of_better_earner <- length(competitors where (each.current_earning > self.current_earning));
 		return (number_of_better_earner > (0.5*length(competitors)));	//return true if the # of better earning competitors is greater than half of the total number of competitors
@@ -54,17 +54,17 @@ species comm_member control: fsm{
 	
 	//get a plot where to harvest
 	action findPlot{
-		list<comm_member> competing_members <- [];
+		list<comm_member> not_cooperating_members <- [];
 		if(instance_labour.my_plots != nil and length(instance_labour.my_plots) > 0){	//if there's already a plot, it means there's nothing to harvest on that plot 
 			//get an adjacent plot
 			list<plot> closest_plot <-  plot closest_to(first(instance_labour.my_plots), 10);	//get the 10 closest plot to current plot
 			instance_labour.my_plots <- [];	//remove the contents of the laborer's plots
 			add first(sort_by(closest_plot, length(each.plot_trees))) to: instance_labour.my_plots;						//return the plot with the most number of trees
 		}else{
-			competing_members <- comm_member where (each.state = "competing" and each.instance_labour != nil and length(each.instance_labour.my_plots) > 0);
-			if(length(competing_members) > 0){	//there's another competing community member
-				add first(first(shuffle(competing_members)).instance_labour.my_plots ) to: instance_labour.my_plots;	//choose who to follow randomly and return one of the plots where it is harvesting
-			}else{	//this is the first competing community member
+			not_cooperating_members <- comm_member where (each.state = "not_cooperating" and each.instance_labour != nil and length(each.instance_labour.my_plots) > 0);
+			if(length(not_cooperating_members) > 0){	//there's another not_cooperating community member
+				add first(first(shuffle(not_cooperating_members)).instance_labour.my_plots ) to: instance_labour.my_plots;	//choose who to follow randomly and return one of the plots where it is harvesting
+			}else{	//this is the first not_cooperating community member
 				add getFringePlot() to: instance_labour.my_plots;
 			}
 		}
@@ -115,7 +115,7 @@ species comm_member control: fsm{
 		write "THERE'S HIRING PROSPECT!";
 		//if there is a hiring prospect, check the state of all competitors
 		//shift meaning, become cooperating
-		float shift_chance <- 1/((comm_member count (each.state = "competing")));	//shift chance is a fraction dependent on total number of competition
+		float shift_chance <- 1/((comm_member count (each.state = "not_cooperating")));	//shift chance is a fraction dependent on total number of competition
 		return flip(shift_chance);	
 	}
 	
@@ -128,8 +128,8 @@ species comm_member control: fsm{
 	 	lapsed_time <- lapsed_time - 1;
 	    write "Current state: "+state+" Remaining time: "+lapsed_time; 
 	 	
-	    transition to: competing when: (lapsed_time = 0) { 
-	        write "transition: cooperating_available -> competing"; 
+	    transition to: not_cooperating when: (lapsed_time = 0) { 
+	        write "transition: cooperating_available -> not_cooperating"; 
 	    } 
 	    transition to: cooperating when: (instance_labour != nil){
 	    	write "transition: cooperating_variable -> cooperating";
@@ -152,7 +152,7 @@ species comm_member control: fsm{
 	    bool satisfied; 
 	    	
 	    if(instance_labour.is_harvest_labour) {		
-	    	//not satisfied when earning is less than max earn or when another competing community member has better earning 
+	    	//not satisfied when earning is less than max earn or when another not_cooperating community member has better earning 
 	    	satisfied <- (current_earning < max_harvest_pay or hasCompetingEarner())?false: true;
 	    }else{ //satisifaction based on wage only
 	    	if(instance_labour.is_planting_labour) {
@@ -164,8 +164,8 @@ species comm_member control: fsm{
 	    	}	
 	    } 
 	    
-	    transition to: competing when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and !satisfied) { 
-	        write "Service Ended... Transition: cooperating -> competing"; 
+	    transition to: not_cooperating when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and !satisfied) { 
+	        write "Service Ended... Transition: cooperating -> not_cooperating"; 
 	    }
 	    
 	    transition to: cooperating_available when: (instance_labour.man_months[2] >= instance_labour.man_months[0]) { 
@@ -183,20 +183,20 @@ species comm_member control: fsm{
 	    } 
 	}
 	
-	//observe competing community members here
+	//observe not_cooperating community members here
 	//if their gain is more than 
-	state competing { 
+	state not_cooperating { 
 	 
 	    enter {write 'Enter in: '+state;} 
 	 
 	    write "Current state: "+state;
 	    
 	    transition to: cooperating_available when: (checkHiringProspective()) { 	//if there's hiring prospective, choose to cooperate
-	        write "transition: competing -> cooperating_available"; 
+	        write "transition: not_cooperating -> cooperating_available"; 
 	    } 
 	    
 	    if(instance_labour = nil){	//create laborer
-	    	//become a competing labour a competing labour
+	    	//become a not_cooperating labour a not_cooperating labour
 		    create labour{
 				com_identity <- myself;
 				myself.instance_labour <- self;
@@ -207,13 +207,13 @@ species comm_member control: fsm{
 			}	
 	    }
 		
-		labour competing_labour <- self.instance_labour;
+		labour not_cooperating_labour <- self.instance_labour;
 		list<trees> harvested_trees;
 		
 		loop i from: 0 to: 2{	//will look for plot three times then stop
 			do findPlot();	//find the plot where to harvest
-			competing_labour.current_plot <- first(competing_labour.my_plots); 	//put laborer on the plot, currently plot is a list but in essence it contains only 1, just as preparation
-			harvested_trees <- harvestPlot(competing_labour, competing_labour.current_plot);
+			not_cooperating_labour.current_plot <- first(not_cooperating_labour.my_plots); 	//put laborer on the plot, currently plot is a list but in essence it contains only 1, just as preparation
+			harvested_trees <- harvestPlot(not_cooperating_labour, not_cooperating_labour.current_plot);
 			if(harvested_trees != nil and length(harvested_trees) > 0){
 				break;
 			}	
