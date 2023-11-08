@@ -35,8 +35,10 @@ species comm_member control: fsm{
 	//get the total number of comm_member with current earning greater than own current earning
 	//if there exist even 1, return true (meaning, someone has better earning than self)
 	bool hasCompetingEarner{
-		int number_of_better_earner <- length(comm_member where (each.state = "competing" and each.current_earning > self.current_earning));
-		return (number_of_better_earner > 0);
+		list<comm_member> competitors <- comm_member where (each.state = "competing");
+		write "HERE ! Current earning: "+self.current_earning;
+		int number_of_better_earner <- length(competitors where (each.current_earning > self.current_earning));
+		return (number_of_better_earner > (0.5*length(competitors)));	//return true if the # of better earning competitors is greater than half of the total number of competitors
 	}
 	
 	//return random location that is at the fringe
@@ -154,9 +156,11 @@ species comm_member control: fsm{
 	    	satisfied <- (current_earning < max_harvest_pay or hasCompetingEarner())?false: true;
 	    }else{ //satisifaction based on wage only
 	    	if(instance_labour.is_planting_labour) {
-	    		satisfied <- (current_earning >= (0.8*max_planting_pay))?true: false;
+	    		write "Planting labour: current earning "+current_earning+" max planting pay: "+max_planting_pay;
+	    		satisfied <- (current_earning >= (0.3*max_planting_pay))?true: false;
 	    	}else{
-	    		satisfied <- (current_earning >= (0.8*max_nursery_pay))?true: false;
+	    		write "Nursery labour";
+	    		satisfied <- (current_earning >= (0.3*max_nursery_pay))?true: false;
 	    	}	
 	    } 
 	    
@@ -164,7 +168,7 @@ species comm_member control: fsm{
 	        write "Service Ended... Transition: cooperating -> competing"; 
 	    }
 	    
-	    transition to: cooperating_available when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and satisfied) { 
+	    transition to: cooperating_available when: (instance_labour.man_months[2] >= instance_labour.man_months[0]) { 
 	        write "Service Ended... Transition: cooperating -> cooperating_available"; 
 	    }  
 	 
@@ -222,6 +226,7 @@ species comm_member control: fsm{
 	    		ask instance_labour{ do die; }
 	    		instance_labour <- nil;
 	    	}
+	    	lapsed_time <- waiting_allowance;
 	    	write 'EXIT from '+state;
 	    } 
 	}

@@ -173,7 +173,11 @@ global{
 			current_plot <- plot_to_harvest;
 			add plot_to_harvest to: my_plots;	
 			do assignLocation;
-			ask university_si {do payLaborer(myself);}
+			ask university_si {
+				write "Paying laborer: current earning (before) - "+myself.com_identity.current_earning;
+				do payLaborer(myself);
+				write "Paying laborer: current earning (after) - "+myself.com_identity.current_earning;
+			}
 		} 
 		return trees_to_harvest;
 	}
@@ -317,7 +321,9 @@ species university_si{
 			add chosen_plot to: my_plots;
 			do replantAlert(chosen_plot);
 			ask university_si{
+				write "Paying laborer: current earning (before) - "+myself.com_identity.current_earning;
 				do payLaborer(myself);
+				write "Paying laborer: current earning (after) - "+myself.com_identity.current_earning;
 			}
 			do assignLocation;
 		}
@@ -361,22 +367,22 @@ species university_si{
 		}
 		
 		if(!empty(available_seeds)){	//there's more tree to be planted, more laborer is needed
+			
 			itp_laborers <- [];
 			ask my_nurseries where (length(each.my_laborers) >1){	//get laborers from nursery with more than one laborer
 				itp_laborers <<+ (my_laborers where (each.current_plot = self));
 			}
-			
 			if(!empty(itp_laborers)){
 				write "Getting vacant laborer from nurseries";
-				assigned_laborers <<+updateAssignment(the_plot, itp_laborers);
-				ask assigned_laborers{
+				ask itp_laborers{
 					is_nursery_labour <- false;
 					is_planting_labour <- true;
 					man_months <- [PLANTING_LABOUR, 0, 0];
 				}
-				
+				assigned_laborers <<+updateAssignment(the_plot, itp_laborers);
 			}
 			
+			//there are more available_seeds
 			if(!empty(available_seeds)){
 				write "Hire new laborer";
 				list<comm_member> avail_labor <- shuffle(comm_member where (each.state = "cooperating_available" and each.instance_labour = nil));
@@ -402,9 +408,8 @@ species university_si{
 						add avail_labor[i].instance_labour to: itp_laborers;
 					}
 				}
+				assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
 			}
-			
-			assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
 		}
 		return assigned_laborers;
 	}
@@ -426,7 +431,9 @@ species university_si{
 			
 			if(self.labor_type = self.COMM_LABOUR){
 				ask university_si{
+					write "Paying laborer: current earning (before) - "+myself.com_identity.current_earning;
 					do payLaborer(myself);
+					write "Paying laborer: current earning (after) - "+myself.com_identity.current_earning;
 				}
 			}
 			do assignLocation;
