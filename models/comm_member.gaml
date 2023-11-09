@@ -103,7 +103,7 @@ species comm_member control: fsm{
 	}
 	
 	//determines hiring prospecti
-	//if returned true, transition to cooperating; else, remain as competitor
+	//if returned true, transition to labour_partner; else, remain as competitor
 	bool checkHiringProspective{
 		
 		
@@ -114,13 +114,13 @@ species comm_member control: fsm{
 		}
 		write "THERE'S HIRING PROSPECT!";
 		//if there is a hiring prospect, check the state of all competitors
-		//shift meaning, become cooperating
+		//shift meaning, become labour_partner
 		float shift_chance <- 1/((comm_member count (each.state = "not_cooperating")));	//shift chance is a fraction dependent on total number of competition
 		return flip(shift_chance);	
 	}
 	
 	//waiting to be hired
-	state cooperating_available initial: true { 
+	state potential_partner initial: true { 
 	    enter {  
 	        write "Enter in: " + state; 
 	    } 
@@ -129,10 +129,10 @@ species comm_member control: fsm{
 	    write "Current state: "+state+" Remaining time: "+lapsed_time; 
 	 	
 	    transition to: not_cooperating when: (lapsed_time = 0) { 
-	        write "transition: cooperating_available -> not_cooperating"; 
+	        write "transition: potential_partner -> not_cooperating"; 
 	    } 
-	    transition to: cooperating when: (instance_labour != nil){
-	    	write "transition: cooperating_variable -> cooperating";
+	    transition to: labour_partner when: (instance_labour != nil){
+	    	write "transition: cooperating_variable -> labour_partner";
 	    }
 	 
 	    exit { 
@@ -143,7 +143,7 @@ species comm_member control: fsm{
 	
 	//wage here
 	//kill instance_labour after
-	state cooperating { 
+	state labour_partner { 
 	 
 	    enter {write 'Enter in: '+state;} 
 	 
@@ -165,11 +165,11 @@ species comm_member control: fsm{
 	    } 
 	    
 	    transition to: not_cooperating when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and !satisfied) { 
-	        write "Service Ended... Transition: cooperating -> not_cooperating"; 
+	        write "Service Ended... Transition: labour_partner -> not_cooperating"; 
 	    }
 	    
-	    transition to: cooperating_available when: (instance_labour.man_months[2] >= instance_labour.man_months[0]) { 
-	        write "Service Ended... Transition: cooperating -> cooperating_available"; 
+	    transition to: potential_partner when: (instance_labour.man_months[2] >= instance_labour.man_months[0]) { 
+	        write "Service Ended... Transition: labour_partner -> potential_partner"; 
 	    }  
 	 
 	    exit {
@@ -191,8 +191,8 @@ species comm_member control: fsm{
 	 
 	    write "Current state: "+state;
 	    
-	    transition to: cooperating_available when: (checkHiringProspective()) { 	//if there's hiring prospective, choose to cooperate
-	        write "transition: not_cooperating -> cooperating_available"; 
+	    transition to: potential_partner when: (checkHiringProspective()) { 	//if there's hiring prospective, choose to cooperate
+	        write "transition: not_cooperating -> potential_partner"; 
 	    } 
 	    
 	    if(instance_labour = nil){	//create laborer

@@ -86,7 +86,7 @@ global{
     //harvest on the plot of investor i
     bool harvestOnInvestment (investor i){
     	list<labour> available_harvesters <- labour where (each.labor_type = each.OWN_LABOUR and !each.is_nursery_labour and !each.is_planting_labour);	//get own laborers that are not nursery|planting labours
-		list<comm_member> avail_member <- comm_member where (each.state = "cooperating_available" and each.instance_labour = nil);
+		list<comm_member> avail_member <- comm_member where (each.state = "potential_partner" and each.instance_labour = nil);
 		labour chosen_labour; 
 		
 		if(length(available_harvesters) > 0 or length(avail_member) > 0){
@@ -385,7 +385,7 @@ species university_si{
 			//there are more available_seeds
 			if(!empty(available_seeds)){
 				write "Hire new laborer";
-				list<comm_member> avail_labor <- shuffle(comm_member where (each.state = "cooperating_available" and each.instance_labour = nil));
+				list<comm_member> avail_labor <- shuffle(comm_member where (each.state = "potential_partner" and each.instance_labour = nil));
 				
 				int new_laborer_needed <- int(length(available_seeds)/LABOUR_PCAPACITY);
 				if(length(avail_labor) < new_laborer_needed){	//depending on remaining available_seeds, create n new laborer upto # of available community laborer

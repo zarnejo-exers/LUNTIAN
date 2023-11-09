@@ -122,7 +122,7 @@ species investor control: fsm{
 		}
 	}
 	
-	state interested_passive initial: true{ 
+	state potential_active initial: true{ 
 	    enter {  
 	        write " "+risk_types.keys[rt]+" Enter in: " + state; 
 	    } 
@@ -135,9 +135,9 @@ species investor control: fsm{
 	 		write "Waiting for environment...";
 	 	}
 	 
-	    transition to: active when: (my_plots != nil) { 
+	    transition to: investing when: (my_plots != nil) { 
 	        write "Plot count: "+length(my_plots);
-	        write "transition: interested_passive -> active"; 
+	        write "transition: potential_active -> investing"; 
 	    } 
 	 
 	    exit { 
@@ -145,19 +145,19 @@ species investor control: fsm{
 	    } 
 	} 
 	
-	state active { 
+	state investing { 
 	 
 	    enter {write 'Enter in: '+state;} 
 	 
 	 	do updateRotationYears;
 	    write "Current state: "+state+" remaining rotation years: "+my_plots.rotation_years;
 	    
-	    transition to: interested_passive when: (done_harvesting and (recent_profit >= promised_profit)) {
-	        write "transition: active->interested_passive";
+	    transition to: potential_active when: (done_harvesting and (recent_profit >= promised_profit)) {
+	        write "transition: investing->potential_active";
 	    }
 	    
-	    transition to: not_interested_passive when: (done_harvesting and (recent_profit < promised_profit)) {
-	        write "transition: active->not_interested_passive";
+	    transition to: potential_passive when: (done_harvesting and (recent_profit < promised_profit)) {
+	        write "transition: investing->potential_passive";
 	    }  
 	 
 	    exit {
@@ -171,7 +171,7 @@ species investor control: fsm{
 	    } 
 	}
 	
-	state not_interested_passive { 
+	state potential_passive { 
 	 
 	    enter {write 'Enter in: '+state;} 
 	 
@@ -186,8 +186,8 @@ species investor control: fsm{
 		write "Risk type: "+risk;
 		bool to_transition <- flip(risk_types[risk]);
 	    
-	    transition to: interested_passive when: (to_transition) { 
-	        write "transition: not_interested_passive -> interested_passive"; 
+	    transition to: potential_active when: (to_transition) { 
+	        write "transition: potential_passive -> potential_active"; 
 	    }  
 	 
 	    exit {write 'EXIT from '+state;} 
