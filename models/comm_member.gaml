@@ -28,6 +28,11 @@ species comm_member control: fsm{
 	float total_earning <- 0.0;		//total earning for the entire simulation
 	float current_earning <- 0.0; //earning of the community at the current commitment
 	
+	//for independent community members
+	int success <- 0;
+	int caught <- 0; 
+	bool is_caught <- false;
+	
 	reflex tickService when: instance_labour != nil{	//monitor lapsed time
 		instance_labour.man_months[2] <- instance_labour.man_months[2]+1;
 	}
@@ -35,7 +40,7 @@ species comm_member control: fsm{
 	//get the total number of comm_member with current earning greater than own current earning
 	//if there exist even 1, return true (meaning, someone has better earning than self)
 	bool hasCompetingEarner{
-		list<comm_member> competitors <- comm_member where (each.state = "not_cooperating");
+		list<comm_member> competitors <- comm_member where (each.state = "independent_harvesting");
 		write "HERE ! Current earning: "+self.current_earning;
 		int number_of_better_earner <- length(competitors where (each.current_earning > self.current_earning));
 		return (number_of_better_earner > (0.5*length(competitors)));	//return true if the # of better earning competitors is greater than half of the total number of competitors
@@ -61,10 +66,10 @@ species comm_member control: fsm{
 			instance_labour.my_plots <- [];	//remove the contents of the laborer's plots
 			add first(sort_by(closest_plot, length(each.plot_trees))) to: instance_labour.my_plots;						//return the plot with the most number of trees
 		}else{
-			not_cooperating_members <- comm_member where (each.state = "not_cooperating" and each.instance_labour != nil and length(each.instance_labour.my_plots) > 0);
-			if(length(not_cooperating_members) > 0){	//there's another not_cooperating community member
+			not_cooperating_members <- comm_member where (each.state = "independent_harvesting" and each.instance_labour != nil and length(each.instance_labour.my_plots) > 0);
+			if(length(not_cooperating_members) > 0){	//there's another independent_harvesting community member
 				add first(first(shuffle(not_cooperating_members)).instance_labour.my_plots ) to: instance_labour.my_plots;	//choose who to follow randomly and return one of the plots where it is harvesting
-			}else{	//this is the first not_cooperating community member
+			}else{	//this is the first independent_harvesting community member
 				add getFringePlot() to: instance_labour.my_plots;
 			}
 		}
@@ -115,8 +120,14 @@ species comm_member control: fsm{
 		write "THERE'S HIRING PROSPECT!";
 		//if there is a hiring prospect, check the state of all competitors
 		//shift meaning, become labour_partner
-		float shift_chance <- 1/((comm_member count (each.state = "not_cooperating")));	//shift chance is a fraction dependent on total number of competition
+		float shift_chance <- 1/((comm_member count (each.state = "independent_harvesting")));	//shift chance is a fraction dependent on total number of competition
 		return flip(shift_chance);	
+	}
+	
+	bool probaHarvest{
+		if(success = caught){return flip(0.5);}
+		if(success > caught){return flip(0.5+(0.5-caught/success));}	//more history of success, higher chance of harvesting
+		if(success < caught){return flip(0.5-(0.5-success/caught));} 
 	}
 	
 	//waiting to be hired
@@ -128,8 +139,8 @@ species comm_member control: fsm{
 	 	lapsed_time <- lapsed_time - 1;
 	    write "Current state: "+state+" Remaining time: "+lapsed_time; 
 	 	
-	    transition to: not_cooperating when: (lapsed_time = 0) { 
-	        write "transition: potential_partner -> not_cooperating"; 
+	    transition to: independent_passive when: (lapsed_time = 0) { 
+	        write "transition: potential_partner -> independent_harvesting"; 
 	    } 
 	    transition to: labour_partner when: (instance_labour != nil){
 	    	write "transition: cooperating_variable -> labour_partner";
@@ -152,7 +163,7 @@ species comm_member control: fsm{
 	    bool satisfied; 
 	    	
 	    if(instance_labour.is_harvest_labour) {		
-	    	//not satisfied when earning is less than max earn or when another not_cooperating community member has better earning 
+	    	//not satisfied when earning is less than max earn or when another independent_harvesting community member has better earning 
 	    	satisfied <- (current_earning < max_harvest_pay or hasCompetingEarner())?false: true;
 	    }else{ //satisifaction based on wage only
 	    	if(instance_labour.is_planting_labour) {
@@ -164,8 +175,10 @@ species comm_member control: fsm{
 	    	}	
 	    } 
 	    
-	    transition to: not_cooperating when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and !satisfied) { 
-	        write "Service Ended... Transition: labour_partner -> not_cooperating"; 
+	    
+	    
+	    transition to: independent_harvesting when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and !satisfied) { 
+	        write "Service Ended... Transition: labour_partner -> independent_harvesting"; 
 	    }
 	    
 	    transition to: potential_partner when: (instance_labour.man_months[2] >= instance_labour.man_months[0]) { 
@@ -183,20 +196,24 @@ species comm_member control: fsm{
 	    } 
 	}
 	
-	//observe not_cooperating community members here
+	//observe independent_harvesting community members here
 	//if their gain is more than 
-	state not_cooperating { 
+	state independent_harvesting { 
+		
 	 
 	    enter {write 'Enter in: '+state;} 
 	 
 	    write "Current state: "+state;
 	    
+	    //before you even start to harvest, check if there are prospects of being hired
 	    transition to: potential_partner when: (checkHiringProspective()) { 	//if there's hiring prospective, choose to cooperate
-	        write "transition: not_cooperating -> potential_partner"; 
+	        success <- 0;
+	        caught <- 0;
+	        write "transition: independent_harvesting -> potential_partner"; 
 	    } 
 	    
 	    if(instance_labour = nil){	//create laborer
-	    	//become a not_cooperating labour a not_cooperating labour
+	    	//become a independent_harvesting labour a independent_harvesting labour
 		    create labour{
 				com_identity <- myself;
 				myself.instance_labour <- self;
@@ -220,7 +237,20 @@ species comm_member control: fsm{
 		}
 		current_earning <- computeEarning(harvested_trees);	//compute earning of community member
 		total_earning <- total_earning + current_earning;
+		success <- success + 1;
  	 
+ 	 	//after harvesting, gets alerted of being caught 
+ 	 	transition to: independent_passive when: (is_caught) { 	//if caught 
+	        write "transition: independent_harvesting -> independent_passive";
+	        success <- success - 1;
+	        caught <- caught + 1; 
+	        is_caught <- false;
+	        
+	        //when caught 
+	        total_earning <- total_earning - current_earning;
+	        current_earning <- 0.0; 
+	    } 
+	    
 	    exit {
 	    	if(instance_labour != nil){
 	    		ask instance_labour{ do die; }
@@ -231,4 +261,21 @@ species comm_member control: fsm{
 	    } 
 	}
 	
+	state independent_passive{
+		enter {write 'Enter in: '+state;}
+		
+		write "indepdent passive... has other work/do nothing";	
+		transition to: potential_partner when: (checkHiringProspective()) { 	//if there's hiring prospective, choose to cooperate
+	        success <- 0;
+	        caught <- 0;
+	        write "transition: independent_harvesting -> potential_partner"; 
+	    }
+	    transition to: independent_harvesting when: (probaHarvest()) { 	//if there's hiring prospective, choose to cooperate
+	        write "transition: independent_harvesting -> independent_harvesting"; 
+	    }
+	    
+	    exit {
+	    	write 'EXIT from '+state;
+	    } 	
+	}	
 }
