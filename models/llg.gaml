@@ -506,6 +506,7 @@ species trees{
 species plot{
 	list<labour> my_laborers;
 	geometry neighborhood_shape <- nil;
+	bool is_policed <- false;
 	list<trees> plot_trees<- [] update: plot_trees where !dead(each);
 	soil my_soil <- soil closest_to location;
 	climate my_climate <- climate closest_to location;
@@ -551,6 +552,8 @@ species plot{
 			draw self.shape color: #lightgreen;
 		}else if(is_invested){
 			draw self.shape color: #lightblue;
+		}else if(is_policed){
+			draw self.shape color: #red;
 		}else{
 			if(length(plot_trees) > 0){
 				draw self.shape color: #darkgreen;

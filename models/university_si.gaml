@@ -11,6 +11,7 @@ import "market.gaml"
 import "investor.gaml"
 import "labour.gaml"
 import "comm_member.gaml"
+import "special_police.gaml"
 
 /* Insert your model definition here */
 global{
@@ -48,6 +49,9 @@ global{
 			labor_type <- OWN_LABOUR; 
 		}
 		create university_si;
+		create special_police number: 2{
+			is_servicing <- true;
+		}
 		
 		itp_type <- (plant_native and plant_exotic)?2:(plant_native?0:1);
 	}

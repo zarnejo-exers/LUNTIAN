@@ -78,6 +78,7 @@ species comm_member control: fsm{
 	//harvests upto capacity
 	//gets the biggest trees
 	list<trees> harvestPlot(labour cl, plot plot_to_harvest){
+		add cl to: plot_to_harvest.my_laborers;
 		list<trees> trees_to_harvest <- reverse(sort_by(plot_to_harvest.plot_trees, each.dbh));
 		
 		if(trees_to_harvest = nil){	//nothing to harvest on the plot, move to another plot
@@ -253,6 +254,7 @@ species comm_member control: fsm{
 	    
 	    exit {
 	    	if(instance_labour != nil){
+	    		remove instance_labour from: instance_labour.current_plot.my_laborers;
 	    		ask instance_labour{ do die; }
 	    		instance_labour <- nil;
 	    	}
