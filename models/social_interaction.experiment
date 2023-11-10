@@ -26,7 +26,7 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 			species investor visible: false;
 			species labour aspect: si;
 			species comm_member visible: false;
-			species special_police;
+			species special_police aspect: si;
 		}
 		
 //		display chart2 type: java2D{	
