@@ -13,7 +13,7 @@ import "university_si.gaml"
 global{
 	float risk_averse <- 0.5; 	//type = 0
 	float risk_loving <- 1.0;	//type = 1
-	int investor_count <- 1 update: investor_count;
+	int investor_count <- 2 update: investor_count;
 	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.75, "Neutral"::0.5];
 	
 	init{

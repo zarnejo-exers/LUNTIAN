@@ -11,7 +11,7 @@ import "university_si.gaml"
 
 /* Insert your model definition here */
 global{
-	int member_count <- 1 update: member_count;
+	int member_count <- 8 update: member_count;
 	int waiting_allowance <- 12 update: waiting_allowance;
 	float max_harvest_pay <- HARVEST_LABOUR * HARVEST_LCOST;
 	float max_planting_pay <- PLANTING_LABOUR * PLANTING_LCOST;
@@ -121,8 +121,11 @@ species comm_member control: fsm{
 		write "THERE'S HIRING PROSPECT!";
 		//if there is a hiring prospect, check the state of all competitors
 		//shift meaning, become labour_partner
-		float shift_chance <- 1/((comm_member count (each.state = "independent_harvesting")));	//shift chance is a fraction dependent on total number of competition
-		return flip(shift_chance);	
+		int competition_count <- comm_member count (each.state = "independent_harvesting");
+		if(competition_count = 0){
+			return false;
+		} 
+		return flip(1/competition_count);	//shift chance is a fraction dependent on total number of competition
 	}
 	
 	bool probaHarvest{

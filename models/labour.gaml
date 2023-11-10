@@ -25,8 +25,7 @@ species labour{
 	bool is_harvest_labour <- false;
 	bool is_planting_labour <- false;
 	 
-	
-	comm_member com_identity;
+	comm_member com_identity <- nil;
 	
 	aspect default{
 		if(is_nursery_labour){

@@ -552,8 +552,6 @@ species plot{
 			draw self.shape color: #lightgreen;
 		}else if(is_invested){
 			draw self.shape color: #lightblue;
-		}else if(is_policed){
-			draw self.shape color: #red;
 		}else{
 			if(length(plot_trees) > 0){
 				draw self.shape color: #darkgreen;

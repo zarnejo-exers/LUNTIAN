@@ -17,10 +17,11 @@ species special_police{
 	plot assigned_area <- nil;		//position of the sp in the environment
 	list<plot> observed_neighborhood <- [];
 	int total_comm_members_reprimanded <- 0; 	//remembers only the number, since they are not mandated to catch
+	rgb color_neighbor <- rnd_color(0, 255);
 	
 	aspect si{
 		loop p over: observed_neighborhood{
-			draw self.shape color: #red;
+			draw p.shape color: color_neighbor;
 		}
 	}
 	
@@ -29,6 +30,7 @@ species special_police{
 		if(length(observed_neighborhood) > 0){	
 			ask observed_neighborhood{
 				is_policed <- false;
+				remove self from: myself.observed_neighborhood;
 			}
 		}
 		
@@ -40,7 +42,7 @@ species special_police{
 		location <- assigned_area.location;
 		//get the neighbor of the plot
 		ask assigned_area{
-			myself.observed_neighborhood <- plot at_distance 300;
+			myself.observed_neighborhood <- (plot at_distance 300) where (!each.is_policed);
 		}
 		observed_neighborhood <- observed_neighborhood+assigned_area;
 	} 
@@ -54,12 +56,11 @@ species special_police{
 	reflex guardPlotNeighborhood when: is_servicing{
 		loop on over: observed_neighborhood{
 			on.is_policed <- true;
-			if(on.my_laborers!=nil){
-				loop ml over: on.my_laborers{
-					if(ml.com_identity != nil and ml.com_identity.state="independent_harvesting"){
-						ml.com_identity.is_caught <- true;
-						total_comm_members_reprimanded <- total_comm_members_reprimanded + 1; 
-					}
+			ask on.my_laborers{
+				if(com_identity != nil and com_identity.state="independent_harvesting"){
+					write "Special police "+name+" caught member "+com_identity.name;
+					com_identity.is_caught <- true;
+					myself.total_comm_members_reprimanded <- myself.total_comm_members_reprimanded + 1; 
 				}
 			}
 		}
