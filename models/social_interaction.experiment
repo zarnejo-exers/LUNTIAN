@@ -18,6 +18,8 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	parameter "Total count of community members" category: "Community Members" var: member_count min: 0 step: 1;
 	parameter "Waiting allowance" category: "Community Members" var: waiting_allowance min: 0 step: 1;
 	
+	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
+	
 	output {
 		layout #split;
 	

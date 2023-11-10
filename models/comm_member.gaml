@@ -189,6 +189,10 @@ species comm_member control: fsm{
 	    exit {
 	    	total_earning <- total_earning + current_earning;
 	    	current_earning <- 0.0;
+	    	
+	    	loop mp over: instance_labour.my_plots{
+	    		remove instance_labour from: mp.my_laborers;	
+	    	}
 	    	ask instance_labour{
 	    		do die;
 	    	}
@@ -254,7 +258,9 @@ species comm_member control: fsm{
 	    
 	    exit {
 	    	if(instance_labour != nil){
-	    		remove instance_labour from: instance_labour.current_plot.my_laborers;
+	    		loop mp over: instance_labour.my_plots{
+	    			remove instance_labour from: mp.my_laborers;	
+	    		}
 	    		ask instance_labour{ do die; }
 	    		instance_labour <- nil;
 	    	}

@@ -30,22 +30,25 @@ species special_police{
 			ask observed_neighborhood{
 				is_policed <- false;
 			}
-			observed_neighborhood <- [];
 		}
 		
 		//getting new location
-		list<special_police> sp <- special_police where (each.is_servicing and assigned_area!=nil);
-		list<plot> guarded_plots <- (sp collect each.assigned_area) + (sp collect each.observed_neighborhood);	//get all guarded places
-		list<plot> open_plots <- plot - guarded_plots;
+		list<plot> open_plots <- getOpenPlots();
 		
 		assigned_area <- open_plots[rnd(length(open_plots))];
 		assigned_area.is_policed <- true;
 		location <- assigned_area.location;
 		//get the neighbor of the plot
 		ask assigned_area{
-			myself.observed_neighborhood <- plot at_distance 100;
+			myself.observed_neighborhood <- plot at_distance 300;
 		}
 		observed_neighborhood <- observed_neighborhood+assigned_area;
+	} 
+	
+	list<plot> getOpenPlots{
+		list<special_police> sp <- special_police where (each.is_servicing and assigned_area!=nil);
+		list<plot> guarded_plots <- (sp collect each.assigned_area) + (sp collect each.observed_neighborhood);	//get all guarded places
+		return plot - guarded_plots;
 	} 
 	
 	reflex guardPlotNeighborhood when: is_servicing{

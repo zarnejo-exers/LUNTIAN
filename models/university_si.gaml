@@ -25,6 +25,7 @@ global{
 	float HARVEST_LCOST <- 50.0;
 	float PLANTING_LCOST <- 25.0;
 	
+	int police_count <- 2 update: police_count;
 	int plot_size <- 1 update: plot_size;
 	int laborer_count <- 2 update: laborer_count;
 	int nlaborer_count<- 1 update: nlaborer_count;
@@ -49,7 +50,7 @@ global{
 			labor_type <- OWN_LABOUR; 
 		}
 		create university_si;
-		create special_police number: 2{
+		create special_police number: police_count{
 			is_servicing <- true;
 		}
 		
