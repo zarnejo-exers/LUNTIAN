@@ -21,6 +21,7 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
 	
 	output {
+		
 		layout #split;
 	
 		display interaction{
@@ -53,17 +54,26 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		}
 		
 		display chart3 type: java2D{	
-			chart "Investor total earnings" type: series
+			chart "Reprimanded community members" type: series
 			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				list<string> risks <-["Averse", "Loving", "Neutral"];
-				loop i over: investor{
-            		data risks[i.rt] value: i.total_profit;
+				loop i over: special_police{
+            		data i.name value: i.total_comm_members_reprimanded;
             	}
 			}
 		}
 		
 		display chart4 type: java2D{	
+			chart "Investor total earnings" type: series
+			{
+				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+				list<string> risks <-["Averse", "Loving", "Neutral"];
+				loop i over: investor{
+            		data i.name+"("+risks[i.rt]+")" value: i.total_profit;
+            	}
+			}
+		}
+		
+		display chart5 type: java2D{	
 			chart "Community member total earnings" type: series
 			{
 				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
