@@ -552,7 +552,7 @@ species trees control: fsm{
 }
 
 species plot{
-	list<labour> my_laborers;
+	list<labour> my_laborers <- [];
 	geometry neighborhood_shape <- nil;
 	bool is_policed <- false;
 	list<trees> plot_trees<- [] update: plot_trees where !dead(each);

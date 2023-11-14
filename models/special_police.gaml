@@ -37,7 +37,7 @@ species special_police{
 		//getting new location
 		list<plot> open_plots <- getOpenPlots();
 		
-		assigned_area <- open_plots[rnd(length(open_plots))];
+		assigned_area <- open_plots[rnd(length(open_plots)-1)];
 		assigned_area.is_policed <- true;
 		location <- assigned_area.location;
 		//get the neighbor of the plot

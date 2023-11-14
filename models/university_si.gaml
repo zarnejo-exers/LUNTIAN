@@ -577,50 +577,50 @@ species university_si{
 		
 		list<plot> nurseries_with_space <- [];	//get the nurseries with space
 		loop p over: self.my_nurseries{
-			if(p.getAvailableSpaces(itp_type) > 0){
+			int space <- p.getAvailableSpaces(itp_type);
+			if(space > 0){
 				add p to: nurseries_with_space;
 			}
 		}
 		
-		if(length(nurseries_with_space) = 0){
-			//write "No more space in nursery";
-			return;
-		}
-		
-		//get the nursery laborer that is on the same plot and get more trees as long as carrying capacity permits
-		list<labour> closest_laborers <- labour where (each.current_plot = source_plot and each.is_nursery_labour and each.carrying_capacity > length(each.my_trees)); 
-		loop while: length(new_trees) > 0{
-			if(!empty(closest_laborers)){	//laborer is on the same plot, get the new trees
+		if(length(nurseries_with_space) > 0){	//proceed only if there are spaces in the nurseries
+			//get the nursery laborer that is on the same plot and get more trees as long as carrying capacity permits
+			list<labour> closest_laborers <- labour where (each.current_plot = source_plot and each.is_nursery_labour and each.carrying_capacity > length(each.my_trees)); 
+			loop while: (length(new_trees) > 0 and length(closest_laborers)>0){
 				labour cl <- one_of(closest_laborers);
 				cl.man_months[1] <- cl.man_months[1] + 1;	//not pay since laborer is OWN
 				new_trees <- cl.getTrees(new_trees);
-				remove cl from: closest_laborers;
-			}else{ break; }	
-		}
-
-		if(length(new_trees) > 0){
-			plot closest_nursery <- nurseries_with_space closest_to source_plot;	//get closest nursery to plot with new tree
-			list<labour> available_nlaborers <- closest_nursery.my_laborers where (each.current_plot = closest_nursery);
-			if(available_nlaborers != nil){	//if there are more trees to be allocated, check if there are nursery laborers that is in the nursery and move that laborer to the plot where the new tree is spotted
-				loop an over: available_nlaborers{
-					an.current_plot <- source_plot;							//go to the source plot
-					an.location <- source_plot.location;					
-					new_trees <- an.getTrees(new_trees);
-					if(length(new_trees) = 0) {break;}	//if there are no more trees, break
-				}
-			}else{//if there are still more, let the one of the laborers of the closest nursery go back to the nursery and plant all the wildlings even if it hasn't exhausted its carrying capacity yet
-				labour closest_labor <- (closest_nursery.my_laborers - available_nlaborers) closest_to source_plot;
-				if(closest_labor != nil){
-					ask closest_labor{
-						current_plot <- closest_nursery;
-						location <- closest_nursery.location;	//return to closest_nursery;
-						//write "In university, planting at: "+closest_nursery.name;
-						do replantAlert(closest_nursery);
-						man_months[1] <- man_months[1]+1; //increment service
-					}
-				}
+				remove cl from: closest_laborers;	
 			}
+	
+			if(length(new_trees) > 0){
+				plot closest_nursery <- nurseries_with_space closest_to source_plot;	//get closest nursery to plot with new tree
+				if(closest_nursery = nil) { closest_nursery <- source_plot; }	//meaning, there's only one nursery plot, and that is source_plot
+				if(length(closest_nursery.my_laborers) > 0){	//get all laborers of that nursery who still have capacity to get trees
+					list<labour> available_nlaborers <- closest_nursery.my_laborers where (each.current_plot = closest_nursery);
+					loop an over: available_nlaborers{
+						an.current_plot <- source_plot;							//go to the source plot
+						an.location <- source_plot.location;					
+						new_trees <- an.getTrees(new_trees);
+						if(length(new_trees) = 0) {break;}	//if there are no more trees, break
+					}
+					if(length(new_trees) > 0){	//if there are still more, let the one of the laborers of the closest nursery go back to the nursery and plant all the wildlings even if it hasn't exhausted its carrying capacity yet
+						labour closest_labor <- (closest_nursery.my_laborers - available_nlaborers) closest_to source_plot;
+						if(closest_labor != nil){
+							ask closest_labor{
+								current_plot <- closest_nursery;
+								location <- closest_nursery.location;	//return to closest_nursery;
+								//write "In university, planting at: "+closest_nursery.name;
+								do replantAlert(closest_nursery);
+								man_months[1] <- man_months[1]+1; //increment service
+							}
+						}
+					}	
+				}
+			}				
 		}
+		
+
 	}	
 }
 
