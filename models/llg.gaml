@@ -159,7 +159,7 @@ global {
 		ask plot{
 			do compute_neighbors;
 			ask plot_trees{
-				dbh <- calculateDBH();
+				dbh <- calculateDBH(1.0);
 				th <- calculateHeight();	
 			}
 		}
@@ -259,7 +259,7 @@ global {
 	}
 }
 
-species trees{
+species trees control: fsm{
 	float dbh; //diameter at breast height
 	float th; //total height
 	float mh;	//merchantable height
@@ -282,6 +282,9 @@ species trees{
 	
 	int count_fruits; 
 	int temp;
+	
+	list<trees> my_neighbors <- [];  
+	float nieghborh_effect <- 0.0; 
 	
 	aspect default{
 		draw circle(self.cd/2, self.location) color: (type = NATIVE)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
@@ -409,11 +412,11 @@ species trees{
 
 	//growth of tree
 	//assume: growth coefficient doesn't apply on plots for ITP 
-	float calculateDBH{
+	float calculateDBH(float neighbor_impact){
 		if(type = NATIVE){ //mayapis
-			return (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age))));//*((self.my_plot.is_itp)?1:growthCoeff(type));
+			return (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age)) * neighbor_impact));//*((self.my_plot.is_itp)?1:growthCoeff(type));
 		}else if(type = EXOTIC){	//mahogany
-			return(max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age))));//*((self.my_plot.is_itp)?1:growthCoeff(type));
+			return(max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age)) * neighbor_impact));//*((self.my_plot.is_itp)?1:growthCoeff(type));
 		}
 		/*if(length(trees overlapping (circle(self.dbh) translated_to self.location)) > 0){
 			dbh <- prev_dbh;	//inhibit growth if it overlaps other trees; update this once height is added
@@ -461,20 +464,47 @@ species trees{
 		return 1.4 + (hcoeffs[{type,1}] + hcoeffs[{type,0}] / dbh)^-2.5;
 	}
 	
+	float neighborhoodInteraction{
+		my_neighbors <- ((my_plot.plot_trees-self) select ((each.state = "adult") and (each distance_to self) < 20#m));
+		float ni <- 0.0;
+		
+		loop n over: my_neighbors{
+			 ni <- ni + ((n.ba * ((self.type = n.type)?1:0.5))/(n distance_to self));
+		}
+		
+		if(ni < 0.000001){
+			ni <- 0.0;
+		}
+		
+		return ni;
+	}	
+	
 	//doesn't inhibit growth of tree
 	reflex growTree{
 		trees closest_tree <-(my_plot.plot_trees closest_to self); 
 		float prev_dbh <- dbh;
 		float prev_th <- th;
 		
-		self.dbh <- calculateDBH();
-		self.th <- calculateHeight();
+		nieghborh_effect <- 1.0;
+		if(state = "adult"){
+			nieghborh_effect <- neighborhoodInteraction();
+			if(nieghborh_effect > 0){
+				nieghborh_effect <- 1-exp(log(neighborhoodInteraction()) * log(prev_dbh));	
+			}	
+		}
+		
+		dbh <- calculateDBH(nieghborh_effect);
+		
+		
+		th <- calculateHeight();
 		if(!my_plot.is_itp and closest_tree != nil and (circle(self.cd/2, self.location) overlaps circle(closest_tree.cd/2, closest_tree.location))){	//inhibit growth if will overlap
 			dbh <- prev_dbh;
 			th <- prev_th;	
 		}
-		//update merchantable height 
-		self.mh <- th - (cr * th);
+		
+		mh <- th - (cr * th);	//update merchantable height
+		ba <- (dbh^2) * 0.00007854;	//update basal area, given cm
+		
 	}
 	
 	//tree age
@@ -500,7 +530,25 @@ species trees{
 		}
 	}
 	
-	//set different mortality for trees in the nursery
+	state sapling initial: true{
+		enter {}
+			
+		transition to: juvenile when: (dbh >= 5 or dbh <= 10) { 	//if there's hiring prospective, choose to cooperate
+	    }
+	    
+	    exit {} 	
+	}
+	
+	state juvenile{
+		enter {}	
+		transition to: adult when: (dbh > 10) { 	//if there's hiring prospective, choose to cooperate 
+	    }
+	    
+	    exit {} 
+	}
+	
+	state adult{
+	}
 }
 
 species plot{
