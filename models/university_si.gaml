@@ -361,6 +361,7 @@ species university_si{
 	 * All this happens in one step: in one month
 	 */	
 	list<labour> assignLaborerToPlot(plot the_plot){
+		list<labour> temp_laborers <- [];
 		//check if there are vacant, non-nursery laborers
 		
 		list<labour> itp_laborers <- labour where ((each.is_planting_labour or !each.is_nursery_labour) and empty(each.my_plots));	//get planting labours
@@ -379,12 +380,13 @@ species university_si{
 			}
 			if(!empty(itp_laborers)){
 				write "Getting vacant laborer from nurseries";
-				ask itp_laborers{
+				temp_laborers <- updateAssignment(the_plot, itp_laborers);
+				ask temp_laborers{
 					is_nursery_labour <- false;
 					is_planting_labour <- true;
-					man_months <- [PLANTING_LABOUR, 0, 0];
+					man_months <- [PLANTING_LABOUR, 1, 0];
 				}
-				assigned_laborers <<+updateAssignment(the_plot, itp_laborers);
+				assigned_laborers <<+temp_laborers;
 			}
 			
 			//there are more available_seeds
@@ -412,8 +414,13 @@ species university_si{
 						}
 						add avail_labor[i].instance_labour to: itp_laborers;
 					}
+					temp_laborers <- updateAssignment(the_plot, itp_laborers);
+					ask itp_laborers-temp_laborers{	//remove all those that weren't assigned
+						com_identity.instance_labour <- nil;
+						do die;
+					}
+					assigned_laborers <<+temp_laborers;
 				}
-				assigned_laborers <<+ updateAssignment(the_plot, itp_laborers);
 			}
 		}
 		return assigned_laborers;
@@ -424,7 +431,7 @@ species university_si{
 	list<labour> updateAssignment(plot the_plot, list<labour> itp_laborers){
 		list<labour> assigned_laborers <- [];
 		
-		ask itp_laborers{
+		ask itp_laborers - the_plot.my_laborers{
 			if(empty(myself.available_seeds)){break;}	//there's no more seeds to be planted 
 			add the_plot to: self.my_plots;	//add the itp plot to the list of laborer's my_plots
 			add self to: the_plot.my_laborers;	//put the laborer to the list of plot's laborers
