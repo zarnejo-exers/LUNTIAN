@@ -60,39 +60,19 @@ species comm_member control: fsm{
 	//get a plot where to harvest
 	action findPlot{
 		list<comm_member> not_cooperating_members <- [];
-		if(instance_labour.my_plots != nil and length(instance_labour.my_plots) > 0){	//if there's already a plot, it means there's nothing to harvest on that plot 
+		if(instance_labour.plot_to_harvest != nil){	//laborer has been harvesting 
 			//get an adjacent plot
-			list<plot> closest_plot <-  plot closest_to(first(instance_labour.my_plots), 10);	//get the 10 closest plot to current plot
-			instance_labour.my_plots <- [];	//remove the contents of the laborer's plots
-			add first(sort_by(closest_plot, length(each.plot_trees))) to: instance_labour.my_plots;						//return the plot with the most number of trees
+			list<plot> closest_plot <-  plot closest_to(instance_labour.plot_to_harvest, 10);	//get the 10 closest plot to current plot
+			instance_labour.plot_to_harvest <- first(sort_by(closest_plot, length(each.plot_trees)));						//return the plot with the most number of trees
 		}else{
-			not_cooperating_members <- comm_member where (each.state = "independent_harvesting" and each.instance_labour != nil and length(each.instance_labour.my_plots) > 0);
-			if(length(not_cooperating_members) > 0){	//there's another independent_harvesting community member
-				add first(first(shuffle(not_cooperating_members)).instance_labour.my_plots ) to: instance_labour.my_plots;	//choose who to follow randomly and return one of the plots where it is harvesting
-			}else{	//this is the first independent_harvesting community member
-				add getFringePlot() to: instance_labour.my_plots;
+			not_cooperating_members <- comm_member where (each.state = "independent_harvesting" and each.instance_labour != nil and (each.instance_labour.plot_to_harvest != nil));
+			ask instance_labour{
+				if(length(not_cooperating_members) > 0){	//there's another independent_harvesting community member
+					do setPlotToHarvest(one_of(not_cooperating_members).instance_labour.plot_to_harvest);	//choose who to follow randomly and return one of the plots where it is harvesting
+				}else{	//this is the first independent_harvesting community member
+					do setPlotToHarvest(myself.getFringePlot());
+				}	
 			}
-		}
-	}
-	
-	//harvests upto capacity
-	//gets the biggest trees
-	list<trees> harvestPlot(labour cl, plot plot_to_harvest){
-		add cl to: plot_to_harvest.my_laborers;
-		list<trees> trees_to_harvest <- reverse(sort_by(plot_to_harvest.plot_trees, each.dbh));
-		
-		if(trees_to_harvest = nil){	//nothing to harvest on the plot, move to another plot
-			return nil;
-		}else{
-			if(length(trees_to_harvest) > cl.carrying_capacity){
-				trees_to_harvest <- first(cl.carrying_capacity, sort_by(plot_to_harvest.plot_trees, each.dbh));	//get only according to capacity
-			}
-					
-			plot_to_harvest.plot_trees <- (plot_to_harvest.plot_trees - trees_to_harvest);
-			ask plot_to_harvest.plot_trees{
-				age <- age + 5; 	//to correspond to TSI
-			}
-			return trees_to_harvest;	
 		}
 	}
 	
@@ -132,6 +112,12 @@ species comm_member control: fsm{
 		if(success = caught){return flip(0.5);}
 		if(success > caught){return flip(0.5+(0.5-caught/success));}	//more history of success, higher chance of harvesting
 		if(success < caught){return flip(0.5-(0.5-success/caught));} 
+	}
+	
+	action completeHarvest(list<trees> harvested_trees){
+		current_earning <- computeEarning(harvested_trees);	//compute earning of community member
+		total_earning <- total_earning + current_earning;
+		success <- success + 1;
 	}
 	
 	//waiting to be hired
@@ -207,21 +193,7 @@ species comm_member control: fsm{
 	//observe independent_harvesting community members here
 	//if their gain is more than 
 	state independent_harvesting { 
-		
-	 
-	    enter {write 'Enter in: '+state;} 
-	 
-	    write "Current state: "+state;
-	    
-	    //before you even start to harvest, check if there are prospects of being hired
-	    transition to: potential_partner when: (checkHiringProspective()) { 	//if there's hiring prospective, choose to cooperate
-	        success <- 0;
-	        caught <- 0;
-	        write "transition: independent_harvesting -> potential_partner"; 
-	    } 
-	    
-	    if(instance_labour = nil){	//create laborer
-	    	//become a independent_harvesting labour a independent_harvesting labour
+	    enter {//create an instance of a labour for the harvester
 		    create labour{
 				com_identity <- myself;
 				myself.instance_labour <- self;
@@ -229,27 +201,26 @@ species comm_member control: fsm{
 				is_harvest_labour <- nil;
 				is_planting_labour <- nil;
 				my_plots <- nil;
-			}	
-	    }
-		
-		labour not_cooperating_labour <- self.instance_labour;
-		list<trees> harvested_trees;
-		
-		loop i from: 0 to: 2{	//will look for plot three times then stop
+				state <- "independent";
+			}
+		} 
+	 
+	    
+	    //before you even start to harvest, check if there are prospects of being hired
+	    transition to: potential_partner when: (checkHiringProspective()) { 	//if there's hiring prospective, choose to cooperate
+	        success <- 0;
+	        caught <- 0;
+	    } 
+	    
+	    loop i from: 0 to: 2{	//will look for plot three times then stop
 			do findPlot();	//find the plot where to harvest
-			not_cooperating_labour.current_plot <- first(not_cooperating_labour.my_plots); 	//put laborer on the plot, currently plot is a list but in essence it contains only 1, just as preparation
-			harvested_trees <- harvestPlot(not_cooperating_labour, not_cooperating_labour.current_plot);
-			if(harvested_trees != nil and length(harvested_trees) > 0){
+			if(instance_labour.plot_to_harvest != nil){
 				break;
 			}	
 		}
-		current_earning <- computeEarning(harvested_trees);	//compute earning of community member
-		total_earning <- total_earning + current_earning;
-		success <- success + 1;
- 	 
+
  	 	//after harvesting, gets alerted of being caught 
  	 	transition to: independent_passive when: (is_caught) { 	//if caught 
-	        write "transition: independent_harvesting -> independent_passive";
 	        success <- success - 1;
 	        caught <- caught + 1; 
 	        is_caught <- false;
@@ -264,6 +235,7 @@ species comm_member control: fsm{
 	    		loop mp over: instance_labour.my_plots{
 	    			remove instance_labour from: mp.my_laborers;	
 	    		}
+	    		remove instance_labour from: instance_labour.plot_to_harvest.my_laborers;
 	    		ask instance_labour{ do die; }
 	    		instance_labour <- nil;
 	    	}
@@ -275,15 +247,11 @@ species comm_member control: fsm{
 	state independent_passive{
 		enter {write 'Enter in: '+state;}
 		
-		write "indepdent passive... has other work/do nothing";	
 		transition to: potential_partner when: (checkHiringProspective()) { 	//if there's hiring prospective, choose to cooperate
 	        success <- 0;
 	        caught <- 0;
-	        write "transition: independent_harvesting -> potential_partner"; 
 	    }
-	    transition to: independent_harvesting when: (probaHarvest()) { 	//if there's hiring prospective, choose to cooperate
-	        write "transition: independent_harvesting -> independent_harvesting"; 
-	    }
+	    transition to: independent_harvesting when: (probaHarvest()); 	//if there's hiring prospective, choose to cooperate
 	    
 	    exit {
 	    	write 'EXIT from '+state;

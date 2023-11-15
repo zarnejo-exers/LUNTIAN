@@ -30,7 +30,7 @@ global{
 //profit threshold will dictate whether the investor will continue on investing on a plot or not
 //plot's projected profit is determined by the university
 species investor control: fsm{
-	plot my_plots;
+	plot my_plot;
 	int harvest_monitor;	//corresponds to the position of the plot, like a timer to signal if a year already passed
 	float total_profit <- 0.0;
 	float recent_profit;
@@ -41,13 +41,14 @@ species investor control: fsm{
 	bool done_harvesting <- false;
 	
 	int rt;	//risk type
+	bool waiting <- false;
 	
 	//investor is deciding whether to invest or not
 	//computes for the rate of return on the invested plots
 	//once investment has been successfully completed; university starts the planting and assigns rotation years per plot.
 	action decideInvestment{	////reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
 		
-		list<plot> investable_plots <- plot where (each.is_investable);	//gets investable plots
+		list<plot> investable_plots <- plot where (each.is_investable and !each.is_invested);	//gets investable plots
 		
 		//decide investment based on risk type
 		plot chosen_plot <- getSuitablePlot(investable_plots, rt);
@@ -116,8 +117,8 @@ species investor control: fsm{
 	action updateRotationYears{	// when: length(my_plots) > 0
 		harvest_monitor <- 1 + harvest_monitor;
 		if(harvest_monitor = 12){
-			if(my_plots.rotation_years != 0){
-				my_plots.rotation_years <- my_plots.rotation_years - 1;
+			if(my_plot.rotation_years != 0){
+				my_plot.rotation_years <- my_plot.rotation_years - 1;
 				harvest_monitor <- 0;
 			}
 		}
@@ -136,8 +137,8 @@ species investor control: fsm{
 	 		write "Waiting for environment...";
 	 	}
 	 
-	    transition to: investing when: (my_plots != nil) { 
-	        write "Plot count: "+length(my_plots);
+	    transition to: investing when: (my_plot != nil) { 
+	        write "Plot count: "+length(my_plot);
 	        write "transition: potential_active -> investing"; 
 	    } 
 	 
@@ -151,7 +152,7 @@ species investor control: fsm{
 	    enter {write 'Enter in: '+state;} 
 	 
 	 	do updateRotationYears;
-	    write "Current state: "+state+" remaining rotation years: "+my_plots.rotation_years;
+	    write "Current state: "+state+" remaining rotation years: "+my_plot.rotation_years;
 	    
 	    transition to: potential_active when: (done_harvesting and (recent_profit >= promised_profit)) {
 	        write "transition: investing->potential_active";
@@ -163,8 +164,8 @@ species investor control: fsm{
 	 
 	    exit {
 	    	done_harvesting <- false;
-	    	my_plots.is_invested <- false;
-	        my_plots <- nil;
+	    	my_plot.is_invested <- false;
+	        my_plot <- nil;
 	    	total_profit <- total_profit + recent_profit;	//record final profit
 	    	total_investment <- total_investment + investment;
 	    	recent_profit <- 0.0;

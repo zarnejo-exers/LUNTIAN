@@ -11,12 +11,15 @@ import "university_si.gaml"
 
 /* Insert your model definition here */
 
-species labour{
+species labour control: fsm{
 	int OWN_LABOUR <- 0; 
 	int COMM_LABOUR <- 1;
 	int labor_type; 	//important when hiring community labor 
 	
 	list<plot> my_plots <- [];
+	plot plot_to_harvest;	//for harvesting laborer
+	list<trees> harvested_trees;
+	
 	plot current_plot;
 	list<trees> my_trees <- [];		//list of wildlings that the laborer currently carries
 	list<int> man_months <- [0,0,0];	//assigned, serviced, lapsed 
@@ -63,60 +66,6 @@ species labour{
 		self.location <- current_plot.location;
 	}
 	
-	reflex checkIfMustReplant when: carrying_capacity = length(my_trees){
-		ask university_si{
-			loop mp over: myself.my_plots{
-				ask mp{
-					do updateTrees;
-				}
-				geometry space <- mp.removeOccupiedSpace(mp.shape, mp.plot_trees);
-			}
-		}
-		
-		list<plot> available_plots <- my_plots where (each.removeOccupiedSpace(each.shape, each.plot_trees) != nil);	//all plots with remaining space
-		if(length(available_plots) > 0){
-			plot nursery <- available_plots closest_to current_plot;
-			if(nursery != nil){
-				location <- nursery.location;		//go back to the nursery and plant the trees
-				current_plot <- nursery;
-				do replantAlert(nursery);	
-			}
-		}//else, do nothing; meaning, just wait until there are available plots
-	}
-	
-	//Invoked by labour reflex when the capacity of the laborer is reached, plant the trees to the nursery
-	//Invoked by university to command labour to return and plant all that is in its hands
-	//For replanting to nursery, and to the new plot (for ITP)
-	action replantAlert(plot new_plot){	
-		int my_trees_length <- length(my_trees);	
-		geometry remaining_space <- new_plot.removeOccupiedSpace(new_plot.shape, new_plot.plot_trees);
-		
-		loop while: (remaining_space.area > 0 and my_trees_length > 0){	//use the same plot while there are spaces; plant while there are trees to plant
-			trees to_plant <- one_of(my_trees);	//get one of the trees
-			point prev_location <- to_plant.location;
-			to_plant.location <- any_location_in(remaining_space);	//put plant on the location
-			trees closest_tree <- new_plot.plot_trees closest_to to_plant;	//get the closest tree to the newly planted plant
-			if(closest_tree != nil and (circle(closest_tree.dbh+5, closest_tree.location) overlaps circle(to_plant.dbh+5, to_plant.location))){	//if the closest tree overlaps with the tree that will be planted, do not continue planting the tree 
-				ask to_plant{
-					remove self from: myself.my_trees;	//remove the plant from the 
-					self.location <- prev_location; 	//return the plant from where it's from
-				}
-			}else{	//plant the tree
-				write "Type: "+to_plant.type;
-				to_plant.is_new_tree <- false;
-				remove to_plant from: to_plant.my_plot.plot_trees;
-				to_plant.my_plot <- new_plot;	//update plot of tree
-				to_plant.my_plot.plot_trees << to_plant;	//put tree to the tree list of the new_plot
-				remove to_plant from: my_trees;
-				geometry new_occupied_space <- circle(to_plant.dbh+5) translated_to to_plant.location;	//+5 allows for spacing between plants
-				remaining_space <- remaining_space - new_occupied_space; 
-			}
-			my_trees_length <- my_trees_length - 1;
-		}
-		location <- new_plot.location;
-		man_months[1] <- man_months[1]+1;
-	}
-	
 	//laborer gets as much tree as it can get 
 	//returns remaining unallocated trees
 	list<trees> getTrees(list<trees> treeToBeAlloc){
@@ -132,5 +81,193 @@ species labour{
 			is_new_tree <- false;
 		}
 		return treeToBeAlloc;
+	}
+	
+	//First, look at the neighborhood of the nursery for any plot with seedlings, if there is proceed with gathering
+	//If there is none, put the laborer at the farthest position in the neighborhood so that the next time he will search on that new neighborhood
+	plot findPlotWithSeedlings{
+		list<plot> neighborhood <- plot at_distance 150;
+		ask neighborhood{
+			list<trees> seedlings <- plot_trees where (each.state = "seedling");
+			if(length(seedlings) > 0){
+				return self;
+			}
+		}		
+		
+		self.current_plot <- neighborhood farthest_to self;
+		location <- current_plot.location;
+		
+		return nil;	 
+	}
+	
+	list<trees> gatherSeedlings(plot found_plot){
+		list<trees> all_seedlings <- found_plot.plot_trees where (each.state = "seedling");
+		if(length(all_seedlings) > carrying_capacity){
+			all_seedlings <- all_seedlings[0::carrying_capacity];
+		}
+		//remove the seedlings from the plot
+		ask all_seedlings{
+			remove self from: found_plot.plot_trees;
+			add self to: myself.my_trees;	//my_trees is the bag of the laborer to hold the trees it had gathered
+		}
+		
+		return all_seedlings;
+	}
+	
+	action replant(list<trees> t){
+		list<plot> to_plant_plot <- my_plots where (length(each.getAvailableSpaces(0)) > 1);
+		if(length(to_plant_plot)>0){
+			plot p <- one_of(to_plant_plot);
+			self.current_plot <- p;
+			location <- current_plot.location;
+			geometry remaining_space <- p.removeOccupiedSpace(p.shape, p.plot_trees);
+			loop while: (remaining_space.area > 0 and length(t) > 0){
+				trees to_plant <- one_of(t);
+				point prev_location <- to_plant.location;	//get location of the seedling
+				to_plant.location <- any_location_in(remaining_space);	//put the seedling in one of the available location in the nursery
+				//make sure it is safe to replant, meaning, it doesn't overlap a nearby tree
+				trees closest_tree <-p.plot_trees closest_to to_plant;
+				if(closest_tree = nil or !(circle(closest_tree.dbh+5, closest_tree.location) overlaps circle(to_plant.dbh+5, to_plant.location))){	//if the closest tree overlaps with the tree that will be planted, do not continue planting the tree
+					//plant the tree
+					to_plant.my_plot <- p;
+					add to_plant to: to_plant.my_plot.plot_trees;
+					remove to_plant from: my_trees;
+					geometry new_occupied_space <- circle(to_plant.dbh+5) translated_to to_plant.location;	//+5 allows for spacing between plants
+					remaining_space <- remaining_space - new_occupied_space;
+					remove to_plant from: t;
+				}else{
+					to_plant.location <- nil;	//the tree isn't give permanent nursery location yet 
+				}
+			}
+		}
+		if(labor_type = COMM_LABOUR){
+			man_months[1] <- man_months[1] + 1;
+		}
+	}
+	
+	//find a nursery with seedling and return the plot
+	plot goToNursery{
+		list<plot> nurseries <- plot where (each.is_nursery);
+		ask nurseries{
+			if(length(plot_trees where (each.state ="sapling")) > 0){	//the plot has seedlings
+				return self;
+			}
+		}
+		return nil;
+	}
+	
+	//harvests upto capacity
+	action selectiveHarvestITP{
+		list<trees> trees_to_harvest <- [];
+		
+		list<trees> tree60to70 <- plot_to_harvest.plot_trees where (each.dbh >= 30 and each.dbh < 40); //(each.dbh >= 60 and each.dbh < 70);
+		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
+		if(length(tree60to70) >= carrying_capacity){//get only upto capacity
+			trees_to_harvest <- tree60to70[0::carrying_capacity];
+		}else{
+			trees_to_harvest <- tree60to70;
+			list<trees> tree70to80 <- plot_to_harvest.plot_trees where (each.dbh >= 40 and each.dbh < 50);//(each.dbh >= 70 and each.dbh < 80);
+			tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
+			if(length(tree70to80) >= (carrying_capacity - length(trees_to_harvest))){
+				trees_to_harvest <<+ tree70to80[0::(carrying_capacity - length(trees_to_harvest))];
+			}else{
+				list<trees> tree80up <- plot_to_harvest.plot_trees where (each.dbh >= 50);// (each.dbh >= 80);
+				if(length(tree80up) >= (carrying_capacity - length(trees_to_harvest))){
+					trees_to_harvest <<+ tree70to80[0::(carrying_capacity - length(trees_to_harvest))];
+				}else{
+					trees_to_harvest <<+ tree80up;
+				}
+			}
+			
+		}
+
+		plot_to_harvest.plot_trees <- (plot_to_harvest.plot_trees - trees_to_harvest);
+		ask plot_to_harvest.plot_trees{
+			age <- age + 5; 	//to correspond to TSI
+		}
+		if(labor_type = COMM_LABOUR){
+			man_months[1] <- man_months[1]+1;
+			current_plot <- plot_to_harvest;
+		} 
+		
+		harvested_trees <- trees_to_harvest;
+	}
+	
+	list<trees> gatherSaplings(plot nursery){
+		return (nursery.plot_trees where (each.state = "sapling"));
+	}
+	
+	action setPlotToHarvest(plot pth){
+		plot_to_harvest <- pth;
+	}
+	
+	//harvests upto capacity
+	//gets the biggest trees
+	list<trees> harvestPlot{
+		if(!(plot_to_harvest.my_laborers contains self)){
+			add self to: plot_to_harvest.my_laborers;	
+		}
+		list<trees> trees_to_harvest <- reverse(sort_by(plot_to_harvest.plot_trees, each.dbh));
+		
+		if(trees_to_harvest = nil){	//nothing to harvest on the plot, move to another plot
+			return nil;
+		}else{
+			if(length(trees_to_harvest) > carrying_capacity){
+				trees_to_harvest <- first(carrying_capacity, sort_by(plot_to_harvest.plot_trees, each.dbh));	//get only according to capacity
+			}
+					
+			plot_to_harvest.plot_trees <- (plot_to_harvest.plot_trees - trees_to_harvest);
+			ask plot_to_harvest.plot_trees{
+				age <- age + 5; 	//to correspond to TSI
+			}
+			return trees_to_harvest;	
+		}
+	}
+	
+	state vacant initial: true{	
+		transition to: assigned_nursery when: is_nursery_labour;
+		transition to: assigned_itp_harvester when: (is_harvest_labour and plot_to_harvest != nil);
+		transition to: assigned_itp_planter when: is_planting_labour;
+	}
+	
+	state assigned_nursery {
+		plot found_plot <- findPlotWithSeedlings();
+		if(found_plot!=nil){
+			list<trees> seedlings_gathered <- gatherSeedlings(found_plot);
+			do replant(seedlings_gathered);
+		} 
+	}
+	
+	state assigned_itp_planter{
+		plot nursery <- goToNursery();
+		if(nursery != nil){
+			list<trees> saplings_gathered <- gatherSaplings(nursery); 
+			do replant(saplings_gathered);
+		}
+		transition to: vacant when: !is_planting_labour;
+	}
+	
+	state assigned_itp_harvester{
+		do selectiveHarvestITP;
+	    ask university_si{
+	    	do completeITPHarvest(myself.harvested_trees, myself);
+	    }
+		transition to: vacant when: !is_harvest_labour;
+		
+		exit{
+			plot_to_harvest <- nil;
+		}
+	}
+	
+	state independent{	//if instance of independent community member 
+		if(plot_to_harvest != nil){
+			do harvestPlot;
+			ask com_identity{
+				do completeHarvest(myself.harvested_trees);
+			}
+		}
+		
+		transition to: assigned_itp_harvester when: is_harvest_labour;
+		transition to: assigned_itp_planter when: is_planting_labour;
 	}
 }

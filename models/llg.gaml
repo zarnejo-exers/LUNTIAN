@@ -680,23 +680,6 @@ species plot{
 			return int(temp_shape.area/tree_shape.area);	//rough estimate of the number of available spaces for occupation
 		}	
 	}
-	
-	reflex checkNewTreeRecruit{ //should be reflex
-		do updateTrees;
-		
-		list<trees> new_trees <- plot_trees where (each.is_new_tree);
-		if(length(new_trees) > 0){
-			ask university_si{
-				if(length(my_nurseries) > 0){
-					do newTreeAlert(myself, new_trees);	
-				}else{
-					//write "There are no nursery yet.";
-				}
-				
-			}
-		}
-	}
-	
 }
 
 species soil{
