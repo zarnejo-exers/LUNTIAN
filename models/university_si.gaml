@@ -40,8 +40,8 @@ global{
 	map<plot, list<investor>> plot_investor; 
 	bool hiring_prospect <- false;
 	
-	int harvesting_age_exotic <- 20 update: harvesting_age_exotic;	//temp
-	int harvesting_age_native <- 20 update: harvesting_age_native;	//actual 40
+	int harvesting_age_exotic <- 5 update: harvesting_age_exotic;	//temp
+	int harvesting_age_native <- 5 update: harvesting_age_native;	//actual 40
 	
 	bool assignedNurseries <- false;
 	bool start_harvest <- false;
@@ -433,23 +433,26 @@ species university_si{
 		list<labour> assigned_laborers <- [];
 		
 		ask itp_laborers - the_plot.my_laborers{
-			if(empty(myself.available_seeds)){break;}	//there's no more seeds to be planted 
-			add the_plot to: self.my_plots;	//add the itp plot to the list of laborer's my_plots
-			add self to: the_plot.my_laborers;	//put the laborer to the list of plot's laborers
+			if(empty(myself.available_seeds)){break;}	//there's no more seeds to be planted
 			
-			myself.available_seeds <- self.getTrees(myself.available_seeds where (each.type = itp_type)); //get only trees that is relevant to ITP
+			if(!(the_plot.my_laborers contains self)){	//proceed only if laborer is not in the plot yet
+				add the_plot to: self.my_plots;	//add the itp plot to the list of laborer's my_plots
+				add self to: the_plot.my_laborers;	//put the laborer to the list of plot's laborers
 				
-			add self to: assigned_laborers;	
-			self.man_months[1] <- self.man_months[1]+1;
-			
-			if(self.labor_type = self.COMM_LABOUR){
-				ask university_si{
-					write "Paying laborer: current earning (before) - "+myself.com_identity.current_earning;
-					do payLaborer(myself);
-					write "Paying laborer: current earning (after) - "+myself.com_identity.current_earning;
+				myself.available_seeds <- self.getTrees(myself.available_seeds where (each.type = itp_type)); //get only trees that is relevant to ITP
+					
+				add self to: assigned_laborers;	
+				self.man_months[1] <- self.man_months[1]+1;
+				
+				if(self.labor_type = self.COMM_LABOUR){
+					ask university_si{
+						write "Paying laborer: current earning (before) - "+myself.com_identity.current_earning;
+						do payLaborer(myself);
+						write "Paying laborer: current earning (after) - "+myself.com_identity.current_earning;
+					}
 				}
+				do assignLocation;				
 			}
-			do assignLocation;
 		}
 		
 		return assigned_laborers;
@@ -475,6 +478,15 @@ species university_si{
 		}
 	}
 	
+	//get the laborer that does not work on the plot yet
+	labour getUnassignedLaborer(plot n_plot, list<labour> free_laborers){
+		list<labour> unassigned <- free_laborers - (free_laborers where (each.my_plots contains n_plot)); 
+		if(unassigned != nil){
+			return first(unassigned);	
+		}
+		return nil;
+	}
+	
 	//divide the total number of investable plots+nursery plots to available laborers
 	//NOTE: 
 	// 1 laborer can manage 0..* nurseries -> meaning, they may have none or multiple nurseries
@@ -488,16 +500,23 @@ species university_si{
 		
 		if(length(to_assign_nurseries) <= length(free_laborers)){	//there are sufficient laborers for the nurseries
 			//write "Total Nurseries: "+length(to_assign_nurseries)+" of max capacity: "+nlaborer_count+" given Total Labor: "+length(free_laborers);
-		
-			loop an from: 0 to: length(to_assign_nurseries)-1{
-				//update the status of the laborer
-				ask free_laborers[an]{
-					add to_assign_nurseries[an] to: self.my_plots;
-					self.man_months <- [NURSERY_LABOUR, 0, 0];
-					self.is_nursery_labour <- true;
+			
+			ask to_assign_nurseries{	//assign one laborer per nursery
+				if(length(free_laborers)>0){
+					labour fl <- myself.getUnassignedLaborer(self, free_laborers);	//get the first laborer from the list
+					if(fl!=nil){	//check if the laborer is already assigned in the plot
+						ask fl{
+							add myself to: my_plots;
+							man_months <- [NURSERY_LABOUR, 0, 0];
+							is_nursery_labour <- true;
+						}
+						add fl to: my_laborers;
+						remove fl from: free_laborers;
+					}else{
+						write "Cannot assign free laborers on the plot";
+					}
 				}
-				add free_laborers[an] to: to_assign_nurseries[an].my_laborers; 
-			}//assign one laborer per nursery
+			}
 			
 			list<labour> remaining_laborers <- free_laborers where !each.is_nursery_labour;
 			

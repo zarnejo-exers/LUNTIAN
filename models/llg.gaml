@@ -2,6 +2,7 @@
 * Name: main
 * Based on the internal skeleton template. 
 * Author: zenith
+* Contains the following species: rivers, roads, climate, soil, plot, trees
 * Tags: waterwater_content from "Waterwater_content Field Elevation.gaml"
 */
 
@@ -405,7 +406,7 @@ species trees{
 				location <- new_location+myself.location.z;	//place tree on an unoccupied portion of the parcel
 				my_plot <- (plot closest_to(self));
 				shape <- circle(dbh) translated_to location;
-				my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
+				add self to: my_plot.plot_trees;	//similar scenario different approach for adding specie to a list attribute of another specie
 				is_new_tree <- true;
 				instance <- self;
 				state <- "seedling";
@@ -424,9 +425,6 @@ species trees{
 				add instance to: new_trees;		//add new tree to list of new trees
 				t_space <- t_space - circle(instance.dbh, new_location); 	//remove the tree's occupied space from the available space 
 			}
-		}
-		if(t_space != nil){
-		//	write "after adding trees tspace: "+t_space.area;
 		}
 		count_fruits <- length(new_trees);
 	}
