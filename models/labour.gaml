@@ -203,15 +203,13 @@ species labour control: fsm{
 	
 	//harvests upto capacity
 	//gets the biggest trees
-	list<trees> harvestPlot{
+	action harvestPlot{
 		if(!(plot_to_harvest.my_laborers contains self)){
 			add self to: plot_to_harvest.my_laborers;	
 		}
 		list<trees> trees_to_harvest <- reverse(sort_by(plot_to_harvest.plot_trees, each.dbh));
 		
-		if(trees_to_harvest = nil){	//nothing to harvest on the plot, move to another plot
-			return nil;
-		}else{
+		if(trees_to_harvest != nil){	//nothing to harvest on the plot, move to another plot
 			if(length(trees_to_harvest) > carrying_capacity){
 				trees_to_harvest <- first(carrying_capacity, sort_by(plot_to_harvest.plot_trees, each.dbh));	//get only according to capacity
 			}
@@ -220,8 +218,8 @@ species labour control: fsm{
 			ask plot_to_harvest.plot_trees{
 				age <- age + 5; 	//to correspond to TSI
 			}
-			return trees_to_harvest;	
 		}
+		harvested_trees <- trees_to_harvest;
 	}
 	
 	state vacant initial: true{	
