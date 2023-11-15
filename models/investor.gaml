@@ -34,6 +34,7 @@ species investor control: fsm{
 	int harvest_monitor;	//corresponds to the position of the plot, like a timer to signal if a year already passed
 	float total_profit <- 0.0;
 	float recent_profit;
+	float total_investment <- 0.0;
 	float investment <- 0.0;
 	float promised_profit; 
 	int harvested_trees<-0; 
@@ -165,8 +166,10 @@ species investor control: fsm{
 	    	my_plots.is_invested <- false;
 	        my_plots <- nil;
 	    	total_profit <- total_profit + recent_profit;	//record final profit
+	    	total_investment <- total_investment + investment;
 	    	recent_profit <- 0.0;
 	    	harvest_monitor <- 0;
+	    	investment <- 0.0;
 	    	write 'EXIT from '+state;
 	    } 
 	}

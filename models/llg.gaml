@@ -65,6 +65,9 @@ global {
 	int ave_fruits_native <- 100 update: ave_fruits_native;
 	float native_price_per_volume <- 70.0 update: native_price_per_volume;
 	
+	list<int> fruiting_months_E <- [0,1,2,7,11];
+	list<int> fruiting_months_N <- [8];
+	
 	//native, exotic
 	list<float> min_water <- [1500.0, 1400.0];						//best grow, annual, monthly will be taken in consideration during the growth effect
 	list<float> max_water <- [3500.0, 6000.0];						//best grow, annual
@@ -259,7 +262,7 @@ global {
 	}
 }
 
-species trees control: fsm{
+species trees{
 	float dbh; //diameter at breast height
 	float th; //total height
 	float mh;	//merchantable height
@@ -285,6 +288,21 @@ species trees control: fsm{
 	
 	list<trees> my_neighbors <- [];  
 	float nieghborh_effect <- 0.0; 
+	string state;
+	
+	//kill tree that are inside a basin
+	reflex killTree{
+		point tree_loc <- shape.location;
+		if(my_plot = nil) {do die; }
+		else{
+			if(water_content[tree_loc]-275 > elev[tree_loc]){
+				remove self from: my_plot.plot_trees;
+				my_plot.is_near_water <- true;
+				do die;
+			}
+		} 
+	}
+	
 	
 	aspect default{
 		draw circle(self.cd/2, self.location) color: (type = NATIVE)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
@@ -306,24 +324,13 @@ species trees control: fsm{
 			draw circle(dbh/2) at: {location.x,location.y,elev[point(location.x, location.y)]+400} color: #brown depth: mh;
 		}	
 	}
-
-	//kill tree that are inside a basin
-	reflex killTree{
-		point tree_loc <- shape.location;
-		if(my_plot = nil) {do die;}
-		else{
-			if(water_content[tree_loc]-275 > elev[tree_loc]){
-				remove self from: my_plot.plot_trees;
-				my_plot.is_near_water <- true;
-				do die;
-			}
-		} 
-	}
 	
 	//recruitment of tree
 	//mahogany fruit production every January, February, March, August, and December 
-	reflex fruitProduction{
-		list<int> fruiting_months <- [0,1,2,7,11];
+	//Trees 75 cm DBH were also more consistent producers.
+	//produces more than 700 fruits/year 
+	//geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
+	action fruitProductionE{
 		
 		float sfruit <- 42.4;
 		float fsurv <- 0.085;
@@ -336,33 +343,46 @@ species trees control: fsm{
 		ask university_si{
 			nurseries <- my_nurseries;
 		}
+
+		total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months_E))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
+		if(total_no_seeds > 0){
+			is_mother_tree <- true;
+			geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+40, mother_location) - circle(self.dbh+20, mother_location));
+			t_space <- my_plot.removeOccupiedSpace(t_space, trees inside t_space);	
+			if(t_space != nil){
+				self.temp <- 0;
+				do recruitTree(total_no_seeds, t_space);
+			}
+		}else{is_mother_tree <- false;}		
+	}
+	
+	//recruitment of tree
+	//mahogany fruit production every January, February, March, August, and December 
+	//age >=15				
+	//native tree, produces fruit every September
+	action fruitProductionN{
+		float sfruit <- 42.4;
+		float fsurv <- 0.085;
+		float fgap <- 0.026;
+		float fviable <- 0.618;
+		int total_no_seeds <- 0;
 		
-		//Trees 75 cm DBH were also more consistent producers.
-		//produces more than 700 fruits/year 
-		//geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
-		if(type=EXOTIC and age>=12 and (fruiting_months contains current_month)){		//exotic tree, age >= 40 and age <= 60
-			total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
-			if(total_no_seeds > 0){
-				is_mother_tree <- true;
-				geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+40, mother_location) - circle(self.dbh+20, mother_location));
-				t_space <- my_plot.removeOccupiedSpace(t_space, trees inside t_space);	
-				if(t_space != nil){
-					self.temp <- 0;
-					do recruitTree(total_no_seeds, t_space);
-				}
-			}else{is_mother_tree <- false;}
-		}else if(type = NATIVE and age > 15 and current_month = 8){		//age >=15				//native tree, produces fruit every September
-			total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
-			if(total_no_seeds > 0){
-				is_mother_tree <- true;
-				geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+20, mother_location) - circle(self.dbh, mother_location));
-				t_space <- my_plot.removeOccupiedSpace(t_space, trees inside t_space);
-				if(t_space != nil){
-					self.temp <- 0;
-					do recruitTree(total_no_seeds, t_space);
-				}
-			}else{is_mother_tree <- false;}
+		list<plot> nurseries;
+		point mother_location <- point(self.location.x, self.location.y);
+		ask university_si{
+			nurseries <- my_nurseries;
 		}
+		
+		total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
+		if(total_no_seeds > 0){
+			is_mother_tree <- true;
+			geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+20, mother_location) - circle(self.dbh, mother_location));
+			t_space <- my_plot.removeOccupiedSpace(t_space, trees inside t_space);
+			if(t_space != nil){
+				self.temp <- 0;
+				do recruitTree(total_no_seeds, t_space);
+			}
+		}else{is_mother_tree <- false;}
 	}
 	
 	//if there is no nursery, put the recruit on the same plot as with the mother tree
@@ -388,6 +408,7 @@ species trees control: fsm{
 				my_plot.plot_trees << self;	//similar scenario different approach for adding specie to a list attribute of another specie
 				is_new_tree <- true;
 				instance <- self;
+				state <- "seedling";
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	add new tree to parcel's list of trees
 			
 			ask instance.my_plot{
@@ -511,43 +532,42 @@ species trees control: fsm{
 	//once the tree reaches 5 years old, it cannot be moved to a nursery anymore
 	reflex stepAge {
 		age <- age + (1/12);
-		
-		if(age > 3){
-			is_new_tree <- false;		
-		}
-	
 	}
 	
 	//tree mortality
-	//assume itp plot has 0 mortality
-	reflex determineMortality when: (!(self.my_plot.is_nursery and self.age<=3) and !self.my_plot.is_itp){ //if it is a nursery, assume 0 mortality for trees of age <= 3
+	bool checkMortality{
 		float e <- exp(-2.917 - 1.897 * ((shade_tolerant)?1:0) - 0.079 * dbh);
 		float proba_dead <- (e/(e+1));
 		
 		if(flip(proba_dead)){
+			return true;
+		}
+		return false;
+	}
+
+	reflex updateState{
+		bool is_dying <- false;
+		if((my_plot.is_nursery and (age>3 and is_dying)) or (!my_plot.is_nursery)){
+			is_dying <- checkMortality();
+		}
+		if (dbh < 1.0){
+			state <- "seedling";
+		}else if(dbh> 1.0 and dbh <5.0){
+			state <- "sapling";
+		}else if(dbh >= 5.0 and dbh <= 30.0){
+			state <- "juvenile";
+		}else if(dbh > 30.0){
+			state <- "adult";
+			if(type = NATIVE and age > 15 and (fruiting_months_N contains current_month)){
+				do fruitProductionN();
+			}else if(type = EXOTIC and age>=12 and (fruiting_months_E contains current_month)){		//exotic tree, age >= 40 and age <= 60
+				do fruitProductionE();
+			}
+		}else{
+			state <- "dead";
 			remove self from: my_plot.plot_trees;
 			do die;
 		}
-	}
-	
-	state sapling initial: true{
-		enter {}
-			
-		transition to: juvenile when: (dbh >= 5 or dbh <= 10) { 	//if there's hiring prospective, choose to cooperate
-	    }
-	    
-	    exit {} 	
-	}
-	
-	state juvenile{
-		enter {}	
-		transition to: adult when: (dbh > 10) { 	//if there's hiring prospective, choose to cooperate 
-	    }
-	    
-	    exit {} 
-	}
-	
-	state adult{
 	}
 }
 

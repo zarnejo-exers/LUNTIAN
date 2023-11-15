@@ -31,8 +31,6 @@ global{
 	int nlaborer_count<- 1 update: nlaborer_count;
 	float planting_space <- 1.0 update: planting_space; 
 	int planting_age <- 1 update: planting_age;
-	int harvesting_age_exotic <- 1 update: harvesting_age_exotic;	//temp
-	int harvesting_age_native <- 1 update: harvesting_age_native;	//actual 40
 	int nursery_count <- 5 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
 	float dbh_policy <- 50.0 update: dbh_policy; 
@@ -41,6 +39,9 @@ global{
 	int itp_type; //0 ->plant native, 1->plant exotic, 2->plant mix
 	map<plot, list<investor>> plot_investor; 
 	bool hiring_prospect <- false;
+	
+	int harvesting_age_exotic <- 20 update: harvesting_age_exotic;	//temp
+	int harvesting_age_native <- 20 update: harvesting_age_native;	//actual 40
 	
 	bool assignedNurseries <- false;
 	bool start_harvest <- false;
@@ -364,7 +365,7 @@ species university_si{
 		list<labour> temp_laborers <- [];
 		//check if there are vacant, non-nursery laborers
 		
-		list<labour> itp_laborers <- labour where ((each.is_planting_labour or !each.is_nursery_labour) and empty(each.my_plots));	//get planting labours
+		list<labour> itp_laborers <- labour where ((!each.is_nursery_labour) and length(each.my_plots)=0);	//get those currently aren't nursery labor and without assigned plots
 		list<labour> assigned_laborers <- [];
 		
 		if(!empty(itp_laborers)){	//there's vacant laborer

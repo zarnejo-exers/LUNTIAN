@@ -54,7 +54,7 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		}
 		
 		display chart3 type: java2D{	
-			chart "Reprimanded community members" type: series
+			chart "Warned community members" type: series
 			{
 				loop i over: special_police{
             		data i.name value: i.total_comm_members_reprimanded;
