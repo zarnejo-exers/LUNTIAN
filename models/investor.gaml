@@ -13,7 +13,7 @@ import "university_si.gaml"
 global{
 	float risk_averse <- 0.5; 	//type = 0
 	float risk_loving <- 1.0;	//type = 1
-	int investor_count <- 4 update: investor_count;
+	int investor_count <- 10 update: investor_count;
 	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.75, "Neutral"::0.5];
 	
 	init{
@@ -37,8 +37,8 @@ species investor control: fsm{
 	float total_investment <- 0.0;
 	float investment <- 0.0;
 	float promised_profit; 
-	int harvested_trees<-0; 
 	bool done_harvesting <- false;
+	int tht <- 0;	//total harvested trees
 	
 	int rt;	//risk type
 	bool waiting <- false;

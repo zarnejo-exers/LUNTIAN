@@ -60,6 +60,13 @@ global{
 		itp_type <- (plant_native and plant_exotic)?2:(plant_native?0:1);
 	}
 	
+	reflex updateTHT{
+		tht <- 0;
+		loop i over: investor{
+			tht <- tht + i.tht; 
+		}
+	}
+	
 	//automatically execute when there are no laborers assigned to nurseries
 	reflex assignLaborersToNurseries when: (!assignedNurseries and (nursery_count > 0)){
 		ask university_si{
@@ -141,8 +148,6 @@ species university_si{
 	list<plot> investable_plots;
 	list<investor> current_investors <- [];
 	
-	map<investor, list<trees>> harvested_trees_per_investor <- investor as_map (each::[]);
-	
 	float mcost_of_native <- 5.0; //management cost in man hours of labor
 	float mcost_of_exotic <- 4.0; //management cost in man hours of labor
 	float pcost_of_native <- 1.0;	//planting cost in man hours of labor
@@ -191,17 +196,14 @@ species university_si{
 				
 		//give payment to investor		
 		investor i <- first(investor where (each.my_plot = hl.plot_to_harvest));	//get the investor who invested on the plot where the harvester harvested
-	    put harvested at: i in: harvested_trees_per_investor;	//puts the selected trees on the investor list
-	    i.harvested_trees <- length(harvested_trees_per_investor[i]);
-	    		
 	    float total_profit <- 0.0;
 	    loop s over: harvested{
 	    	total_profit <- total_profit + (((s.type = 1)?exotic_price_per_volume:native_price_per_volume) * (#pi * (s.dbh/2)^2 * s.th) );
+	    	i.tht <- i.tht + 1;
 	    }
 	    i.recent_profit <- total_profit;
 	    i.done_harvesting <- true;
 	    i.waiting <- false;
-	    tht <- tht + length(harvested);
 	}
 	
 	//for each plot, determine if plot is investable or not
