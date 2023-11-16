@@ -345,11 +345,7 @@ species trees{
 		float fviable <- 0.618;
 		int total_no_seeds <- 0;
 		
-		list<plot> nurseries;
 		point mother_location <- point(self.location.x, self.location.y);
-		ask university_si{
-			nurseries <- my_nurseries;
-		}
 
 		total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months_E))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 		if(total_no_seeds > 0){
@@ -374,11 +370,7 @@ species trees{
 		float fviable <- 0.618;
 		int total_no_seeds <- 0;
 		
-		list<plot> nurseries;
 		point mother_location <- point(self.location.x, self.location.y);
-		ask university_si{
-			nurseries <- my_nurseries;
-		}
 		
 		total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
 		if(total_no_seeds > 0){
@@ -665,25 +657,6 @@ species plot{
 		}
 		
 		return temp_shape;
-	}
-	
-	//compute the number of new tree that the plot can accommodate
-	//given type of tree, returns the number of spaces that can be accommodate wildlings
-	int getAvailableSpaces(int type){
-		//remove from occupied spaces
-		do updateTrees();
-		geometry temp_shape <- removeOccupiedSpace(self.shape, self.plot_trees);
-		
-		float temp_dbh;
-		ask university_si{
-			temp_dbh <- managementDBHEstimate(type, planting_age);
-		}
-		geometry tree_shape <- circle(temp_dbh);
-		
-		if(temp_shape = nil){return 0;}
-		else{
-			return int(temp_shape.area/tree_shape.area);	//rough estimate of the number of available spaces for occupation
-		}	
 	}
 }
 

@@ -17,8 +17,13 @@ global{
 	float max_planting_pay <- PLANTING_LABOUR * PLANTING_LCOST;
 	float max_nursery_pay <- NURSERY_LABOUR * NURSERY_LCOST;
 	
+	map<comm_member,int> h_monitor; 
+	
 	init{
-		create comm_member number: member_count; 
+		create comm_member number: member_count;
+		ask comm_member{
+			add self::0 to: h_monitor;
+		} 
 	}
 }
 
@@ -32,6 +37,8 @@ species comm_member control: fsm{
 	int success <- 0;
 	int caught <- 0; 
 	bool is_caught <- false;
+	
+	int total_harvested_trees <- 0; //for independent harvesting
 	
 	reflex tickService when: instance_labour != nil{	//monitor lapsed time
 		instance_labour.man_months[2] <- instance_labour.man_months[2]+1;
@@ -116,6 +123,8 @@ species comm_member control: fsm{
 		current_earning <- computeEarning(harvested_trees);	//compute earning of community member
 		total_earning <- total_earning + current_earning;
 		success <- success + 1;
+		total_harvested_trees <- total_harvested_trees + 1;
+		h_monitor[self] <- total_harvested_trees;
 	}
 	
 	//waiting to be hired

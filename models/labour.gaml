@@ -115,7 +115,15 @@ species labour control: fsm{
 	}
 	
 	action replant(list<trees> t){
-		list<plot> to_plant_plot <- my_plots where (length(each.getAvailableSpaces(0)) > 1);
+		
+		list<plot> to_plant_plot <- []; 
+		ask university_si{
+			ask myself.my_plots{
+				if(length(myself.getAvailableSpaces(self, 0)) > 0){
+					add self to: to_plant_plot;
+				}
+			}
+		}
 		if(length(to_plant_plot)>0){
 			plot p <- one_of(to_plant_plot);
 			self.current_plot <- p;
@@ -201,13 +209,23 @@ species labour control: fsm{
 		plot_to_harvest <- pth;
 	}
 	
+	action cutTrees(list<trees> t){
+		ask t{
+			remove self from: myself.harvested_trees;
+			remove self from: my_plot.plot_trees;
+			do die;
+		}
+	}
+	
 	//harvests upto capacity
 	//gets the biggest trees
 	action harvestPlot{
+		list<trees> trees_to_harvest <- [];
+		
 		if(!(plot_to_harvest.my_laborers contains self)){
 			add self to: plot_to_harvest.my_laborers;	
 		}
-		list<trees> trees_to_harvest <- reverse(sort_by(plot_to_harvest.plot_trees, each.dbh));
+		trees_to_harvest <- reverse(sort_by(plot_to_harvest.plot_trees, each.dbh));
 		
 		if(trees_to_harvest != nil){	//nothing to harvest on the plot, move to another plot
 			if(length(trees_to_harvest) > carrying_capacity){
@@ -257,6 +275,7 @@ species labour control: fsm{
 	    ask university_si{
 	    	do completeITPHarvest(myself.harvested_trees, myself);
 	    }
+	    do cutTrees(harvested_trees);
 		transition to: vacant when: !is_harvest_labour;
 	}
 	
@@ -266,6 +285,7 @@ species labour control: fsm{
 			ask com_identity{
 				do completeHarvest(myself.harvested_trees);
 			}
+			do cutTrees(harvested_trees);
 		}
 		
 		transition to: assigned_itp_harvester when: is_harvest_labour;

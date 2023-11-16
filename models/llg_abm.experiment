@@ -10,26 +10,26 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 	
 	parameter "Growth rate (E)" category: "Exotic Setup" var:growth_rate_exotic;
 	parameter "Max DBH (E)" category: "Exotic Setup"  var:max_dbh_exotic;
-	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
+//	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
 	parameter "Number of fruits per year (E)" category: "Exotic Setup" var: ave_fruits_exotic;
-	parameter "Harvesting age (E)" category: "Exotic Setup" var: harvesting_age_exotic;
-	parameter "Price per Volume (E)" category: "Exotic Setup" var: exotic_price_per_volume;
+//	parameter "Harvesting age (E)" category: "Exotic Setup" var: harvesting_age_exotic;
+//	parameter "Price per Volume (E)" category: "Exotic Setup" var: exotic_price_per_volume;
 	
 	parameter "Growth rate (N)" category: "Native Setup" var:growth_rate_native;
 	parameter "Max DBH (N)" category: "Native Setup"  var:max_dbh_native;
-	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
+//	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
 	parameter "Number of fruits per year (N)" category: "Native Setup" var: ave_fruits_native;
-	parameter "Harvesting age (N)" category: "Native Setup" var: harvesting_age_native;
-	parameter "Price per Volume (N)" category: "Native Setup" var: native_price_per_volume;
-	
-	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
-	parameter "Planting age" category: "Management" var: planting_age min: 1;
-	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
-	parameter "DBH policy" category: "Management" var: dbh_policy min: 50.0 max: 70.0;
-	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
-	
-	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
-	parameter "Number of laborers per nursery" category: "Nursery Management" var: nlaborer_count min: 0 step: 1;
+//	parameter "Harvesting age (N)" category: "Native Setup" var: harvesting_age_native;
+//	parameter "Price per Volume (N)" category: "Native Setup" var: native_price_per_volume;
+//	
+//	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
+//	parameter "Planting age" category: "Management" var: planting_age min: 1;
+//	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
+//	parameter "DBH policy" category: "Management" var: dbh_policy min: 50.0 max: 70.0;
+//	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
+//	
+//	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
+//	parameter "Number of laborers per nursery" category: "Nursery Management" var: nlaborer_count min: 0 step: 1;
 	
 	output {
 		layout #split;
@@ -40,8 +40,6 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 			species river aspect: default;	
 			species road aspect: default;					 
 			species trees aspect: geom3D;
-			species university_si; 
-			species labour;
 			
 			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
 			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
@@ -58,8 +56,8 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 		display chart1 type: java2D{	
 			chart "Population of Trees" type: series
 			{
-				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#blue;
-				data "Native Trees" value: length(trees where (each.type = 0)) color: #green;
+				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#red;
+				data "Native Trees" value: length(trees where (each.type = 0)) color: #blue;
 			}		
 		}
 //		
@@ -74,9 +72,9 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 			chart "Population of Trees" type: series
 			{
 				data "Native: Young Trees" value: length(trees where (each.age < 15 and each.type = 0)) color:#blue;
-				data "Native: Old Trees" value: length(trees where (each.age >= 15 and each.type = 0)) color: #green;
+				data "Native: Old Trees" value: length(trees where (each.age >= 15 and each.type = 0)) color: #darkblue;
 				data "Exotic: Young Trees" value: length(trees where (each.age < 12 and each.type = 1)) color:#red;
-				data "Exotic: Old Trees" value: length(trees where (each.type = 1 and each.age >= 12)) color: #yellow;
+				data "Exotic: Old Trees" value: length(trees where (each.type = 1 and each.age >= 12)) color: #darkred;
 			}
 		}
 	

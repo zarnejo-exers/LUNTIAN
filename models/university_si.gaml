@@ -45,6 +45,8 @@ global{
 	
 	bool assignedNurseries <- false;
 	bool start_harvest <- false;
+	
+	int tht <- 0;
 	init{
 		create market;
 		create labour number: laborer_count{
@@ -167,7 +169,6 @@ species university_si{
 		}else if(cl.is_planting_labour){
 			cl.com_identity.current_earning <- cl.com_identity.current_earning + (PLANTING_LCOST);
 		}
-		//
 	}
 
 	action updateInvestors{
@@ -195,11 +196,12 @@ species university_si{
 	    		
 	    float total_profit <- 0.0;
 	    loop s over: harvested{
-	    	total_profit <- total_profit + (((s.type = 1)?exotic_price_per_volume:native_price_per_volume) * (#pi * (s.dbh/2)^2 * s.th) ); 
+	    	total_profit <- total_profit + (((s.type = 1)?exotic_price_per_volume:native_price_per_volume) * (#pi * (s.dbh/2)^2 * s.th) );
 	    }
 	    i.recent_profit <- total_profit;
 	    i.done_harvesting <- true;
 	    i.waiting <- false;
+	    tht <- tht + length(harvested);
 	}
 	
 	//for each plot, determine if plot is investable or not
@@ -223,7 +225,7 @@ species university_si{
 		}
 		
 		ask plot - not_investable_plots{
-			int spaces_for_planting <- getAvailableSpaces(t_type);	//get total number of wildlings that the plot can accommodate
+			int spaces_for_planting <- myself.getAvailableSpaces(self, t_type);	//get total number of wildlings that the plot can accommodate
 			
 			//given spaces to be filled by plants + planting cost + management cost
 			investment_cost <- (((planting_cost+myself.getManagementCost(t_type)) * spaces_for_planting)*myself.labor_price) ;	//compute total cost in man hours
@@ -262,7 +264,7 @@ species university_si{
 			return false;
 		}
 		//check available seeds in nursery
-		int no_trees_for_planting <- chosen_plot.getAvailableSpaces((plant_native)?0:1);
+		int no_trees_for_planting <- getAvailableSpaces(chosen_plot, (plant_native)?0:1);
 		if(length(available_seeds)< no_trees_for_planting){	//check if the available seeds is sufficient to start investment on plot, if no, deny investment
 			return false;
 		}
@@ -301,6 +303,29 @@ species university_si{
 		}
 		
 		return saplings;
+	}
+	
+		//compute the number of new tree that the plot can accommodate
+	//given type of tree, returns the number of spaces that can be accommodate wildlings
+	int getAvailableSpaces(plot p, int type){
+		//remove from occupied spaces
+		geometry temp_shape;
+		ask p{
+			do updateTrees();
+			temp_shape <- removeOccupiedSpace(p.shape, p.plot_trees);
+		}
+		
+		
+		float temp_dbh;
+		ask university_si{
+			temp_dbh <- managementDBHEstimate(type, planting_age);
+		}
+		geometry tree_shape <- circle(temp_dbh);
+		
+		if(temp_shape = nil){return 0;}
+		else{
+			return int(temp_shape.area/tree_shape.area);	//rough estimate of the number of available spaces for occupation
+		}	
 	}
 
 	/* ITP_Planter
