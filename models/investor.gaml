@@ -48,6 +48,10 @@ species investor control: fsm{
 	//once investment has been successfully completed; university starts the planting and assigns rotation years per plot.
 	action decideInvestment{	////reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
 		
+		ask university_si{
+			do determineInvestablePlots;	
+		}
+		
 		list<plot> investable_plots <- plot where (each.is_investable and !each.is_invested);	//gets investable plots
 		
 		//decide investment based on risk type
@@ -72,6 +76,7 @@ species investor control: fsm{
 				chosen_plot.is_invested <- true;
 				investment <- chosen_plot.investment_cost;
 				promised_profit <- chosen_plot.projected_profit;
+				write "Investment granted -- cost: "+investment+" promised profit: "+promised_profit;
 			}else{
 				write "Investment denied";	
 			}
@@ -119,8 +124,8 @@ species investor control: fsm{
 		if(harvest_monitor = 12){
 			if(my_plot.rotation_years != 0){
 				my_plot.rotation_years <- my_plot.rotation_years - 1;
-				harvest_monitor <- 0;
 			}
+			harvest_monitor <- 0;
 		}
 	}
 	

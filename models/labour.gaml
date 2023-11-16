@@ -242,6 +242,13 @@ species labour control: fsm{
 			list<trees> saplings_gathered <- gatherSaplings(nursery); 
 			do replant(saplings_gathered);
 		}
+		if(com_identity != nil){	//meaning, laborer is an instance of community
+			ask university_si{
+				write "Paying laborer: current earning (before) - "+myself.com_identity.current_earning;
+				do payLaborer(myself);
+				write "Paying laborer: current earning (after) - "+myself.com_identity.current_earning;
+			}
+		}
 		transition to: vacant when: !is_planting_labour;
 	}
 	
@@ -251,10 +258,6 @@ species labour control: fsm{
 	    	do completeITPHarvest(myself.harvested_trees, myself);
 	    }
 		transition to: vacant when: !is_harvest_labour;
-		
-		exit{
-			plot_to_harvest <- nil;
-		}
 	}
 	
 	state independent{	//if instance of independent community member 

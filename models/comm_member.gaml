@@ -91,8 +91,6 @@ species comm_member control: fsm{
 	//determines hiring prospecti
 	//if returned true, transition to labour_partner; else, remain as competitor
 	bool checkHiringProspective{
-		
-		
 		ask university_si{
 			if(!hiring_prospect){
 				return false;		//if there's no hiring prospect, return false right away	
@@ -101,9 +99,9 @@ species comm_member control: fsm{
 		write "THERE'S HIRING PROSPECT!";
 		//if there is a hiring prospect, check the state of all competitors
 		//shift meaning, become labour_partner
-		int competition_count <- comm_member count (each.state = "independent_harvesting");
+		int competition_count <- comm_member count (each.state = "independent_harvesting" or each.state = "independent_passive");
 		if(competition_count = 0){
-			return false;
+			return true;
 		} 
 		return flip(1/competition_count);	//shift chance is a fraction dependent on total number of competition
 	}
@@ -157,16 +155,13 @@ species comm_member control: fsm{
 	    	satisfied <- (current_earning < max_harvest_pay or hasCompetingEarner())?false: true;
 	    }else{ //satisifaction based on wage only
 	    	if(instance_labour.is_planting_labour) {
-	    		write "Planting labour: current earning "+current_earning+" max planting pay: "+max_planting_pay;
 	    		satisfied <- (current_earning >= (0.3*max_planting_pay))?true: false;
 	    	}else{
-	    		write "Nursery labour";
 	    		satisfied <- (current_earning >= (0.3*max_nursery_pay))?true: false;
 	    	}	
 	    } 
 	    
-	    
-	    
+	   // write "assigned: "+instance_labour.man_months[0]+" lapsed: "+instance_labour.man_months[0];
 	    transition to: independent_harvesting when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and !satisfied) { 
 	        write "Service Ended... Transition: labour_partner -> independent_harvesting"; 
 	    }
@@ -250,6 +245,7 @@ species comm_member control: fsm{
 		transition to: potential_partner when: (checkHiringProspective()) { 	//if there's hiring prospective, choose to cooperate
 	        success <- 0;
 	        caught <- 0;
+	        lapsed_time <- waiting_allowance;
 	    }
 	    transition to: independent_harvesting when: (probaHarvest()); 	//if there's hiring prospective, choose to cooperate
 	    

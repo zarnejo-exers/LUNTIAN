@@ -65,13 +65,14 @@ global{
 			if(length(my_nurseries) >= nursery_count){	//start ITP if there's enough nurseries
 				write "Starting ITP: "+length(my_nurseries)+" with: "+nursery_count;
 				do assignLaborerToNursery(my_nurseries);
-				do determineInvestablePlots(itp_type);
+				//do determineInvestablePlots(itp_type);
 				do updateInvestors;	 
 				assignedNurseries <- true;
 			}else{
 				write "Let environment grow";
-			}	
+			}		
 		}
+		
 	}
 	
 	//stop simulation at year 50
@@ -85,6 +86,8 @@ global{
     	loop i over: investor where (each.my_plot != nil){
     		if(i.my_plot.rotation_years <=0 and !i.waiting){
     			i.waiting <- hireHarvester(i);
+    		}else{
+    			write "cannot harvest yet...";
     		}
     	}
     }
@@ -94,40 +97,37 @@ global{
     	list<labour> available_harvesters <- labour where (each.labor_type = each.OWN_LABOUR and each.state="vacant");	//get own laborers that are not nursery|planting labours
 		labour chosen_labour; 
 		
-		if(length(available_harvesters) > 0){
-			if(length(available_harvesters) > 0){	//hire own laborers that are not nursery
-				chosen_labour <- first(shuffle(available_harvesters));	
-				if(!chosen_labour.is_harvest_labour){	//if it is not yet a harvest laborer, set it 
-					chosen_labour.man_months <- [HARVEST_LABOUR, 0, 0]; 
-					chosen_labour.is_harvest_labour <- true;
-					hiring_prospect <- false;
-				}			
-			}
-			else{	//hire from community
-				list<comm_member> avail_member <- comm_member where (each.state = "potential_partner" and each.instance_labour = nil);
-				if(avail_member != nil and length(avail_member)>0){	//there exist an available member 
-					comm_member cm <- first(shuffle(avail_member));	//use the first member 
-					create labour{
-						man_months <- [HARVEST_LABOUR, 0, 0];
-						labor_type <- COMM_LABOUR; 
-						is_harvest_labour <- true;
-						com_identity <- cm;
-						cm.instance_labour <- self;
-						state <- "assigned_itp_harvester";
-					}
-					chosen_labour <- cm.instance_labour;
-					hiring_prospect <- false;
-				}else{	//no available member
-					hiring_prospect <- true;
+		if(length(available_harvesters) > 0){	//own laborers
+			chosen_labour <- first(shuffle(available_harvesters));	 
+			chosen_labour.man_months <- [HARVEST_LABOUR, 0, 0]; 
+			chosen_labour.is_harvest_labour <- true;
+			hiring_prospect <- false;
+			chosen_labour.state <- "assigned_itp_harvester";
+		}
+		else{	//hire from community
+			list<comm_member> avail_member <- comm_member where (each.state = "potential_partner" and each.instance_labour = nil);
+			if(avail_member != nil and length(avail_member)>0){	//there exist an available member 
+				comm_member cm <- first(shuffle(avail_member));	//use the first member 
+				create labour{
+					man_months <- [HARVEST_LABOUR, 0, 0];
+					labor_type <- COMM_LABOUR; 
+					is_harvest_labour <- true;
+					com_identity <- cm;
+					cm.instance_labour <- self;
+					state <- "assigned_itp_harvester";
 				}
+				chosen_labour <- cm.instance_labour;
+				hiring_prospect <- false;
+			}else{	//no available member
+				hiring_prospect <- true;
 			}
+		}
 			
-			if(!hiring_prospect){
-				ask chosen_labour{
-					do setPlotToHarvest(i.my_plot);
-				}
-				add chosen_labour to: i.my_plot.my_laborers;	
+		if(!hiring_prospect){
+			ask chosen_labour{
+				do setPlotToHarvest(i.my_plot);
 			}
+			add chosen_labour to: i.my_plot.my_laborers;	
 			return true;
 		}return false;
     }
@@ -200,7 +200,6 @@ species university_si{
 	    i.recent_profit <- total_profit;
 	    i.done_harvesting <- true;
 	    i.waiting <- false;
-	    write "RECENT profit:"+i.recent_profit+" of "+i.name;
 	}
 	
 	//for each plot, determine if plot is investable or not
@@ -208,7 +207,8 @@ species university_si{
 	//profit : current trees in n years, where n = rotation of newly planted trees
 	//cost : number of wildlings that needs to be planted + maintenance cost per wildling
 	//note: consider that the policy of the government will have an effect on the actual profit, where only x% can be harvested from a plot of y area
-	action determineInvestablePlots(int t_type){
+	action determineInvestablePlots{
+		int t_type <- 1;
 		float planting_cost <- getPlantingCost(t_type);
 		float buying_price;
 		int harvest_age <- (t_type=1 ? harvesting_age_exotic: harvesting_age_native);
@@ -290,6 +290,18 @@ species university_si{
 			the_plot.rotation_years <- (harvesting_age_exotic < mean_age_tree)?harvesting_age_exotic:int(harvesting_age_exotic - mean_age_tree);
 		}		
 	}
+	
+	list<trees> getAllSaplingsInNurseries{
+		list<plot> nurseries <- plot where each.is_nursery;
+		list<trees> saplings <- [];
+		
+		ask nurseries{
+			list<trees> s <- (plot_trees where (each.state = "sapling"));
+			saplings <<+ s;
+		}
+		
+		return saplings;
+	}
 
 	/* ITP_Planter
 	 * the_plot: needs trees_to_be_planted in order to convert the plot into an ITP implementing selective logging
@@ -303,11 +315,12 @@ species university_si{
 	 */	
 	action assignLaborerToPlot(plot the_plot){
 		//check if there are vacant, non-nursery laborers
-		list<trees> available_seeds <- the_plot.plot_trees where (each.state = "sapling");	//seeds to be planted
+		list<trees> available_seeds <- getAllSaplingsInNurseries();	//total number of sapligns in the nurseries
 		list<labour> itp_laborers <- labour where (each.state = "vacant");	//get those currently aren't nursery labor and without assigned plots
 		
 		int demand_for_labor <- length(available_seeds);
 		if(length(itp_laborers) > 0 and demand_for_labor > 0){	//there are vacant laborers
+			write "Using own laborers";
 			ask itp_laborers{
 				if(carrying_capacity < demand_for_labor){
 					add the_plot to: self.my_plots;
@@ -317,7 +330,6 @@ species university_si{
 				}
 				if(demand_for_labor <= 0){break;}
 			}
-			
 		}
 		
 		if(demand_for_labor > 0){
