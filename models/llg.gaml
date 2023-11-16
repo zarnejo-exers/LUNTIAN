@@ -130,6 +130,12 @@ global {
 			th <- float(read("Dummy_Da_2"));		//Dummy_Da_1
 			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
 			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
+			
+			if(mh > th){
+				float temp_ <- mh;
+				mh <- th;
+				th <- temp_;
+			}
 			cr <- 1 - (mh / th);
 			cd <- cr*(dbh) + dbh; 
 			
@@ -269,8 +275,8 @@ species trees{
 	float mh;	//merchantable height
 	float r; //distance from tree to a point 
 	int type;  //0-mayapis; 1-mahogany; 2-fruit tree
-	float cr; 	//crown ratio
-	float cd <- 0.0 update: cr*(dbh) + dbh;	//crown diameter
+	float cr; 	//crown ratio, set at the reading of the data
+	float cd;	//crown diameter
 	
 	float ba;
 	float dipy;
@@ -513,8 +519,7 @@ species trees{
 		}
 		
 		dbh <- calculateDBH(nieghborh_effect);
-		
-		
+		cd <- cr*(dbh) + dbh;
 		th <- calculateHeight();
 		if(!my_plot.is_itp and closest_tree != nil and (circle(self.cd/2, self.location) overlaps circle(closest_tree.cd/2, closest_tree.location))){	//inhibit growth if will overlap
 			dbh <- prev_dbh;
