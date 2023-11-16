@@ -42,7 +42,7 @@ species special_police{
 		location <- assigned_area.location;
 		//get the neighbor of the plot
 		ask assigned_area{
-			myself.observed_neighborhood <- (plot at_distance 50) where (!each.is_policed);
+			myself.observed_neighborhood <- (plot at_distance 300) where (!each.is_policed);
 		}
 		observed_neighborhood <- observed_neighborhood+assigned_area;
 	} 

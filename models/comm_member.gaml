@@ -108,8 +108,8 @@ species comm_member control: fsm{
 	
 	bool probaHarvest{
 		if(success = caught){return flip(0.5);}
-		if(success > caught){return flip(0.5+(0.5-caught/success));}	//more history of success, higher chance of harvesting
-		if(success < caught){return flip(0.5-(0.5-success/caught));} 
+		if(success > caught){return flip(0.5+(0.5*caught/success));}	//more history of success, higher chance of harvesting
+		if(success < caught){return flip(0.5-(0.5*success/caught));} 
 	}
 	
 	action completeHarvest(list<trees> harvested_trees){
