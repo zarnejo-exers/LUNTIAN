@@ -48,7 +48,6 @@ species comm_member control: fsm{
 	//if there exist even 1, return true (meaning, someone has better earning than self)
 	bool hasCompetingEarner{
 		list<comm_member> competitors <- comm_member where (each.state = "independent_harvesting");
-		write "HERE ! Current earning: "+self.current_earning;
 		int number_of_better_earner <- length(competitors where (each.current_earning > self.current_earning));
 		return (number_of_better_earner > (0.5*length(competitors)));	//return true if the # of better earning competitors is greater than half of the total number of competitors
 	}
@@ -125,38 +124,24 @@ species comm_member control: fsm{
 		success <- success + 1;
 		total_harvested_trees <- total_harvested_trees + 1;
 		h_monitor[self] <- total_harvested_trees;
+		current_earning <- 0.0;
 	}
 	
 	//waiting to be hired
 	state potential_partner initial: true { 
-	    enter {  
-	        write "Enter in: " + state; 
-	    } 
-	 
-	 	lapsed_time <- lapsed_time - 1;
-	    write "Current state: "+state+" Remaining time: "+lapsed_time; 
+	 	lapsed_time <- lapsed_time - 1; 
 	 	
-	    transition to: independent_passive when: (lapsed_time = 0) { 
-	        write "transition: potential_partner -> independent_harvesting"; 
-	    } 
-	    transition to: labour_partner when: (instance_labour != nil){
-	    	write "transition: cooperating_variable -> labour_partner";
-	    }
+	    transition to: independent_passive when: (lapsed_time = 0);
+	    transition to: labour_partner when: (instance_labour != nil);
 	 
 	    exit { 
 	    	lapsed_time <- waiting_allowance;
-	        write "EXIT from "+state; 
 	    } 
 	} 
 	
 	//wage here
 	//kill instance_labour after
 	state labour_partner { 
-	 
-	    enter {write 'Enter in: '+state;} 
-	 
-	    write "Current state: "+state;
-	    
 	    bool satisfied; 
 	    	
 	    if(instance_labour.is_harvest_labour) {		
@@ -171,13 +156,8 @@ species comm_member control: fsm{
 	    } 
 	    
 	   // write "assigned: "+instance_labour.man_months[0]+" lapsed: "+instance_labour.man_months[0];
-	    transition to: independent_harvesting when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and !satisfied) { 
-	        write "Service Ended... Transition: labour_partner -> independent_harvesting"; 
-	    }
-	    
-	    transition to: potential_partner when: (instance_labour.man_months[2] >= instance_labour.man_months[0]) { 
-	        write "Service Ended... Transition: labour_partner -> potential_partner"; 
-	    }  
+	    transition to: independent_harvesting when: (instance_labour.man_months[2] >= instance_labour.man_months[0] and !satisfied);
+	    transition to: potential_partner when: (instance_labour.man_months[2] >= instance_labour.man_months[0]);
 	 
 	    exit {
 	    	total_earning <- total_earning + current_earning;
@@ -190,7 +170,6 @@ species comm_member control: fsm{
 	    		do die;
 	    	}
 	    	instance_labour <- nil;
-	    	write 'EXIT from '+state;
 	    } 
 	}
 	
@@ -230,6 +209,7 @@ species comm_member control: fsm{
 	        is_caught <- false;
 	        
 	        //when caught 
+	        write "CAUGHT! curreng_earning: "+current_earning;
 	        total_earning <- total_earning - current_earning;
 	        current_earning <- 0.0; 
 	    } 
@@ -244,22 +224,15 @@ species comm_member control: fsm{
 	    		instance_labour <- nil;
 	    	}
 	    	lapsed_time <- waiting_allowance;
-	    	write 'EXIT from '+state;
 	    } 
 	}
 	
 	state independent_passive{
-		enter {write 'Enter in: '+state;}
-		
 		transition to: potential_partner when: (checkHiringProspective()) { 	//if there's hiring prospective, choose to cooperate
 	        success <- 0;
 	        caught <- 0;
 	        lapsed_time <- waiting_allowance;
 	    }
 	    transition to: independent_harvesting when: (probaHarvest()); 	//if there's hiring prospective, choose to cooperate
-	    
-	    exit {
-	    	write 'EXIT from '+state;
-	    } 	
 	}	
 }

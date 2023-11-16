@@ -83,5 +83,5 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 				data "Exotic: Old Trees" value: length(trees where (each.type = 1 and each.age >= 12)) color: #darkred;
 			}
 		}
-		}
+	}
 }

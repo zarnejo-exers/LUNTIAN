@@ -213,8 +213,10 @@ species labour control: fsm{
 		ask t{
 			remove self from: myself.harvested_trees;
 			remove self from: my_plot.plot_trees;
+			remove myself from: my_plot.my_laborers;
 			do die;
 		}
+		plot_to_harvest <- nil;
 	}
 	
 	//harvests upto capacity

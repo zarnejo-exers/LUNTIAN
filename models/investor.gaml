@@ -64,18 +64,12 @@ species investor control: fsm{
 				write "Investment status: "+investment_status;
 			}			
 			if(investment_status){	//investment successful, put investor on investor's list of plot
-				ask university_si{
-					if(plot_investor[chosen_plot] = nil){
-						plot_investor <<+ map<plot, list<investor>>(myself::[chosen_plot]);
-					}else{
-						add myself to: plot_investor[chosen_plot];// chosen_plot.my_investors;
-					}	
-				}
 				harvest_monitor <- 0;
 				chosen_plot.is_investable <- false;
 				chosen_plot.is_invested <- true;
 				investment <- chosen_plot.investment_cost;
 				promised_profit <- chosen_plot.projected_profit;
+				my_plot <- chosen_plot;
 				write "Investment granted -- cost: "+investment+" promised profit: "+promised_profit;
 			}else{
 				write "Investment denied";	
@@ -91,26 +85,22 @@ species investor control: fsm{
 	 */
 	plot getSuitablePlot(list<plot> ip, int risk_type){
 		string risk <- risk_types.keys[risk_type];
-		if(risk = "Neutral"){
-			write "Neutral... Deciding...";
-			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
-		}
-		
 		list<plot> candidate_plots <- [];
-		if(risk = "Averse"){
-			write "entering averse... ";
+		if(risk = "Neutral"){
+			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
+		}else if(risk = "Averse"){
 			candidate_plots <- ip where ((1-(each.investment_cost / each.projected_profit)) < risk_types[risk]);
 		}else{	//risk = "Loving"
-			write "entering loving...";
 			candidate_plots <- ip where ((1-(each.investment_cost / each.projected_profit)) >= risk_types[risk]);
 		}
+		
 		if(length(candidate_plots) = 0){
 			return nil;	
 		}else{
 			//get random plot from candidate plots
 			int r_pos <- rnd(length(candidate_plots)-1);
-			write "Cost: "+candidate_plots[r_pos].investment_cost+" Profit: "+candidate_plots[r_pos].projected_profit;
-			write "Investment risk: "+(1-(candidate_plots[r_pos].investment_cost/candidate_plots[r_pos].projected_profit));
+//			write "Cost: "+candidate_plots[r_pos].investment_cost+" Profit: "+candidate_plots[r_pos].projected_profit;
+//			write "Investment risk: "+(1-(candidate_plots[r_pos].investment_cost/candidate_plots[r_pos].projected_profit));
 			return candidate_plots[r_pos];
 		}
 		
@@ -130,42 +120,22 @@ species investor control: fsm{
 	}
 	
 	state potential_active initial: true{ 
-	    enter {  
-	        write " "+risk_types.keys[rt]+" Enter in: " + state; 
-	    } 
-	 
-	 	write "Current state: "+state ;
 	 	if(assignedNurseries){
-	 		write "Assigned Nurseries: "+assignedNurseries;
+	 		write "Deciding investment... ";
 	 		do decideInvestment;	
+	 		write "Invested plot: "+my_plot;
 	 	}else{
 	 		write "Waiting for environment...";
 	 	}
 	 
-	    transition to: investing when: (my_plot != nil) { 
-	        write "Plot count: "+length(my_plot);
-	        write "transition: potential_active -> investing"; 
-	    } 
-	 
-	    exit { 
-	        write "EXIT from "+state; 
-	    } 
+	    transition to: investing when: (my_plot != nil);
 	} 
 	
 	state investing { 
-	 
-	    enter {write 'Enter in: '+state;} 
-	 
 	 	do updateRotationYears;
-	    write "Current state: "+state+" remaining rotation years: "+my_plot.rotation_years;
 	    
-	    transition to: potential_active when: (done_harvesting and (recent_profit >= promised_profit)) {
-	        write "transition: investing->potential_active";
-	    }
-	    
-	    transition to: potential_passive when: (done_harvesting and (recent_profit < promised_profit)) {
-	        write "transition: investing->potential_passive";
-	    }  
+	    transition to: potential_active when: (done_harvesting and (recent_profit >= promised_profit));
+	    transition to: potential_passive when: (done_harvesting and (recent_profit < promised_profit));
 	 
 	    exit {
 	    	done_harvesting <- false;
@@ -176,29 +146,17 @@ species investor control: fsm{
 	    	recent_profit <- 0.0;
 	    	harvest_monitor <- 0;
 	    	investment <- 0.0;
-	    	write 'EXIT from '+state;
 	    } 
 	}
 	
 	state potential_passive { 
-	 
-	    enter {write 'Enter in: '+state;} 
-	 
-	    write "Current state: "+state;
-	    //determine if to transition to interested
-	    
 	    string risk <- risk_types.keys[rt];
 		if(risk = "Neutral"){
 			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
-			write "entering neutral then "+risk; 
 		}
-		write "Risk type: "+risk;
+		write "Neutral becomes "+risk;
 		bool to_transition <- flip(risk_types[risk]);
 	    
-	    transition to: potential_active when: (to_transition) { 
-	        write "transition: potential_passive -> potential_active"; 
-	    }  
-	 
-	    exit {write 'EXIT from '+state;} 
+	    transition to: potential_active when: (to_transition);
 	}
 }

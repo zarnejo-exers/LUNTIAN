@@ -84,6 +84,24 @@ experiment social_interaction model: "university_si.gaml" type:gui {
             		data i.name value: i.total_earning;
             	}
 			}
+		}
+		
+		display chart6 type: java2D{	
+			chart "Population of Trees" type: series
+			{
+				data "Exotic Trees" value: length(trees where (each.type = 1)) color:#red;
+				data "Native Trees" value: length(trees where (each.type = 0)) color: #blue;
+			}		
+		}
+		
+		display chart7 type: java2D{	
+			chart "Population of Trees" type: series
+			{
+				data "Native: Young Trees" value: length(trees where (each.age < 15 and each.type = 0)) color:#blue;
+				data "Native: Old Trees" value: length(trees where (each.age >= 15 and each.type = 0)) color: #darkblue;
+				data "Exotic: Young Trees" value: length(trees where (each.age < 12 and each.type = 1)) color:#red;
+				data "Exotic: Old Trees" value: length(trees where (each.type = 1 and each.age >= 12)) color: #darkred;
+			}
 		}		
 	}	
 }

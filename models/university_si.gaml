@@ -36,8 +36,7 @@ global{
 	float dbh_policy <- 50.0 update: dbh_policy; 
 	bool plant_native <- true update: plant_native;
 	bool plant_exotic <- false update: plant_exotic;
-	int itp_type; //0 ->plant native, 1->plant exotic, 2->plant mix
-	map<plot, list<investor>> plot_investor; 
+	int itp_type; //0 ->plant native, 1->plant exotic, 2->plant mix 
 	bool hiring_prospect <- false;
 	
 	int harvesting_age_exotic <- 4 update: harvesting_age_exotic;	//temp
@@ -74,7 +73,6 @@ global{
 			if(length(my_nurseries) >= nursery_count){	//start ITP if there's enough nurseries
 				write "Starting ITP: "+length(my_nurseries)+" with: "+nursery_count;
 				do assignLaborerToNursery(my_nurseries);
-				//do determineInvestablePlots(itp_type);
 				do updateInvestors;	 
 				assignedNurseries <- true;
 			}else{
@@ -93,10 +91,12 @@ global{
 	//stop simulation when the rotation years of all investor is finished
 	reflex waitForHarvest when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
     	loop i over: investor where (each.my_plot != nil){
-    		if(i.my_plot.rotation_years <=0 and !i.waiting){
-    			i.waiting <- hireHarvester(i);
-    		}else{
-    			write "cannot harvest yet...";
+    		if(i.my_plot.rotation_years <=0){
+    			if(!i.waiting){
+    				i.waiting <- hireHarvester(i);	
+    			}else{
+    				write "Waiting for laborer...";	
+    			}
     		}
     	}
     }
@@ -193,8 +193,13 @@ species university_si{
 		do payLaborer(hl);
 		hl.is_harvest_labour <- false;	//hl is no longer a harvest labor
 		write "Paying laborer: current earning (after) - "+hl.com_identity.current_earning;
-				
-		//give payment to investor		
+		
+		ask investor{
+			write "Investor with  plot: "+my_plot;
+		}
+		write "Harvester with plot: "+hl.plot_to_harvest;
+		
+		//give payment to investor
 		investor i <- first(investor where (each.my_plot = hl.plot_to_harvest));	//get the investor who invested on the plot where the harvester harvested
 	    float total_profit <- 0.0;
 	    loop s over: harvested{
@@ -204,6 +209,7 @@ species university_si{
 	    i.recent_profit <- total_profit;
 	    i.done_harvesting <- true;
 	    i.waiting <- false;
+	    hl.is_harvest_labour <- false;
 	}
 	
 	//for each plot, determine if plot is investable or not
@@ -221,7 +227,7 @@ species university_si{
 			buying_price <- getBuyingPrice(t_type);
 		}
 		
-		list<plot> not_investable_plots <- plot where (each.is_near_water or each.is_nursery or (plot_investor[each] != nil));
+		list<plot> not_investable_plots <- plot where (each.is_near_water or each.is_nursery or each.is_invested);
 		ask not_investable_plots{
 			is_investable <- false;
 		}
@@ -262,7 +268,6 @@ species university_si{
 		}
 		list<trees> available_seeds <- (my_nurseries accumulate each.plot_trees) where (each.state = "sapling");	//transplant saplings 
 		if(length(available_seeds) = 0){
-			write "No available seeds";
 			return false;
 		}
 		//check available seeds in nursery
