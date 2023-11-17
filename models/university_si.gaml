@@ -51,6 +51,8 @@ global{
 	float total_ITP_earning <- 0.0;
 	int total_ANR_instance <- 0;
 	
+	int total_warned_CM <- 0;
+	
 	init{
 		create market;
 		create labour number: laborer_count{
@@ -104,6 +106,12 @@ global{
     			}
     		}
     	}
+    }
+    
+    reflex warnedCMReportFromSP{
+		ask special_police{
+			myself.total_warned_CM <- myself.total_warned_CM + self.total_comm_members_reprimanded; 
+		}
     }
     
     //harvest on the plot of investor i
