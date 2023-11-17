@@ -20,6 +20,22 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	
 	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
 	
+	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
+	parameter "Harvesting age (E)" category: "Exotic Setup" var: harvesting_age_exotic;
+	parameter "Price per Volume (E)" category: "Exotic Setup" var: exotic_price_per_volume;
+	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
+	parameter "Harvesting age (N)" category: "Native Setup" var: harvesting_age_native;
+	parameter "Price per Volume (N)" category: "Native Setup" var: native_price_per_volume;
+	
+	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
+	parameter "Planting age" category: "Management" var: planting_age min: 1;
+	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
+	parameter "DBH policy" category: "Management" var: dbh_policy min: 50.0 max: 70.0;
+	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
+	
+	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
+	parameter "Number of laborers per nursery" category: "Nursery Management" var: nlaborer_count min: 0 step: 1;
+	
 	output {
 		
 		layout #split;
@@ -103,5 +119,9 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 				data "Exotic: Old Trees" value: length(trees where (each.type = 1 and each.age >= 12)) color: #darkred;
 			}
 		}		
+		
+		monitor "Total University Earning" value: total_ITP_earning;
+		monitor "Total Management Cost" value: total_management_cost;
+		monitor "Total ANR instance" value: total_ANR_instance;
 	}	
 }

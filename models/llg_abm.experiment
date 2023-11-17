@@ -10,26 +10,12 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 	
 	parameter "Growth rate (E)" category: "Exotic Setup" var:growth_rate_exotic;
 	parameter "Max DBH (E)" category: "Exotic Setup"  var:max_dbh_exotic;
-//	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
 	parameter "Number of fruits per year (E)" category: "Exotic Setup" var: ave_fruits_exotic;
-//	parameter "Harvesting age (E)" category: "Exotic Setup" var: harvesting_age_exotic;
-//	parameter "Price per Volume (E)" category: "Exotic Setup" var: exotic_price_per_volume;
 	
 	parameter "Growth rate (N)" category: "Native Setup" var:growth_rate_native;
 	parameter "Max DBH (N)" category: "Native Setup"  var:max_dbh_native;
-//	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
 	parameter "Number of fruits per year (N)" category: "Native Setup" var: ave_fruits_native;
-//	parameter "Harvesting age (N)" category: "Native Setup" var: harvesting_age_native;
-//	parameter "Price per Volume (N)" category: "Native Setup" var: native_price_per_volume;
-//	
-//	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
-//	parameter "Planting age" category: "Management" var: planting_age min: 1;
-//	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
-//	parameter "DBH policy" category: "Management" var: dbh_policy min: 50.0 max: 70.0;
-//	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
-//	
-//	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
-//	parameter "Number of laborers per nursery" category: "Nursery Management" var: nlaborer_count min: 0 step: 1;
+
 	
 	output {
 		layout #split;
@@ -53,18 +39,18 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 			}
 		}
 		
-		display chart1 type: java2D{	
-			chart "Total harvested trees" type: series
-			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				ask university_si{
-					data name value: tht;	
-				}
-            	loop i over: comm_member{
-            		data i.name value: h_monitor[i];
-            	}
-			}
-		}
+//		display chart1 type: java2D{	
+//			chart "Total harvested trees" type: series
+//			{
+//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+//				ask university_si{
+//					data name value: tht;	
+//				}
+//            	loop i over: comm_member{
+//            		data i.name value: h_monitor[i];
+//            	}
+//			}
+//		}
 	
 		display chart2 type: java2D{	
 			chart "Population of Trees" type: series

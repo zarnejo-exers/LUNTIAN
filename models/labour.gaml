@@ -94,10 +94,23 @@ species labour control: fsm{
 			}
 		}		
 		
-		self.current_plot <- neighborhood farthest_to self;
+		current_plot <- neighborhood farthest_to self;
 		location <- current_plot.location;
 		
+		do performANR(current_plot);
+		ask university_si{
+			do ANRAlert; 
+		}
+		
 		return nil;	 
+	}
+	
+	//check if I can control the mortality factor
+	//check if I can update DBH
+	action performANR(plot to_ANR){
+		ask to_ANR.plot_trees{
+			age <- age + 2;
+		}
 	}
 	
 	list<trees> gatherSeedlings(plot found_plot){
@@ -168,18 +181,18 @@ species labour control: fsm{
 	action selectiveHarvestITP{
 		list<trees> trees_to_harvest <- [];
 		
-		list<trees> tree60to70 <- plot_to_harvest.plot_trees where (each.dbh >= 30 and each.dbh < 40); //(each.dbh >= 60 and each.dbh < 70);
+		list<trees> tree60to70 <- plot_to_harvest.plot_trees where (each.dbh >= 60 and each.dbh < 70);
 		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
 		if(length(tree60to70) >= carrying_capacity){//get only upto capacity
 			trees_to_harvest <- tree60to70[0::carrying_capacity];
 		}else{
 			trees_to_harvest <- tree60to70;
-			list<trees> tree70to80 <- plot_to_harvest.plot_trees where (each.dbh >= 40 and each.dbh < 50);//(each.dbh >= 70 and each.dbh < 80);
+			list<trees> tree70to80 <- plot_to_harvest.plot_trees where (each.dbh >= 70 and each.dbh < 80);
 			tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
 			if(length(tree70to80) >= (carrying_capacity - length(trees_to_harvest))){
 				trees_to_harvest <<+ tree70to80[0::(carrying_capacity - length(trees_to_harvest))];
 			}else{
-				list<trees> tree80up <- plot_to_harvest.plot_trees where (each.dbh >= 50);// (each.dbh >= 80);
+				list<trees> tree80up <- plot_to_harvest.plot_trees where (each.dbh >= 80);
 				if(length(tree80up) >= (carrying_capacity - length(trees_to_harvest))){
 					trees_to_harvest <<+ tree70to80[0::(carrying_capacity - length(trees_to_harvest))];
 				}else{
@@ -193,10 +206,8 @@ species labour control: fsm{
 		ask plot_to_harvest.plot_trees{
 			age <- age + 5; 	//to correspond to TSI
 		}
-		if(labor_type = COMM_LABOUR){
-			man_months[1] <- man_months[1]+1;
-			current_plot <- plot_to_harvest;
-		} 
+		man_months[1] <- man_months[1]+1;
+		current_plot <- plot_to_harvest; 
 		
 		harvested_trees <- trees_to_harvest;
 	}
@@ -270,15 +281,24 @@ species labour control: fsm{
 			}
 		}
 		transition to: vacant when: !is_planting_labour;
+		if(man_months[0] >= man_months[2]){
+	    	is_planting_labour <- false;
+	    }
 	}
 	
 	state assigned_itp_harvester{
+		transition to: vacant when: !is_harvest_labour;
+		
 		do selectiveHarvestITP;
-	    ask university_si{
-	    	do completeITPHarvest(myself.harvested_trees, myself);
+		if(com_identity != nil){	//meaning, laborer is an instance of community
+		    ask university_si{
+		    	do completeITPHarvest(myself.harvested_trees, myself);
+		    }
 	    }
 	    do cutTrees(harvested_trees);
-		transition to: vacant when: !is_harvest_labour;
+	    if(man_months[0] >= man_months[2]){
+	    	is_harvest_labour <- false;
+	    }
 	}
 	
 	state independent{	//if instance of independent community member 

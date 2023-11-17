@@ -46,6 +46,11 @@ global{
 	bool start_harvest <- false;
 	
 	int tht <- 0;
+	
+	float total_management_cost <- 0.0;
+	float total_ITP_earning <- 0.0;
+	int total_ANR_instance <- 0;
+	
 	init{
 		create market;
 		create labour number: laborer_count{
@@ -153,7 +158,10 @@ species university_si{
 	float pcost_of_native <- 1.0;	//planting cost in man hours of labor
 	float pcost_of_exotic <- 1.0;	//planting cost in man hours of labor
 	
-	float labor_price <- 3.0; //per hour
+	float labor_price <- 3.0; //per months
+	
+	int ANR_instance <- 0; 
+	float current_labor_cost <- 0.0;
 	
 	/*
 	 * Determine amount of investment needed per hectare
@@ -165,6 +173,10 @@ species university_si{
 	/*	float total_earning <- 0.0;		//total earning for the entire simulation
 	 *  float current_earning <- 0.0; //earning of the community at the current commitment
 	 */ 
+	action ANRAlert{
+		ANR_instance <- ANR_instance + 1;
+	}
+	
 	action payLaborer(labour cl){
 		//serviced * labor_cost
 		if(cl.is_nursery_labour){
@@ -174,6 +186,8 @@ species university_si{
 		}else if(cl.is_planting_labour){
 			cl.com_identity.current_earning <- cl.com_identity.current_earning + (PLANTING_LCOST);
 		}
+		
+		current_labor_cost <- current_labor_cost + cl.com_identity.current_earning;
 	}
 
 	action updateInvestors{
@@ -206,10 +220,12 @@ species university_si{
 	    	total_profit <- total_profit + (((s.type = 1)?exotic_price_per_volume:native_price_per_volume) * (#pi * (s.dbh/2)^2 * s.th) );
 	    	i.tht <- i.tht + 1;
 	    }
-	    i.recent_profit <- total_profit;
+	    write "HERE! Total profit: "+total_profit;
+	    total_ITP_earning <- total_ITP_earning + (total_profit * 0.25);
+	    i.recent_profit <- total_profit*0.75;		//actual profit of investor is 75% of total profit
 	    i.done_harvesting <- true;
 	    i.waiting <- false;
-	    hl.is_harvest_labour <- false;
+	    
 	}
 	
 	//for each plot, determine if plot is investable or not
@@ -236,7 +252,7 @@ species university_si{
 			int spaces_for_planting <- myself.getAvailableSpaces(self, t_type);	//get total number of wildlings that the plot can accommodate
 			
 			//given spaces to be filled by plants + planting cost + management cost
-			investment_cost <- (((planting_cost+myself.getManagementCost(t_type)) * spaces_for_planting)*myself.labor_price) ;	//compute total cost in man hours
+			investment_cost <- (((planting_cost+myself.getManagementCost(t_type)) * spaces_for_planting)*myself.labor_price) ;	//compute total cost in man months
 			int projected_rotation_years <- harvest_age - planting_age;	//harvest age is the set age when a species becomes harvestable; planting age is the age when the given species is moved from nursery to plantation
 			
 			int tree_to_harvest <- int((length(plot_trees)+spaces_for_planting)*harvest_policy);	//harvest policy: % count of trees allowed to be harvested
@@ -444,6 +460,21 @@ species university_si{
 		ask assigned_laborers{
 			do assignLocation;
 		}
+	}
+	
+	reflex computeTotalCost{
+		float labor_cost <- 500.0;
+		float police_cost <- 1000.0;
+		float ANR_cost <- 250.0;
+		
+		int own_working_labor <- length(labour where (each.labor_type = each.OWN_LABOUR and (each.state != "vacant"))); 
+		int working_sp <- length(special_police where (each.is_servicing));
+		
+		total_management_cost <- total_management_cost + (own_working_labor + working_sp + (ANR_instance*250) + current_labor_cost);
+		total_ANR_instance <- total_ANR_instance + ANR_instance;
+		
+		ANR_instance <- 0; 
+		current_labor_cost <- 0.0;
 	}
 }
 
