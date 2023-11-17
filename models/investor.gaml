@@ -50,6 +50,7 @@ species investor control: fsm{
 		
 		ask university_si{
 			do determineInvestablePlots;	
+			investment_request_count <- investment_request_count + 1;
 		}
 		
 		list<plot> investable_plots <- plot where (each.is_investable and !each.is_invested);	//gets investable plots

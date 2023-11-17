@@ -50,7 +50,7 @@ global{
 	float total_management_cost <- 0.0;
 	float total_ITP_earning <- 0.0;
 	int total_ANR_instance <- 0;
-	
+	int total_investment_request <- 0;
 	int total_warned_CM <- 0;
 	
 	init{
@@ -109,9 +109,11 @@ global{
     }
     
     reflex warnedCMReportFromSP{
+    	int temp_count <- 0;
 		ask special_police{
-			myself.total_warned_CM <- myself.total_warned_CM + self.total_comm_members_reprimanded; 
+			temp_count <- temp_count + self.total_comm_members_reprimanded; 
 		}
+		total_warned_CM <- temp_count;
     }
     
     //harvest on the plot of investor i
@@ -170,6 +172,7 @@ species university_si{
 	
 	int ANR_instance <- 0; 
 	float current_labor_cost <- 0.0;
+	int investment_request_count <- 0;
 	
 	/*
 	 * Determine amount of investment needed per hectare
@@ -443,7 +446,6 @@ species university_si{
 	// 1 laborer can manage 0..* nurseries -> meaning, they may have none or multiple nurseries
 	// 1 nursery can have 1..* laborers -> meaning, a nursery must be managed by at least 1 laborer
 	action assignLaborerToNursery(list<plot> to_assign_nurseries){
-		//do determineInvestablePlots(1);	//plant exotic
 		//get all unassigned laborers
 		if(nlaborer_count = 0) { write "Nursery not accepting laborers."; return; }
 		
@@ -474,15 +476,18 @@ species university_si{
 		float labor_cost <- 500.0;
 		float police_cost <- 1000.0;
 		float ANR_cost <- 250.0;
+		float investment_survey_cost <- 150.0;
 		
 		int own_working_labor <- length(labour where (each.labor_type = each.OWN_LABOUR and (each.state != "vacant"))); 
 		int working_sp <- length(special_police where (each.is_servicing));
 		
-		total_management_cost <- total_management_cost + (own_working_labor + working_sp + (ANR_instance*250) + current_labor_cost);
+		total_management_cost <- total_management_cost + (own_working_labor + working_sp + (ANR_instance*250) + current_labor_cost) + (investment_request_count * investment_survey_cost);
 		total_ANR_instance <- total_ANR_instance + ANR_instance;
+		total_investment_request <- total_investment_request + investment_request_count;
 		
 		ANR_instance <- 0; 
 		current_labor_cost <- 0.0;
+		investment_request_count <- 0;
 	}
 }
 

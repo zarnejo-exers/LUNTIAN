@@ -482,11 +482,14 @@ species trees{
 	}
 	
 	float neighborhoodInteraction{
-		my_neighbors <- ((my_plot.plot_trees-self) select ((each.state = "adult") and (each distance_to self) < 20#m));
+		my_neighbors <- (my_plot.plot_trees select ((each.state = "adult") and (each distance_to self) < 20#m));
 		float ni <- 0.0;
 		
-		loop n over: my_neighbors{
-			 ni <- ni + ((n.ba * ((self.type = n.type)?1:0.5))/(n distance_to self));
+		loop n over: (my_neighbors-self){
+			float dis <- n distance_to self;
+			if(dis > 0){
+				ni <- ni + ((n.ba * ((self.type = n.type)?1:0.5))/(n distance_to self));	
+			}
 		}
 		
 		if(ni < 0.000001){
