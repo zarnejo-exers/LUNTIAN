@@ -116,5 +116,7 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		monitor "Total ANR instance" value: total_ANR_instance;
 		monitor "Total Warned Independent Harvester" value: total_warned_CM;
 		monitor "Total Survey Request" value: total_investment_request;
+		monitor "Total ITP Native Investment" value: (investor count (each.i_t_type = 0));
+		monitor "Total ITP Exotic Investment" value: (investor count (each.i_t_type = 1));
 	}	
 }

@@ -238,7 +238,7 @@ species university_si{
 	//cost : number of wildlings that needs to be planted + maintenance cost per wildling
 	//note: consider that the policy of the government will have an effect on the actual profit, where only x% can be harvested from a plot of y area
 	list<plot> getInvestableGivenSpecies(int t_type){
-		list<plot> investable_plots;
+		list<plot> investable_plots <- [];
 		float buying_price;
 		float planting_cost <- getPlantingCost(t_type);
 		int harvest_age <- (t_type=1 ? harvesting_age_exotic: harvesting_age_native);
@@ -274,12 +274,13 @@ species university_si{
 			
 			float new_tree_dbh <- myself.managementDBHEstimate(t_type, harvest_age);
 			projected_profit <- projected_profit + (new_tree_dbh*buying_price*(tree_to_harvest - t_count));
-			is_investable <- (projected_profit > investment_cost)?true:false;
-			if(is_investable){
-				add self to: investable_plots;
+			if(projected_profit > 0){
+				is_investable <- (projected_profit > investment_cost)?true:false;
+				if(is_investable){
+					add self to: investable_plots;
+				}	
 			}
 		}
-		
 		return investable_plots;
 	}
 	
@@ -293,8 +294,9 @@ species university_si{
 		}else if(itp_type = 1){
 			add 1::getInvestableGivenSpecies(1) to: i_plots_t;	//Exotic
 		}else{
-			add 0::getInvestableGivenSpecies(0) to: i_plots_t;	//Native
+			write "INSIDE ITP = 2";
 			add 1::getInvestableGivenSpecies(1) to: i_plots_t;	//Exotic
+			add 0::getInvestableGivenSpecies(0) to: i_plots_t;	//Native
 		}
 		
 		return i_plots_t;
@@ -304,6 +306,7 @@ species university_si{
 	bool investOnPlot(investor investing_investor, plot chosen_plot, int t_type){
 		list<trees> available_seeds <- (my_nurseries accumulate each.plot_trees) where (each.state = "sapling" and each.type = t_type);	//transplant saplings 
 		if(length(available_seeds) = 0){
+			write "NO SEEDS of type: "+t_type+" at plot: "+chosen_plot.name;
 			return false;
 		}
 		//check available seeds in nursery

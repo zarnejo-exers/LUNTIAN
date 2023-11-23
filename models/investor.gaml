@@ -42,7 +42,7 @@ species investor control: fsm{
 	
 	int rt;	//risk type
 	bool waiting <- false;
-	int i_t_type;	//investor, tree type
+	int i_t_type <- -1;	//investor, tree type
 	
 	//investor is deciding whether to invest or not
 	//computes for the rate of return on the invested plots
@@ -57,10 +57,23 @@ species investor control: fsm{
 			investment_request_count <- investment_request_count + 1;
 		}
 		
+		ask investable_plots[0]{
+			if(projected_profit <= 0){
+				write "HERE: "+projected_profit;
+			}
+		}
+		write "YO!";
+		ask investable_plots[1]{
+			if(projected_profit <= 0){
+				write "HERE: "+projected_profit+" plot: "+name;
+			}
+		}
+		
 		//decide investment based on risk type
 		map<plot, int> chosen_plot <- getSuitablePlot(investable_plots, rt, s_type);
-		plot c_plot <- first(chosen_plot.keys);
-		if(c_plot != nil){
+		write "CHOSEN PLOT: "+chosen_plot;
+		if(length(chosen_plot) > 0){
+			plot c_plot <- first(chosen_plot.keys);
 			bool investment_status <- false;
 			
 			ask university_si{
@@ -98,8 +111,8 @@ species investor control: fsm{
 		
 		if(risk = "Averse"){
 			if(s_type = 2){
+				add 1::(ip[1] where ((1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
 				add 0::(ip[0] where ((1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
-				add 1::(ip[1] where ((1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable	
 			}else{
 				add s_type::(ip[s_type] where ((1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
 			}
@@ -107,25 +120,24 @@ species investor control: fsm{
 			chosen <- getBetterPlot(all, s_type);
 		}else{	//risk = "Loving"
 			if(s_type = 2){
-				add 0::(ip[0] where ((1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable
 				add 1::(ip[1] where ((1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable
+				add 0::(ip[0] where ((1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable
 			}else{
 				add s_type::(ip[s_type] where ((1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable				
 			}
 			chosen <- getBetterPlot(all, s_type);
 		}
 		
-		if(chosen != nil){
-			return nil;	
-		}else{
-			return chosen;
-		}
+		return chosen;
 	}
 	
 	map<plot, int> getBetterPlot(map<int, list<plot>> ip, int s_type){
 		if(s_type = 2){
 			plot b1 <- ip[0] with_max_of (1-(each.investment_cost / each.projected_profit));
 			plot b2 <- ip[1] with_max_of (1-(each.investment_cost / each.projected_profit));
+			
+			write "B1: "+b1+" complete: "+ip[0];
+			write "B2: "+b2+" complete: "+ip[1];
 			
 			if(b1=nil and b2!=nil){
 				return [b2::1];
@@ -139,8 +151,13 @@ species investor control: fsm{
 				}
 				return [b2::1];	
 			}
+			return nil;
 		}
-		return [(ip[s_type] with_max_of (1-(each.investment_cost / each.projected_profit)))::s_type];
+		plot temp <- ip[s_type] with_max_of (1-(each.investment_cost / each.projected_profit));
+		if(temp!=nil){
+			return [temp::s_type];	
+		}
+		return nil;
 	}
 	
 	//to signal when to harvest and earn
@@ -182,6 +199,7 @@ species investor control: fsm{
 	    	recent_profit <- 0.0;
 	    	harvest_monitor <- 0;
 	    	investment <- 0.0;
+	    	i_t_type <- -1;
 	    } 
 	}
 	
