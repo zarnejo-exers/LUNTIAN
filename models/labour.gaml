@@ -27,6 +27,8 @@ species labour control: fsm{
 	bool is_nursery_labour <- false;
 	bool is_harvest_labour <- false;
 	bool is_planting_labour <- false;
+	int p_t_type;	//planting tree type
+	int h_t_type;	//harvesting tree type
 	 
 	comm_member com_identity <- nil;
 	
@@ -179,20 +181,21 @@ species labour control: fsm{
 	
 	//harvests upto capacity
 	action selectiveHarvestITP{
+		list<trees> trees_of_species <- plot_to_harvest.plot_trees where (each.type = h_t_type);
 		list<trees> trees_to_harvest <- [];
 		
-		list<trees> tree60to70 <- plot_to_harvest.plot_trees where (each.dbh >= 60 and each.dbh < 70);
+		list<trees> tree60to70 <- trees_of_species where (each.dbh >= 60 and each.dbh < 70);
 		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
 		if(length(tree60to70) >= carrying_capacity){//get only upto capacity
 			trees_to_harvest <- tree60to70[0::carrying_capacity];
 		}else{
 			trees_to_harvest <- tree60to70;
-			list<trees> tree70to80 <- plot_to_harvest.plot_trees where (each.dbh >= 70 and each.dbh < 80);
+			list<trees> tree70to80 <- trees_of_species where (each.dbh >= 70 and each.dbh < 80);
 			tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
 			if(length(tree70to80) >= (carrying_capacity - length(trees_to_harvest))){
 				trees_to_harvest <<+ tree70to80[0::(carrying_capacity - length(trees_to_harvest))];
 			}else{
-				list<trees> tree80up <- plot_to_harvest.plot_trees where (each.dbh >= 80);
+				list<trees> tree80up <- trees_of_species where (each.dbh >= 80);
 				if(length(tree80up) >= (carrying_capacity - length(trees_to_harvest))){
 					trees_to_harvest <<+ tree70to80[0::(carrying_capacity - length(trees_to_harvest))];
 				}else{
@@ -213,7 +216,7 @@ species labour control: fsm{
 	}
 	
 	list<trees> gatherSaplings(plot nursery){
-		return (nursery.plot_trees where (each.state = "sapling"));
+		return (nursery.plot_trees where (each.state = "sapling" and each.type = p_t_type));
 	}
 	
 	action setPlotToHarvest(plot pth){
@@ -284,6 +287,10 @@ species labour control: fsm{
 		if(man_months[0] >= man_months[2]){
 	    	is_planting_labour <- false;
 	    }
+	    
+	    exit{
+	    	p_t_type <- -1;
+	    }
 	}
 	
 	state assigned_itp_harvester{
@@ -298,6 +305,10 @@ species labour control: fsm{
 	    do cutTrees(harvested_trees);
 	    if(man_months[0] >= man_months[2]){
 	    	is_harvest_labour <- false;
+	    }
+	    
+	    exit{
+	    	h_t_type <- -1;
 	    }
 	}
 	

@@ -410,9 +410,6 @@ species trees{
 				state <- "seedling";
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	add new tree to parcel's list of trees
 			
-			ask instance.my_plot{
-				do updateTrees();
-			}
 			trees closest_tree <- instance.my_plot.plot_trees closest_to instance;
 			if(closest_tree != nil and circle(closest_tree.dbh+5, closest_tree.location) overlaps circle(instance.dbh+5, instance.location)){	//check if the instance overlaps another tree
 				ask instance{
@@ -553,7 +550,7 @@ species trees{
 		}else if(dbh> 1.0 and dbh <5.0){
 			state <- "sapling";
 		}else if(dbh >= 5.0 and dbh <= 30.0){
-			state <- "juvenile";
+			state <- "pole";
 		}else if(dbh > 30.0){
 			state <- "adult";
 			if(type = NATIVE and age > 15 and (fruiting_months_N contains current_month)){
@@ -635,15 +632,8 @@ species plot{
 		}
 	}
 	
-	action updateTrees{
-		if(length(plot_trees where dead(each)) > 0){
-			plot_trees <- plot_trees where !dead(each);
-		}
-	}
-	
 	//if there exist a mother tree in one of the trees inside the plot, it becomes a candidate nursery
 	reflex checkifCandidateNursery{	// should be reflex
-		do updateTrees;
 		int mother_count <- length(plot_trees where each.is_mother_tree);
 		is_candidate_nursery <- (mother_count > 0)?true:false;
 	}
