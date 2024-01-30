@@ -57,17 +57,17 @@ species investor control: fsm{
 			investment_request_count <- investment_request_count + 1;
 		}
 		
-		ask investable_plots[0]{
-			if(projected_profit <= 0){
-				write "HERE: "+projected_profit;
-			}
-		}
-		write "YO!";
-		ask investable_plots[1]{
-			if(projected_profit <= 0){
-				write "HERE: "+projected_profit+" plot: "+name;
-			}
-		}
+//		ask investable_plots[0]{
+//			if(projected_profit <= 0){
+//				write "HERE: "+projected_profit;
+//			}
+//		}
+//		write "YO!";
+//		ask investable_plots[1]{
+//			if(projected_profit <= 0){
+//				write "HERE: "+projected_profit+" plot: "+name;
+//			}
+//		}
 		
 		//decide investment based on risk type
 		map<plot, int> chosen_plot <- getSuitablePlot(investable_plots, rt, s_type);
@@ -111,19 +111,19 @@ species investor control: fsm{
 		
 		if(risk = "Averse"){
 			if(s_type = 2){
-				add 1::(ip[1] where ((1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
-				add 0::(ip[0] where ((1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
+				add 1::(ip[1] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
+				add 0::(ip[0] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
 			}else{
-				add s_type::(ip[s_type] where ((1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
+				add s_type::(ip[s_type] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
 			}
 			
 			chosen <- getBetterPlot(all, s_type);
 		}else{	//risk = "Loving"
 			if(s_type = 2){
-				add 1::(ip[1] where ((1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable
-				add 0::(ip[0] where ((1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable
+				add 1::(ip[1] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable
+				add 0::(ip[0] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable
 			}else{
-				add s_type::(ip[s_type] where ((1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable				
+				add s_type::(ip[s_type] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable				
 			}
 			chosen <- getBetterPlot(all, s_type);
 		}

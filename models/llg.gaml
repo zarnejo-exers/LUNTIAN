@@ -94,7 +94,6 @@ global {
 		create soil from: Soil_Group with: [id::int(get("VALUE")), soil_pH::float(get("Average_pH"))];
 		
 		//clean_network(road_shapefile.contents,tolerance,split_lines,reduce_to_main_connected_components
-		
 		clean_lines <- clean_network(road_shapefile.contents,50.0,true,true);
 		create road from: clean_lines;
 		road_network <- as_edge_graph(road);	//create road from the clean lines
@@ -151,7 +150,7 @@ global {
 		do computeGrowthRate;
 		
 		create plot from: Plot_shapefile{
-			if(water_content[self.location] <= 400){
+			if((water_content[self.location] <= 400)){	//if the plot is actually a river, do not include it
 				do die;
 			}
 			plot_trees <- trees inside self;
@@ -181,6 +180,7 @@ global {
 			node_id <- int(read("NODE_A")); 
 			drain_node <- int(read("NODE_B")); 
 			strahler <- int(read("ORDER_CELL"));
+			basin <- int(read("BASIN"));
 		}
 		river_network <- as_edge_graph(river);
 		
@@ -297,7 +297,7 @@ species trees{
 	float nieghborh_effect <- 0.0; 
 	string state;
 	
-	//kill tree that are inside a basin
+	//kill tree that are inside a water basin
 	reflex killTree{
 		point tree_loc <- shape.location;
 		if(my_plot = nil) {do die; }
@@ -496,8 +496,19 @@ species trees{
 		return ni;
 	}	
 	
-	//doesn't inhibit growth of tree
-	reflex growTree{
+	//tree mortality
+	bool checkMortality{
+		float e <- exp(-2.917 - 1.897 * ((shade_tolerant)?1:0) - 0.079 * dbh);
+		float proba_dead <- (e/(e+1));
+		
+		if(flip(proba_dead)){
+			return true;
+		}
+		return false;
+	}
+	
+	//doesn't yet inhibit growth of tree
+	action treeGrowthIncrement{
 		trees closest_tree <-(my_plot.plot_trees closest_to self); 
 		float prev_dbh <- dbh;
 		float prev_th <- th;
@@ -510,7 +521,7 @@ species trees{
 			}	
 		}
 		
-		dbh <- calculateDBH(nieghborh_effect);
+		dbh <- calculateDBH(nieghborh_effect);	 
 		cd <- cr*(dbh) + dbh;
 		th <- calculateHeight();
 		if(!my_plot.is_itp and closest_tree != nil and (circle(self.cd/2, self.location) overlaps circle(closest_tree.cd/2, closest_tree.location))){	//inhibit growth if will overlap
@@ -520,31 +531,9 @@ species trees{
 		
 		mh <- th - (cr * th);	//update merchantable height
 		ba <- (dbh^2) * 0.00007854;	//update basal area, given cm
-		
 	}
 	
-	//tree age
-	//once the tree reaches 5 years old, it cannot be moved to a nursery anymore
-	reflex stepAge {
-		age <- age + (1/12);
-	}
-	
-	//tree mortality
-	bool checkMortality{
-		float e <- exp(-2.917 - 1.897 * ((shade_tolerant)?1:0) - 0.079 * dbh);
-		float proba_dead <- (e/(e+1));
-		
-		if(flip(proba_dead)){
-			return true;
-		}
-		return false;
-	}
-
-	reflex updateState{
-		bool is_dying <- false;
-		if((my_plot.is_nursery and (age>3 and is_dying)) or (!my_plot.is_nursery)){
-			is_dying <- checkMortality();
-		}
+	action updateTreeClass{
 		if (dbh < 1.0){
 			state <- "seedling";
 		}else if(dbh> 1.0 and dbh <5.0){
@@ -553,15 +542,34 @@ species trees{
 			state <- "pole";
 		}else if(dbh > 30.0){
 			state <- "adult";
+		}		
+	}
+	
+	//tree age
+	//once the tree reaches 5 years old, it cannot be moved to a nursery anymore
+	action stepAge {
+		age <- age + (1/12);
+	}
+	
+	//based on Vanclay(1994) schematic representation of growth model
+	reflex growthModel{
+		bool is_dead <- false;
+		if((my_plot.is_nursery and age>3) or (!my_plot.is_nursery)){	//determine mortality
+			if(checkMortality()){
+				remove self from: my_plot.plot_trees;
+				is_dead <- true;
+				do die;	
+			}
+		}
+		if(!is_dead){	//either the tree starts producing fruits or it will grow
 			if(type = NATIVE and age > 15 and (fruiting_months_N contains current_month)){
 				do fruitProductionN();
 			}else if(type = EXOTIC and age>=12 and (fruiting_months_E contains current_month)){		//exotic tree, age >= 40 and age <= 60
 				do fruitProductionE();
+			}else{
+				do treeGrowthIncrement();
 			}
-		}else{
-			state <- "dead";
-			remove self from: my_plot.plot_trees;
-			do die;
+			do stepAge();
 		}
 	}
 }
@@ -698,6 +706,7 @@ species river {
 	int node_id; 
 	int drain_node;
 	int strahler;
+	int basin;
 	
 	aspect default {
 		//draw display_shape color: #blue depth: 3 at: {location.x,location.y,terrain[point(location.x, location.y)]+250};//250

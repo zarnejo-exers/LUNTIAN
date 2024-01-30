@@ -100,7 +100,10 @@ global{
     	loop i over: investor where (each.my_plot != nil){
     		if(i.my_plot.rotation_years <=0){
     			if(!i.waiting){
-    				i.waiting <- hireHarvester(i);	
+    				ask university_si{
+    					write("Investor "+i.name+" last harvesting");
+    					i.waiting <- hireHarvester(i, false);	
+    				}	
     			}else{
     				write "Waiting for laborer...";	
     			}
@@ -114,48 +117,6 @@ global{
 			temp_count <- temp_count + self.total_comm_members_reprimanded; 
 		}
 		total_warned_CM <- temp_count;
-    }
-    
-    //harvest on the plot of investor i
-    bool hireHarvester (investor i){
-    	list<labour> available_harvesters <- labour where (each.labor_type = each.OWN_LABOUR and each.state="vacant");	//get own laborers that are not nursery|planting labours
-		labour chosen_labour; 
-		
-		if(length(available_harvesters) > 0){	//own laborers
-			chosen_labour <- first(shuffle(available_harvesters));	 
-			chosen_labour.man_months <- [HARVEST_LABOUR, 0, 0]; 
-			chosen_labour.is_harvest_labour <- true;
-			chosen_labour.h_t_type <- i.i_t_type;	//set the kind of tree to be harvested
-			hiring_prospect <- false;
-			chosen_labour.state <- "assigned_itp_harvester";
-		}
-		else{	//hire from community
-			list<comm_member> avail_member <- comm_member where (each.state = "potential_partner" and each.instance_labour = nil);
-			if(avail_member != nil and length(avail_member)>0){	//there exist an available member 
-				comm_member cm <- first(shuffle(avail_member));	//use the first member 
-				create labour{
-					man_months <- [HARVEST_LABOUR, 0, 0];
-					labor_type <- COMM_LABOUR; 
-					is_harvest_labour <- true;
-					com_identity <- cm;
-					cm.instance_labour <- self;
-					h_t_type <- i.i_t_type;
-					state <- "assigned_itp_harvester";
-				}
-				chosen_labour <- cm.instance_labour;
-				hiring_prospect <- false;
-			}else{	//no available member
-				hiring_prospect <- true;
-			}
-		}
-			
-		if(!hiring_prospect){
-			ask chosen_labour{
-				do setPlotToHarvest(i.my_plot);
-			}
-			add chosen_labour to: i.my_plot.my_laborers;	
-			return true;
-		}return false;
     }
 }
 
@@ -214,7 +175,8 @@ species university_si{
 		return ((t_type = 1)?mcost_of_exotic:mcost_of_native);
 	}
 	
-	action completeITPHarvest(list<trees> harvested, labour hl){
+	//pays the hired harvester and gives the earning to laborer
+	action completeITPHarvest(list<trees> harvested, labour hl, bool is_final_harvesting){
 		do payLaborer(hl);
 		hl.is_harvest_labour <- false;	//hl is no longer a harvest labor
 		
@@ -228,7 +190,7 @@ species university_si{
 	    
 	    total_ITP_earning <- total_ITP_earning + (total_profit * 0.25);
 	    i.recent_profit <- total_profit*0.75;		//actual profit of investor is 75% of total profit
-	    i.done_harvesting <- true;
+	    i.done_harvesting <- is_final_harvesting;
 	    i.waiting <- false;
 	}
 	
@@ -321,12 +283,58 @@ species university_si{
 		investing_investor.investment <- chosen_plot.investment_cost;
 		investing_investor.i_t_type <- t_type;
 		//assign laborer and get available seeds from the nursery 		
-		do assignLaborerToPlot(chosen_plot, t_type);
+		do assignLaborerToPlot(chosen_plot, t_type);	//planters stays on the plot until the end of teh 
 		//set rotation years to plot
 		do setRotationYears(chosen_plot, t_type);
 		chosen_plot.is_itp <- true;
+		
+		bool hire_status <- hireHarvester(investing_investor, true);	//harvester stays on the plot for one step only
+		write("Investor hired harvesters "+hire_status);
 		return true;
 	}
+	
+	    //harvest on the plot of investor i
+    bool hireHarvester (investor i, bool init_harvesting){
+    	list<labour> available_harvesters <- labour where (each.labor_type = each.OWN_LABOUR and each.state="vacant");	//get own laborers that are not nursery|planting labours
+		labour chosen_labour; 
+		
+		if(length(available_harvesters) > 0){	//own laborers
+			chosen_labour <- first(shuffle(available_harvesters));	 
+			chosen_labour.man_months <- [HARVEST_LABOUR, 0, 0]; 
+			chosen_labour.is_harvest_labour <- true;
+			chosen_labour.h_t_type <- i.i_t_type;	//set the kind of tree to be harvested
+			hiring_prospect <- false;
+			chosen_labour.state <- "assigned_itp_harvester";
+		}
+		else{	//hire from community
+			list<comm_member> avail_member <- comm_member where (each.state = "potential_partner" and each.instance_labour = nil);
+			if(avail_member != nil and length(avail_member)>0){	//there exist an available member 
+				comm_member cm <- first(shuffle(avail_member));	//use the first member 
+				create labour{
+					man_months <- [HARVEST_LABOUR, 0, 0];
+					labor_type <- COMM_LABOUR; 
+					is_harvest_labour <- true;
+					com_identity <- cm;
+					cm.instance_labour <- self;
+					h_t_type <- i.i_t_type;
+					state <- "assigned_itp_harvester";
+				}
+				chosen_labour <- cm.instance_labour;
+				hiring_prospect <- false;
+			}else{	//no available member
+				hiring_prospect <- true;
+			}
+		}
+			
+		if(!hiring_prospect){
+			ask chosen_labour{
+				do setPlotToHarvest(i.my_plot);
+			}
+			chosen_labour.initial_harvesting <- init_harvesting;
+			add chosen_labour to: i.my_plot.my_laborers;	
+			return true;
+		}return false;
+    }
 
 	//type 0: automatically base on harvesting age of native
 	//type 1: automatically base on harvesting age of exotic

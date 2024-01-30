@@ -29,6 +29,8 @@ species labour control: fsm{
 	bool is_planting_labour <- false;
 	int p_t_type;	//planting tree type
 	int h_t_type;	//harvesting tree type
+	
+	bool initial_harvesting <- false;	//set to true if the harvester is hired after the investor has sealed an investment
 	 
 	comm_member com_identity <- nil;
 	
@@ -299,9 +301,10 @@ species labour control: fsm{
 		do selectiveHarvestITP;
 		if(com_identity != nil){	//meaning, laborer is an instance of community
 		    ask university_si{
-		    	do completeITPHarvest(myself.harvested_trees, myself);
+		    	do completeITPHarvest(myself.harvested_trees, myself, myself.initial_harvesting);
 		    }
 	    }
+	    write("Harvester "+self.name+" is doing "+((self.initial_harvesting)?"initial harvesting":"last harvesting"));
 	    do cutTrees(harvested_trees);
 	    if(man_months[0] >= man_months[2]){
 	    	is_harvest_labour <- false;
