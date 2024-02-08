@@ -70,8 +70,9 @@ global {
 	int ave_fruits_native <- 100 update: ave_fruits_native;
 	float native_price_per_volume <- 70.0 update: native_price_per_volume;
 	
-	list<int> fruiting_months_E <- [0,1,2,7,11];
 	list<int> fruiting_months_N <- [8];
+	list<int> flowering_months_E <- [3,4,5,6];
+	list<int> fruiting_months_E <- [12, 1, 2, 3];
 	
 	//native, exotic
 	list<float> min_water <- [1500.0, 1400.0];						//best grow, annual, monthly will be taken in consideration during the growth effect
@@ -172,7 +173,15 @@ global {
 		ask plot{
 			do compute_neighbors;
 			ask plot_trees{
-				dbh <- calculateDBH(1.0);
+				float prev_dbh <- dbh;
+				nieghborh_effect <- 1.0;
+				if(state = ADULT){
+					nieghborh_effect <- neighborhoodInteraction();
+					if(nieghborh_effect > 0){
+						nieghborh_effect <- 1-exp(log(neighborhoodInteraction()) * log(prev_dbh));	
+					}	
+				}				
+				dbh <- computeDiameterIncrement(nieghborh_effect) + prev_dbh;
 				th <- calculateHeight();	
 			}
 		}
@@ -301,7 +310,12 @@ species trees{
 	float nieghborh_effect <- 0.0; 
 	int state;
 	
+	float diameter_increment <- 0.0; 
 	map<int, list<float>> max_dbh_per_class <- map<int,list>([NATIVE::[5.0,10.0,20.0,100.0],EXOTIC::[1.0,5.0,30.0,150.0]]);
+	
+	bool has_flower <- false;
+	int has_fruit_growing <- 0;	//timer once there are fruits, from 12 - 0, where fruits now has grown into 1-year old seedlings
+	int number_of_fruits <- 0;
 	
 	//kill tree that are inside a water basin
 	reflex killTree{
@@ -339,35 +353,32 @@ species trees{
 	}
 	
 	//recruitment of tree
-	//mahogany fruit production every January, February, March, August, and December 
-	//Trees 75 cm DBH were also more consistent producers.
-	//produces more than 700 fruits/year 
+	//compute probability of bearing fruit
+	//mahogany fruit maturing: December to March
+	//when bearingfruit and season of fruit maturing, compute # of produced fruits
+	//compute # of 1-year old seedling 
 	//geometry t_space <- my_plot.getRemainingSpace();	//get remaining space in the plot
-	action fruitProductionE{
+	int getNumberOfFruitsE{
+		float x0 <- 0.296+(0.025*dbh);
+		float x1 <- (0.0003*(dbh^2));
+		float x2 <- -1.744*((10^-6)*(dbh^3));
+		float alpha <- exp(x0+x1+x2);
+		float beta <- 1.141525;
+		return int(alpha/beta);	//returns mean of the gamma distribution, alpha beta
+	}
+	
+	bool isFlowering{
+		float x0 <- 9.624+(3.201*diameter_increment);
+		float x1 <- -1.265*(diameter_increment^2);
+		float x2 <- 0.21*dbh;
+		float x3 <- -0.182*(max(0, (dbh-40)));
+		float e <- exp(x0+x1+x2+x3);
+		float p_producing <- e/(1+e);
 		
-		float sfruit <- 42.4;
-		float fsurv <- 0.085;
-		float fgap <- 0.026;
-		float fviable <- 0.618;
-		int total_no_seeds <- 0;
-		
-		point mother_location <- point(self.location.x, self.location.y);
-
-		total_no_seeds <- int((ave_fruits_exotic/length(fruiting_months_E))*sfruit*fsurv*fgap*fviable);	//1-year old seeds
-		if(total_no_seeds > 0){
-			is_mother_tree <- true;
-			geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+40, mother_location) - circle(self.dbh+20, mother_location));
-			t_space <- my_plot.removeTreeOccupiedSpace(t_space, trees inside t_space);	
-			if(t_space != nil){
-				self.temp <- 0;
-				do recruitTree(total_no_seeds, t_space);
-			}
-		}else{is_mother_tree <- false;}		
+		return flip(p_producing);
 	}
 	
 	//recruitment of tree
-	//mahogany fruit production every January, February, March, August, and December 
-	//age >=15				
 	//native tree, produces fruit every September
 	action fruitProductionN{
 		float sfruit <- 42.4;
@@ -433,7 +444,8 @@ species trees{
 	//growth of tree
 	//assume: growth coefficient doesn't apply on plots for ITP 
 	//note: monthly increment 
-	float calculateDBH(float neighbor_impact){
+	//returns diameter_increment
+	float computeDiameterIncrement(float neighbor_impact){
 		if(type = EXOTIC){ //mahogany 
 			climate closest_clim <- climate closest_to self.location;	//closest climate descriptor to the point
 			float precip_value <- closest_clim.precipitation[current_month];
@@ -442,16 +454,18 @@ species trees{
 			int is_dry_season <- (precip_value <etp_value)?-1:1;
 				
 			switch(dbh){
-				match_between [0, 19.99] {return dbh + (((1.01+(0.10*is_dry_season))/12) *neighbor_impact);}
-				match_between [20, 29.99] {return dbh + (((0.86+(0.17*is_dry_season))/12) *neighbor_impact);}
-				match_between [30, 39.99] {return dbh + (((0.90+(0.10*is_dry_season))/12) *neighbor_impact);}
-				match_between [40, 49.99] {return dbh + (((0.75+(0.14*is_dry_season))/12) *neighbor_impact);}
-				match_between [50, 59.99] {return dbh + (((1.0+(0.06*is_dry_season))/12) *neighbor_impact);}
-				match_between [60, 69.99] {return dbh + (((1.16+(0.06*is_dry_season))/12) *neighbor_impact);}
-				default {return dbh + (((1.38+(0.26*is_dry_season))/12) *neighbor_impact);}	//>70
+				match_between [0, 19.99] {
+					return (((1.01+(0.10*is_dry_season))/12) *neighbor_impact);
+				}
+				match_between [20, 29.99] {return (((0.86+(0.17*is_dry_season))/12) *neighbor_impact);}
+				match_between [30, 39.99] {return (((0.90+(0.10*is_dry_season))/12) *neighbor_impact);}
+				match_between [40, 49.99] {return (((0.75+(0.14*is_dry_season))/12) *neighbor_impact);}
+				match_between [50, 59.99] {return (((1.0+(0.06*is_dry_season))/12) *neighbor_impact);}
+				match_between [60, 69.99] {return (((1.16+(0.06*is_dry_season))/12) *neighbor_impact);}
+				default {return (((1.38+(0.26*is_dry_season))/12) *neighbor_impact);}	//>70
 			}
 		}else if(type = NATIVE){	//palosapis
-			return ((((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*ba))/12)*neighbor_impact) + dbh; 
+			return ((((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*ba))/12)*neighbor_impact); 
 		}
 	}	
 	
@@ -580,7 +594,8 @@ species trees{
 		}
 		
 		ba <- (dbh^2) * 0.00007854;	//calculate basal area before calculating dbh increment
-		dbh <- calculateDBH(nieghborh_effect);	 
+		diameter_increment <- computeDiameterIncrement(nieghborh_effect);
+		dbh <- dbh + diameter_increment;	 
 		crown_diameter <- cr*(dbh) + dbh;
 		th <- calculateHeight();
 		if(!my_plot.is_itp and closest_tree != nil and (circle(self.crown_diameter/2, self.location) overlaps circle(closest_tree.crown_diameter/2, closest_tree.location))){	//inhibit growth if will overlap
@@ -631,8 +646,30 @@ species trees{
 		if(!is_dead){	//either the tree starts producing fruits or it will grow
 			if(type = NATIVE and age > 15 and (fruiting_months_N contains current_month)){
 				do fruitProductionN();
-			}else if(type = EXOTIC and age>=12 and (fruiting_months_E contains current_month)){		//exotic tree, age >= 40 and age <= 60
-				do fruitProductionE();
+			}else if(type = EXOTIC and age>=12){		//exotic tree, age >= 40 and age <= 60
+				if(number_of_fruits >0 and has_fruit_growing=0){
+					int total_no_1yearold <- int(number_of_fruits *42.4 *0.085);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 
+					write "Tree "+name+" has "+total_no_1yearold+" recruits";
+					point mother_location <- point(self.location.x, self.location.y);
+					geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+20, mother_location) - circle(self.dbh, mother_location));
+					t_space <- my_plot.removeTreeOccupiedSpace(t_space, trees inside t_space);
+					do recruitTree(total_no_1yearold, t_space);	
+					has_fruit_growing <- 0;
+					number_of_fruits <- 0;
+					is_mother_tree <- false;
+				}else if(has_flower and fruiting_months_E contains current_month){	//has flower and is fruiting month
+					number_of_fruits <- getNumberOfFruitsE();
+					write "Tree "+name+" has "+number_of_fruits+" fruits";
+					has_fruit_growing <- 12;
+					has_flower <- false;	
+				}else if(!has_flower and (flowering_months_E contains current_month)){	//
+					has_flower <- isFlowering();
+					if(has_flower){
+						is_mother_tree <- true;
+					}
+				}else{
+					has_fruit_growing <- has_fruit_growing-1;
+				}
 			}else{
 				do treeGrowthIncrement();
 			}
