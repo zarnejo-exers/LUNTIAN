@@ -92,7 +92,7 @@ species labour control: fsm{
 	plot findPlotWithSeedlings{
 		list<plot> neighborhood <- plot at_distance 150;
 		ask neighborhood{
-			list<trees> seedlings <- plot_trees where (each.state = "seedling");
+			list<trees> seedlings <- plot_trees where (each.state = SEEDLING);
 			if(length(seedlings) > 0){
 				return self;
 			}
@@ -118,7 +118,7 @@ species labour control: fsm{
 	}
 	
 	list<trees> gatherSeedlings(plot found_plot){
-		list<trees> all_seedlings <- found_plot.plot_trees where (each.state = "seedling");
+		list<trees> all_seedlings <- found_plot.plot_trees where (each.state = SEEDLING);
 		if(length(all_seedlings) > carrying_capacity){
 			all_seedlings <- all_seedlings[0::carrying_capacity];
 		}
@@ -145,7 +145,7 @@ species labour control: fsm{
 			plot p <- one_of(to_plant_plot);
 			self.current_plot <- p;
 			location <- current_plot.location;
-			geometry remaining_space <- p.removeOccupiedSpace(p.shape, p.plot_trees);
+			geometry remaining_space <- p.removeTreeOccupiedSpace(p.shape, p.plot_trees);
 			loop while: (remaining_space.area > 0 and length(t) > 0){
 				trees to_plant <- one_of(t);
 				point prev_location <- to_plant.location;	//get location of the seedling
@@ -174,7 +174,7 @@ species labour control: fsm{
 	plot goToNursery{
 		list<plot> nurseries <- plot where (each.is_nursery);
 		ask nurseries{
-			if(length(plot_trees where (each.state ="sapling")) > 0){	//the plot has seedlings
+			if(length(plot_trees where (each.state = SAPLING)) > 0){	//the plot has seedlings
 				return self;
 			}
 		}
@@ -218,7 +218,7 @@ species labour control: fsm{
 	}
 	
 	list<trees> gatherSaplings(plot nursery){
-		return (nursery.plot_trees where (each.state = "sapling" and each.type = p_t_type));
+		return (nursery.plot_trees where (each.state = SAPLING and each.type = p_t_type));
 	}
 	
 	action setPlotToHarvest(plot pth){

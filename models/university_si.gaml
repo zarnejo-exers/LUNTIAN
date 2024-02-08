@@ -227,14 +227,14 @@ species university_si{
 			loop pt over: plot_trees{
 				if(t_count=tree_to_harvest){break;}
 				int future_age <- int(pt.age + projected_rotation_years);
-				float future_dbh <- myself.managementDBHEstimate(pt.type, future_age);
+				float future_dbh <- myself.determineDBHGrowth(pt.type, future_age);
 				if(future_dbh > dbh_policy){	//harvest only trees of specific dbh; restriction by the government
 					projected_profit <- projected_profit + (future_dbh*buying_price);
 					t_count <- t_count + 1;	
 				}
 			}
 			
-			float new_tree_dbh <- myself.managementDBHEstimate(t_type, harvest_age);
+			float new_tree_dbh <- myself.determineDBHGrowth(t_type, harvest_age);
 			projected_profit <- projected_profit + (new_tree_dbh*buying_price*(tree_to_harvest - t_count));
 			if(projected_profit > 0){
 				is_investable <- (projected_profit > investment_cost)?true:false;
@@ -266,7 +266,7 @@ species university_si{
 
 	//returns true if successful, else false
 	bool investOnPlot(investor investing_investor, plot chosen_plot, int t_type){
-		list<trees> available_seeds <- (my_nurseries accumulate each.plot_trees) where (each.state = "sapling" and each.type = t_type);	//transplant saplings 
+		list<trees> available_seeds <- (my_nurseries accumulate each.plot_trees) where (each.state = SAPLING and each.type = t_type);	//transplant saplings 
 		if(length(available_seeds) = 0){
 			write "NO SEEDS of type: "+t_type+" at plot: "+chosen_plot.name;
 			return false;
@@ -353,7 +353,7 @@ species university_si{
 		list<trees> saplings <- [];
 		
 		ask nurseries{
-			list<trees> s <- (plot_trees where (each.state = "sapling"));
+			list<trees> s <- (plot_trees where (each.state = SAPLING));
 			saplings <<+ s;
 		}
 		
@@ -364,8 +364,8 @@ species university_si{
 	//given type of tree, returns the number of spaces that can be accommodate wildlings
 	int getAvailableSpaces(plot p, int type){
 		//remove from occupied spaces
-		geometry temp_shape <- p.removeOccupiedSpace(p.shape, p.plot_trees);
-		float temp_dbh <- managementDBHEstimate(type, planting_age);
+		geometry temp_shape <- p.removeTreeOccupiedSpace(p.shape, p.plot_trees);
+		float temp_dbh <- determineDBHGrowth(type, planting_age);
 		
 		geometry tree_shape <- circle(temp_dbh);
 		
@@ -435,7 +435,7 @@ species university_si{
 		}
 	}
 	
-	float managementDBHEstimate(int t_type, int age){
+	float determineDBHGrowth(int t_type, int age){
 		if(t_type=1){	//to plant exotic
 			return max_dbh_exotic * (1-exp(-mahogany_von_gr * (current_month+age)));
 		}else{		//to plant native

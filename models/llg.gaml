@@ -13,6 +13,10 @@ global {
 	int NB_TS <- 12; //monthly timestep, constant
 	int NATIVE <- 0;
 	int EXOTIC <- 1;
+	int SEEDLING <- 0;
+	int SAPLING <- 1;
+	int POLE <- 2;
+	int ADULT <- 3;
 	
 	/** Insert the global definitions, variables and actions here */
 	file elev_file <- file("../images/ITP_Reprojected_Filled.tif"); //resolution 30m-by-30m
@@ -136,7 +140,7 @@ global {
 				th <- temp_;
 			}
 			cr <- 1 - (mh / th);
-			cd <- cr*(dbh) + dbh; 
+			crown_diameter <- cr*(dbh) + dbh; 
 			
 			if(type = EXOTIC){ //exotic trees, mahogany
 				age <- self.dbh/growth_rate_exotic;
@@ -274,9 +278,9 @@ species trees{
 	float th; //total height
 	float mh;	//merchantable height
 	float r; //distance from tree to a point 
-	int type;  //0-mayapis; 1-mahogany; 2-fruit tree
+	int type;  //0-palosapis; 1-mahogany
 	float cr; 	//crown ratio, set at the reading of the data
-	float cd;	//crown diameter
+	float crown_diameter;	//crown diameter
 	
 	float ba;
 	float dipy;
@@ -295,7 +299,9 @@ species trees{
 	
 	list<trees> my_neighbors <- [];  
 	float nieghborh_effect <- 0.0; 
-	string state;
+	int state;
+	
+	map<int, list<float>> max_dbh_per_class <- map<int,list>([NATIVE::[5.0,10.0,20.0,100.0],EXOTIC::[1.0,5.0,30.0,150.0]]);
 	
 	//kill tree that are inside a water basin
 	reflex killTree{
@@ -312,19 +318,19 @@ species trees{
 	
 	
 	aspect default{
-		draw circle(self.cd/2, self.location) color: (type = NATIVE)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
+		draw circle(self.crown_diameter/2, self.location) color: (type = NATIVE)?#forestgreen:#midnightblue border: #black at: {location.x,location.y,elev[point(location.x, location.y)]+450};
 	}
 	
 	aspect geom3D{
-		if(cd != 0){
+		if(crown_diameter != 0){
 			//this is the crown
 			if(temp = 3){
-				draw sphere(self.cd/2) color: #turquoise at: {location.x,location.y,elev[point(location.x, location.y)]+400+mh};
+				draw sphere(self.crown_diameter/2) color: #turquoise at: {location.x,location.y,elev[point(location.x, location.y)]+400+mh};
 			}
 			else if(is_new_tree){	//new tree
-				draw sphere(self.cd/2) color: #yellow at: {location.x,location.y,elev[point(location.x, location.y)]+400+mh};
+				draw sphere(self.crown_diameter/2) color: #yellow at: {location.x,location.y,elev[point(location.x, location.y)]+400+mh};
 			}else{
-				draw sphere(self.cd/2) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+mh};	
+				draw sphere(self.crown_diameter/2) color: (type = NATIVE) ? #forestgreen :  #midnightblue at: {location.x,location.y,elev[point(location.x, location.y)]+400+mh};	
 			}
 			
 			//this is the stem
@@ -351,7 +357,7 @@ species trees{
 		if(total_no_seeds > 0){
 			is_mother_tree <- true;
 			geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+40, mother_location) - circle(self.dbh+20, mother_location));
-			t_space <- my_plot.removeOccupiedSpace(t_space, trees inside t_space);	
+			t_space <- my_plot.removeTreeOccupiedSpace(t_space, trees inside t_space);	
 			if(t_space != nil){
 				self.temp <- 0;
 				do recruitTree(total_no_seeds, t_space);
@@ -376,7 +382,7 @@ species trees{
 		if(total_no_seeds > 0){
 			is_mother_tree <- true;
 			geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+20, mother_location) - circle(self.dbh, mother_location));
-			t_space <- my_plot.removeOccupiedSpace(t_space, trees inside t_space);
+			t_space <- my_plot.removeTreeOccupiedSpace(t_space, trees inside t_space);
 			if(t_space != nil){
 				self.temp <- 0;
 				do recruitTree(total_no_seeds, t_space);
@@ -407,7 +413,7 @@ species trees{
 				add self to: my_plot.plot_trees;	//similar scenario different approach for adding specie to a list attribute of another specie
 				is_new_tree <- true;
 				instance <- self;
-				state <- "seedling";
+				state <- SEEDLING;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	add new tree to parcel's list of trees
 			
 			trees closest_tree <- instance.my_plot.plot_trees closest_to instance;
@@ -426,15 +432,27 @@ species trees{
 
 	//growth of tree
 	//assume: growth coefficient doesn't apply on plots for ITP 
+	//note: monthly increment 
 	float calculateDBH(float neighbor_impact){
-		if(type = NATIVE){ //mayapis
-			return (max_dbh_native * (1-exp(-mayapis_von_gr * ((current_month/12)+age)) * neighbor_impact));//*((self.my_plot.is_itp)?1:growthCoeff(type));
-		}else if(type = EXOTIC){	//mahogany
-			return(max_dbh_exotic * (1-exp(-mahogany_von_gr * ((current_month/12)+age)) * neighbor_impact));//*((self.my_plot.is_itp)?1:growthCoeff(type));
+		if(type = EXOTIC){ //mahogany 
+			climate closest_clim <- climate closest_to self.location;	//closest climate descriptor to the point
+			float precip_value <- closest_clim.precipitation[current_month];
+			float etp_value <- closest_clim.etp[current_month];
+			
+			int is_dry_season <- (precip_value <etp_value)?-1:1;
+				
+			switch(dbh){
+				match_between [0, 19.99] {return dbh + (((1.01+(0.10*is_dry_season))/12) *neighbor_impact);}
+				match_between [20, 29.99] {return dbh + (((0.86+(0.17*is_dry_season))/12) *neighbor_impact);}
+				match_between [30, 39.99] {return dbh + (((0.90+(0.10*is_dry_season))/12) *neighbor_impact);}
+				match_between [40, 49.99] {return dbh + (((0.75+(0.14*is_dry_season))/12) *neighbor_impact);}
+				match_between [50, 59.99] {return dbh + (((1.0+(0.06*is_dry_season))/12) *neighbor_impact);}
+				match_between [60, 69.99] {return dbh + (((1.16+(0.06*is_dry_season))/12) *neighbor_impact);}
+				default {return dbh + (((1.38+(0.26*is_dry_season))/12) *neighbor_impact);}	//>70
+			}
+		}else if(type = NATIVE){	//palosapis
+			return ((((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*ba))/12)*neighbor_impact) + dbh; 
 		}
-		/*if(length(trees overlapping (circle(self.dbh) translated_to self.location)) > 0){
-			dbh <- prev_dbh;	//inhibit growth if it overlaps other trees; update this once height is added
-		}*/
 	}	
 	
 	//the best range
@@ -479,7 +497,7 @@ species trees{
 	}
 	
 	float neighborhoodInteraction{
-		my_neighbors <- (my_plot.plot_trees select ((each.state = "adult") and (each distance_to self) < 20#m));
+		my_neighbors <- (my_plot.plot_trees select ((each.state = ADULT) and (each distance_to self) < 20#m));
 		float ni <- 0.0;
 		
 		loop n over: (my_neighbors-self){
@@ -496,15 +514,55 @@ species trees{
 		return ni;
 	}	
 	
+	//used by checkMortality for Exotic/Mahogany
+	float exotic_GetShadeTolerance{
+		switch state{
+			match SEEDLING{
+				return 0.0;
+			} 
+			match SAPLING {
+				return 0.33;
+			}
+			match POLE{
+				return 0.66;
+			}
+			match ADULT{
+				return 1.0;
+			}
+		}
+	}
+	
+	//Returns middleDBH, used by checkMortality() for Native/Dipterocarps
+	float getMiddleDBH{
+		switch state{
+			match SEEDLING{
+				return (max_dbh_per_class[type][SEEDLING]/2);
+			}
+			default{	//the middle dbh between current and the former state max_dbh
+				return ((max_dbh_per_class[type][state]+max_dbh_per_class[type][state-1])/2);
+			}
+		}
+	}
+	
 	//tree mortality
 	bool checkMortality{
-		float e <- exp(-2.917 - 1.897 * ((shade_tolerant)?1:0) - 0.079 * dbh);
-		float proba_dead <- (e/(e+1));
-		
-		if(flip(proba_dead)){
-			return true;
+		float p_dead <- 0.0;
+		switch type{
+			match EXOTIC {
+				float e <- exp(-2.917 - 1.897 * self.exotic_GetShadeTolerance() - 0.079 * dbh);
+				p_dead <- (e/(e+1));
+			}
+			match NATIVE{
+				float d <- self.getMiddleDBH();
+				float x_0 <- -4.0527+(1/d);
+				float x_1 <- -0.1582*d;
+				float x_2 <- 0.0011*(d^2);
+				float x_3 <- 0.0951*self.my_plot.getStandBasalArea();
+				float e <- -(x_0 + x_1 + x_2 + x_3);
+				p_dead <- ((1+exp(e))^-1);
+			}
 		}
-		return false;
+		return flip(p_dead);
 	}
 	
 	//doesn't yet inhibit growth of tree
@@ -514,35 +572,43 @@ species trees{
 		float prev_th <- th;
 		
 		nieghborh_effect <- 1.0;
-		if(state = "adult"){
+		if(state = ADULT){
 			nieghborh_effect <- neighborhoodInteraction();
 			if(nieghborh_effect > 0){
 				nieghborh_effect <- 1-exp(log(neighborhoodInteraction()) * log(prev_dbh));	
 			}	
 		}
 		
+		ba <- (dbh^2) * 0.00007854;	//calculate basal area before calculating dbh increment
 		dbh <- calculateDBH(nieghborh_effect);	 
-		cd <- cr*(dbh) + dbh;
+		crown_diameter <- cr*(dbh) + dbh;
 		th <- calculateHeight();
-		if(!my_plot.is_itp and closest_tree != nil and (circle(self.cd/2, self.location) overlaps circle(closest_tree.cd/2, closest_tree.location))){	//inhibit growth if will overlap
+		if(!my_plot.is_itp and closest_tree != nil and (circle(self.crown_diameter/2, self.location) overlaps circle(closest_tree.crown_diameter/2, closest_tree.location))){	//inhibit growth if will overlap
 			dbh <- prev_dbh;
 			th <- prev_th;	
 		}
 		
 		mh <- th - (cr * th);	//update merchantable height
-		ba <- (dbh^2) * 0.00007854;	//update basal area, given cm
 	}
 	
-	action updateTreeClass{
-		if (dbh < 1.0){
-			state <- "seedling";
-		}else if(dbh> 1.0 and dbh <5.0){
-			state <- "sapling";
-		}else if(dbh >= 5.0 and dbh <= 30.0){
-			state <- "pole";
-		}else if(dbh > 30.0){
-			state <- "adult";
-		}		
+	/*Dipterocarp: max_dbh = [80,120]cm
+	 *Mahogany: max_dbh = 150cm
+	 *				Exotic			Native
+	 * seedling		[0,1)			[0,5)
+	 * sapling		[1,5)			[5,10)
+	 * pole			[5,30)			[10,20)
+	 * adult 		[30,150)		[20,100)
+	*/
+	reflex updateTreeClass{
+		if(dbh < max_dbh_per_class[type][0]){
+			state <- SEEDLING;
+		}else if(dbh<max_dbh_per_class[type][1]){
+			state <- SAPLING;
+		}else if(dbh<max_dbh_per_class[type][2]){
+			state <- POLE;
+		}else{
+			state <- ADULT;
+		}
 	}
 	
 	//tree age
@@ -556,6 +622,7 @@ species trees{
 		bool is_dead <- false;
 		if((my_plot.is_nursery and age>3) or (!my_plot.is_nursery)){	//determine mortality
 			if(checkMortality()){
+				write "Tree: "+name+" type: "+type+" dbh: "+dbh+" dead";
 				remove self from: my_plot.plot_trees;
 				is_dead <- true;
 				do die;	
@@ -600,6 +667,15 @@ species plot{
 		}
 		
 		//write "My area: "+self.shape.area+" Neighbors area: "+neighborhood_shape.area;
+	}
+	
+	//sum of all the basal areas of the tree inside the plot
+	float getStandBasalArea{
+		float stand_basal_area <- 0.0;
+		ask plot_trees{
+			stand_basal_area <- stand_basal_area + ba;
+		}
+		return stand_basal_area;
 	}
 	
 	aspect default{
@@ -649,7 +725,7 @@ species plot{
 	//removes spaces occupied by trees
 	//temp_shape can be the shape of a parcel
 	//trees_inside can be the parcel_trees
-	geometry removeOccupiedSpace(geometry temp_shape, list<trees> trees_inside){
+	geometry removeTreeOccupiedSpace(geometry temp_shape, list<trees> trees_inside){
 		//remove from occupied spaces
 		loop pt over: trees_inside{
 			if(dead(pt)){ continue; }
