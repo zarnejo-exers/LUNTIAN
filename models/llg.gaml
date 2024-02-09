@@ -645,6 +645,9 @@ species trees{
 					do transplantRecruitedTree(number_of_fruits, getTreeSpaceForRecruitment());	
 					is_mother_tree <- false;
 					number_of_fruits <- 0;
+					has_fruit_growing <- 12;
+				}else if(has_fruit_growing > 0){
+					has_fruit_growing <- has_fruit_growing - 1;
 				}
 			}
 			match EXOTIC{
@@ -720,7 +723,8 @@ species plot{
 		//compute total number of recruits
 		//divide total number of recruits by # of adult trees
 		//turn the adult trees into mature trees and assign fruit in each
-		list<trees> adult_trees <- reverse((trees select (each.age >= 15 and each.type=NATIVE)) sort_by (each.dbh));	//get all adult trees with age>= 15
+		//has_fruit_growing = 0 ensures that the tree hasn't just bore fruit, trees that bore fruit must wait at least 1 year before they can bear fruit again
+		list<trees> adult_trees <- reverse((trees select (each.age >= 15 and each.type=NATIVE and each.has_fruit_growing = 0)) sort_by (each.dbh));	//get all adult trees with age>= 15
 		if(length(adult_trees) > 1){	//if count > 1, compute total number of recruits
 			int count_of_native <- trees count (each.type = NATIVE);
 			float number_of_recruits <- 4.202 + (0.017*count_of_native) + (-0.126*getStandBasalArea());
