@@ -21,14 +21,14 @@ global{
 	int LABOUR_PCAPACITY <- 5;	//number of trees that the laborer can plant/manage
 	
 	//fixed rate
-	float NURSERY_LCOST <- 100.0;
+	float NURSERY_LCOST <- 331.10;	//labor per day
 	float HARVEST_LCOST <- 50.0;
 	float PLANTING_LCOST <- 25.0;
 	
 	int police_count <- 2 update: police_count;
 	int plot_size <- 1 update: plot_size;
-	int laborer_count <- 2 update: laborer_count;
-	int nlaborer_count<- 1 update: nlaborer_count;
+	int laborer_count <- 10 update: laborer_count;
+	int nlaborer_count<- 5 update: nlaborer_count;
 	float planting_space <- 1.0 update: planting_space; 
 	int planting_age <- 1 update: planting_age;
 	int nursery_count <- 5 update: nursery_count;
@@ -74,19 +74,17 @@ global{
 	}
 	
 	//automatically execute when there are no laborers assigned to nurseries
-	reflex assignLaborersToNurseries when: (!assignedNurseries and (nursery_count > 0)){
+	reflex assignLaborersToNurseries when: (!assignedNurseries){
 		ask university_si{
 			do assignNurseries;
 			if(length(my_nurseries) >= nursery_count){	//start ITP if there's enough nurseries
-				write "Starting ITP: "+length(my_nurseries)+" with: "+nursery_count;
-				do assignLaborerToNursery(my_nurseries);
+				write "Open for investment";
 				do updateInvestors;	 
 				assignedNurseries <- true;
 			}else{
-				write "Let environment grow";
+				write "Not ready for investment";
 			}		
-		}
-		
+		}	
 	}
 	
 	//stop simulation at year 50
@@ -122,7 +120,7 @@ global{
 
 species university_si{
 	list<plot> my_invested_plots;		//list of plots invested by the university
-	list<plot> my_nurseries <- (plot where each.is_nursery) update: (plot where each.is_nursery);	//list of nurseries managed by university
+	list<plot> my_nurseries <- (plot where (each.is_nursery)) update: (plot where (each.is_nursery));	//list of nurseries managed by university
 	list<investor> current_investors <- [];
 	
 	float mcost_of_native <- 5.0; //management cost in man hours of labor
@@ -152,7 +150,7 @@ species university_si{
 	
 	action payLaborer(labour cl){
 		//serviced * labor_cost
-		if(cl.is_nursery_labour){
+		if(cl.nursery_labour_type != -1){
 			cl.com_identity.current_earning <- cl.com_identity.current_earning + (NURSERY_LCOST);	
 		}else if(cl.is_harvest_labour){
 			cl.com_identity.current_earning <- cl.com_identity.current_earning + (HARVEST_LCOST);
@@ -349,7 +347,7 @@ species university_si{
 	}
 	
 	list<trees> getAllSaplingsInNurseries{
-		list<plot> nurseries <- plot where each.is_nursery;
+		list<plot> nurseries <- plot where (each.is_nursery);
 		list<trees> saplings <- [];
 		
 		ask nurseries{
@@ -445,44 +443,31 @@ species university_si{
 	//determine if a plot is to be a nursery or not
 	//	where there is a mother tree, it becomes a nursery
 	action assignNurseries{
-		list<plot> candidate_plots <- plot where (length(each.plot_trees where each.is_mother_tree)>0);
+		list<plot> candidate_plots <- [];
+		ask plot where (each.nursery_type = -1){
+			if(length(plot_trees where each.is_mother_tree) > 0){
+				add self to: candidate_plots;
+			}
+		}
+		write "CANDIDATE PLOTS: "+length(candidate_plots);
+		list<plot> nursery_plot;
 		if(candidate_plots != nil and length(candidate_plots) > nursery_count){
 			candidate_plots <- candidate_plots[0::nursery_count];
 			ask candidate_plots{
-				is_nursery <- true;	
+				add self to: nursery_plot;
+				ask university_si{
+					add myself to: my_nurseries;
+				}	
 			}	
 		}
-	}
-
-	//divide the total number of investable plots+nursery plots to available laborers
-	//NOTE: 
-	// 1 laborer can manage 0..* nurseries -> meaning, they may have none or multiple nurseries
-	// 1 nursery can have 1..* laborers -> meaning, a nursery must be managed by at least 1 laborer
-	action assignLaborerToNursery(list<plot> to_assign_nurseries){
-		//get all unassigned laborers
-		if(nlaborer_count = 0) { write "Nursery not accepting laborers."; return; }
 		
-		list<labour> free_laborers <- labour where !each.is_nursery_labour;
-		list<labour> assigned_laborers <- [];
-		
-		ask to_assign_nurseries{	//assign laborers to each nursery as much as allowed, meaning, some nurseries could be end-up unassigned when there isn't sufficient laborers
-			list<labour> unassigned_laborers <- free_laborers - (free_laborers where (each.my_plots contains self));	//get all free laborers that are not yet assigned on the plot			
-			if(length(unassigned_laborers) < nlaborer_count){	//assign only what is allowed
-				unassigned_laborers <- unassigned_laborers[0::nlaborer_count];
-			}
-			ask unassigned_laborers{
-				add myself to: my_plots;				//put the nursery in laborer's plot
-				man_months <- [NURSERY_LABOUR, 0, 0];
-				is_nursery_labour <- true;
-				add self to: myself.my_laborers;		//put laborer in nursery's laborers list
-				remove self from: free_laborers;		//remove laborer from list of free laborers
-				add self to: assigned_laborers;
-			}
+		ask nursery_plot[0::int(nursery_count/2)]{
+			nursery_type <- NATIVE;
+		}
+		ask nursery_plot[int(nursery_count/2)+1::nursery_count]{
+			nursery_type <- EXOTIC;
 		}
 		
-		ask assigned_laborers{
-			do assignLocation;
-		}
 	}
 	
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
@@ -502,6 +487,24 @@ species university_si{
 		ANR_instance <- 0; 
 		current_labor_cost <- 0.0;
 		investment_request_count <- 0;
+	}
+	
+	//hire 5 laborers 
+	reflex hireNurseryLaborers when: length(my_nurseries)>0 and (fruiting_months_N + fruiting_months_E) contains current_month{
+		write "Current month: "+current_month+" university hiring nursery laborers";
+		
+		list<labour> nursery_laborers <- (labour where !each.is_hired)[0::5];
+		
+		//depending on the fruiting month, set the laborer to gather only that kind of fruit
+		ask nursery_laborers{
+			if(fruiting_months_N contains current_month){	//hire native tree fruit gatherer
+				nursery_labour_type <- NATIVE;
+			}else{	//hire exotic tree fruit gatherer
+				nursery_labour_type <- EXOTIC;
+			}				
+			
+			current_plot <- one_of(plot);	//put laborer on a random location
+		}
 	}
 }
 

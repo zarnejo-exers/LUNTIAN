@@ -24,18 +24,22 @@ species labour control: fsm{
 	list<trees> my_trees <- [];		//list of wildlings that the laborer currently carries
 	list<int> man_months <- [0,0,0];	//assigned, serviced, lapsed 
 	int carrying_capacity <- LABOUR_PCAPACITY;	//total number of wildlings that a laborer can carry to the nursery and to the ITP
-	bool is_nursery_labour <- false;
+	
 	bool is_harvest_labour <- false;
 	bool is_planting_labour <- false;
 	int p_t_type;	//planting tree type
 	int h_t_type;	//harvesting tree type
 	
+	bool is_hired <- false;
+	int nursery_labour_type <- -1;	//-1 if not labour type, either NATIVE or EXOTIC
+	
 	bool initial_harvesting <- false;	//set to true if the harvester is hired after the investor has sealed an investment
-	 
 	comm_member com_identity <- nil;
+	list<trees> all_seedlings_gathered <- [];  
+	list<plot> visited_plot <- [];
 	
 	aspect default{
-		if(is_nursery_labour){
+		if(nursery_labour_type!= -1){
 			draw triangle(length(my_trees)+50) color: #orange rotate: 90.0;	
 		}else if(is_harvest_labour or is_planting_labour){
 			draw triangle(length(my_trees)+50) color: #violet rotate: 90.0;
@@ -117,20 +121,46 @@ species labour control: fsm{
 		}
 	}
 	
-	list<trees> gatherSeedlings(plot found_plot){
-		list<trees> all_seedlings <- found_plot.plot_trees where (each.state = SEEDLING);
+	//gather all seedlings from the current plot
+	list<trees> gatherSeedlings(plot curr_plot){
+		list<trees> all_seedlings <- curr_plot.plot_trees where (each.state = SEEDLING);
 		if(length(all_seedlings) > carrying_capacity){
 			all_seedlings <- all_seedlings[0::carrying_capacity];
 		}
 		//remove the seedlings from the plot
 		ask all_seedlings{
-			remove self from: found_plot.plot_trees;
+			remove self from: curr_plot.plot_trees;
 			add self to: myself.my_trees;	//my_trees is the bag of the laborer to hold the trees it had gathered
 		}
 		
 		return all_seedlings;
 	}
 	
+	action plantInPlot(list<trees> t, plot nursery){
+		self.current_plot <- nursery;
+		location <- current_plot.location;
+		geometry remaining_space <- nursery.removeTreeOccupiedSpace(nursery.shape, nursery.plot_trees);
+		loop while: (remaining_space.area > 0 and length(t) > 0){
+			trees to_plant <- one_of(t);
+			point prev_location <- to_plant.location;	//get location of the seedling
+			to_plant.location <- any_location_in(remaining_space);	//put the seedling in one of the available location in the nursery
+			//make sure it is safe to replant, meaning, it doesn't overlap a nearby tree
+			trees closest_tree <-nursery.plot_trees closest_to to_plant;
+			if(closest_tree = nil or !(circle(closest_tree.dbh+5, closest_tree.location) overlaps circle(to_plant.dbh+5, to_plant.location))){	//if the closest tree overlaps with the tree that will be planted, do not continue planting the tree
+				//plant the tree
+				to_plant.my_plot <- nursery;
+				add to_plant to: to_plant.my_plot.plot_trees;
+				remove to_plant from: my_trees;
+				geometry new_occupied_space <- circle(to_plant.dbh+5) translated_to to_plant.location;	//+5 allows for spacing between plants
+				remaining_space <- remaining_space - new_occupied_space;
+				remove to_plant from: t;
+			}else{
+				to_plant.location <- nil;	//the tree isn't give permanent nursery location yet 
+			}
+		}
+	}
+	
+	//done by nursery laborer after completing gathering of all seedlings
 	action replant(list<trees> t){
 		
 		list<plot> to_plant_plot <- []; 
@@ -143,27 +173,7 @@ species labour control: fsm{
 		}
 		if(length(to_plant_plot)>0){
 			plot p <- one_of(to_plant_plot);
-			self.current_plot <- p;
-			location <- current_plot.location;
-			geometry remaining_space <- p.removeTreeOccupiedSpace(p.shape, p.plot_trees);
-			loop while: (remaining_space.area > 0 and length(t) > 0){
-				trees to_plant <- one_of(t);
-				point prev_location <- to_plant.location;	//get location of the seedling
-				to_plant.location <- any_location_in(remaining_space);	//put the seedling in one of the available location in the nursery
-				//make sure it is safe to replant, meaning, it doesn't overlap a nearby tree
-				trees closest_tree <-p.plot_trees closest_to to_plant;
-				if(closest_tree = nil or !(circle(closest_tree.dbh+5, closest_tree.location) overlaps circle(to_plant.dbh+5, to_plant.location))){	//if the closest tree overlaps with the tree that will be planted, do not continue planting the tree
-					//plant the tree
-					to_plant.my_plot <- p;
-					add to_plant to: to_plant.my_plot.plot_trees;
-					remove to_plant from: my_trees;
-					geometry new_occupied_space <- circle(to_plant.dbh+5) translated_to to_plant.location;	//+5 allows for spacing between plants
-					remaining_space <- remaining_space - new_occupied_space;
-					remove to_plant from: t;
-				}else{
-					to_plant.location <- nil;	//the tree isn't give permanent nursery location yet 
-				}
-			}
+			do plantInPlot(t, p);
 		}
 		if(labor_type = COMM_LABOUR){
 			man_months[1] <- man_months[1] + 1;
@@ -259,17 +269,32 @@ species labour control: fsm{
 	}
 	
 	state vacant initial: true{	
-		transition to: assigned_nursery when: is_nursery_labour;
+		transition to: assigned_nursery when: nursery_labour_type != -1;
 		transition to: assigned_itp_harvester when: (is_harvest_labour and plot_to_harvest != nil);
 		transition to: assigned_itp_planter when: is_planting_labour;
 	}
 	
 	state assigned_nursery {
-		plot found_plot <- findPlotWithSeedlings();
-		if(found_plot!=nil){
-			list<trees> seedlings_gathered <- gatherSeedlings(found_plot);
-			do replant(seedlings_gathered);
+		ask gatherSeedlings(current_plot){
+			add self to: myself.all_seedlings_gathered;
 		} 
+		add current_plot to: visited_plot;
+		current_plot <- (plot-visited_plot) closest_to current_plot;
+		//get another location
+			 		
+		transition to: vacant when: !((fruiting_months_N + fruiting_months_E) contains current_month){	//stop gathering of seedlings once fruiting month has ended
+			write "Putting all gathered seedlings to plot";
+			
+			plot n_plot <- nil;
+			ask university_si{
+				n_plot <- one_of(my_nurseries where (each.nursery_type = myself.nursery_labour_type));	
+			}
+			do plantInPlot(all_seedlings_gathered, n_plot);	//put to nursery all the gathered seedlings
+			all_seedlings_gathered <- [];
+			visited_plot <- [];
+			nursery_labour_type <- -1;
+			is_hired <- false;
+		}
 	}
 	
 	state assigned_itp_planter{
@@ -285,7 +310,10 @@ species labour control: fsm{
 				write "Paying laborer: current earning (after) - "+myself.com_identity.current_earning;
 			}
 		}
-		transition to: vacant when: !is_planting_labour;
+		transition to: vacant when: !is_planting_labour{
+			is_hired <- false;
+		}
+		
 		if(man_months[0] >= man_months[2]){
 	    	is_planting_labour <- false;
 	    }

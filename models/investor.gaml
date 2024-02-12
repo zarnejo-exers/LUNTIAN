@@ -177,8 +177,6 @@ species investor control: fsm{
 	 	if(assignedNurseries){
 	 		write "Deciding investment... ";
 	 		do decideInvestment;	
-	 	}else{
-	 		write "Waiting for environment...";
 	 	}
 	 
 	    transition to: investing when: (my_plot != nil);

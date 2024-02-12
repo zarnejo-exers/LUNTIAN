@@ -70,7 +70,7 @@ global {
 	int ave_fruits_native <- 100 update: ave_fruits_native;
 	float native_price_per_volume <- 70.0 update: native_price_per_volume;
 	
-	list<int> fruiting_months_N <- [8];
+	list<int> fruiting_months_N <- [5,6,7];	//seeds fall to the ground, ready to be harvested
 	list<int> flowering_months_E <- [3,4,5,6];
 	list<int> fruiting_months_E <- [12, 1, 2, 3];
 	
@@ -378,31 +378,8 @@ species trees{
 		return flip(p_producing);
 	}
 	
-	//recruitment of tree
-	//native tree, produces fruit every September
-	action fruitProductionN{
-		float sfruit <- 42.4;
-		float fsurv <- 0.085;
-		float fgap <- 0.026;
-		float fviable <- 0.618;
-		int total_no_seeds <- 0;
-		
-		point mother_location <- point(self.location.x, self.location.y);
-		
-		total_no_seeds <- int((ave_fruits_native)*sfruit*fsurv*fgap*fviable);	//1-year old seeds
-		if(total_no_seeds > 0){
-			is_mother_tree <- true;
-			geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+20, mother_location) - circle(self.dbh, mother_location));
-			t_space <- my_plot.removeTreeOccupiedSpace(t_space, trees inside t_space);
-			if(t_space != nil){
-				self.temp <- 0;
-				do transplantRecruitedTree(total_no_seeds, t_space);
-			}
-		}else{is_mother_tree <- false;}
-	}
-	
-	//if there is no nursery, put the recruit on the same plot as with the mother tree
-	action transplantRecruitedTree(int total_no_seeds, geometry t_space){
+	//put the recruit on the same plot as with the mother tree
+	action recruitTree(int total_no_seeds, geometry t_space){
 		//create new trees	
 		list<trees> new_trees;
 		loop i from: 0 to: total_no_seeds-1 {
@@ -465,6 +442,7 @@ species trees{
 				default {return (((1.38+(0.26*is_dry_season))/12) *neighbor_impact);}	//>70
 			}
 		}else if(type = NATIVE){	//palosapis
+			float increment <- (((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*ba))/12); 
 			return ((((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*ba))/12)*neighbor_impact); 
 		}
 	}	
@@ -606,26 +584,6 @@ species trees{
 		mh <- th - (cr * th);	//update merchantable height
 	}
 	
-	/*Dipterocarp: max_dbh = [80,120]cm
-	 *Mahogany: max_dbh = 150cm
-	 *				Exotic			Native
-	 * seedling		[0,1)			[0,5)
-	 * sapling		[1,5)			[5,10)
-	 * pole			[5,30)			[10,20)
-	 * adult 		[30,150)		[20,100)
-	*/
-	reflex updateTreeClass{
-		if(dbh < max_dbh_per_class[type][0]){
-			state <- SEEDLING;
-		}else if(dbh<max_dbh_per_class[type][1]){
-			state <- SAPLING;
-		}else if(dbh<max_dbh_per_class[type][2]){
-			state <- POLE;
-		}else{
-			state <- ADULT;
-		}
-	}
-	
 	//tree age
 	//once the tree reaches 5 years old, it cannot be moved to a nursery anymore
 	action stepAge {
@@ -641,20 +599,20 @@ species trees{
 	action treeRecruitment{
 		switch type{
 			match NATIVE {
-				if(number_of_fruits > 0 and is_mother_tree){		
-					do transplantRecruitedTree(number_of_fruits, getTreeSpaceForRecruitment());	
+				if(number_of_fruits > 0 and is_mother_tree and fruiting_months_N contains current_month){	//fruit ready to be picked during the fruiting_months_N		
+					do recruitTree(number_of_fruits, getTreeSpaceForRecruitment());	
 					is_mother_tree <- false;
 					number_of_fruits <- 0;
 					has_fruit_growing <- 12;
 				}else if(has_fruit_growing > 0){
 					has_fruit_growing <- has_fruit_growing - 1;
+					is_mother_tree <- true;
 				}
 			}
 			match EXOTIC{
 				if(number_of_fruits >0 and has_fruit_growing=0){	//fruits have matured
 					int total_no_1yearold <- int(number_of_fruits *42.4 *0.085);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 
-					write "EXOTIC: Tree "+name+" has "+total_no_1yearold+" recruits";
-					do transplantRecruitedTree(total_no_1yearold, getTreeSpaceForRecruitment());	
+					do recruitTree(total_no_1yearold, getTreeSpaceForRecruitment());	
 					has_fruit_growing <- 0;
 					number_of_fruits <- 0;
 					is_mother_tree <- false;
@@ -677,7 +635,6 @@ species trees{
 		bool is_dead <- false;
 		if((my_plot.is_nursery and age>3) or (!my_plot.is_nursery)){	//determine mortality
 			if(checkMortality()){
-				write "Tree: "+name+" type: "+type+" dbh: "+dbh+" dead";
 				remove self from: my_plot.plot_trees;
 				is_dead <- true;
 				do die;	
@@ -687,6 +644,26 @@ species trees{
 			do treeRecruitment();
 			do treeGrowthIncrement();
 			do stepAge();
+		}
+	}
+
+	/*Dipterocarp: max_dbh = [80,120]cm
+	 *Mahogany: max_dbh = 150cm
+	 *				Exotic			Native
+	 * seedling		[0,1)			[0,5)
+	 * sapling		[1,5)			[5,10)
+	 * pole			[5,30)			[10,20)
+	 * adult 		[30,150)		[20,100)
+	*/
+	reflex updateTreeClass{
+		if(dbh < max_dbh_per_class[type][0]){
+			state <- SEEDLING;
+		}else if(dbh<max_dbh_per_class[type][1]){
+			state <- SAPLING;
+		}else if(dbh<max_dbh_per_class[type][2]){
+			state <- POLE;
+		}else{
+			state <- ADULT;
 		}
 	}
 }
@@ -701,6 +678,7 @@ species plot{
 	float investment_cost;
 	float projected_profit;
 	bool is_nursery <- false;
+	int nursery_type <- -1; //
 	bool is_itp <- false;
 	bool is_investable <- false;
 	bool is_near_water <- false;
@@ -729,7 +707,7 @@ species plot{
 			int count_of_native <- trees count (each.type = NATIVE);
 			float number_of_recruits <- 4.202 + (0.017*count_of_native) + (-0.126*getStandBasalArea());
 			int recruits_per_adult_trees <- 1;
-			write "Native: number of recuits: "+number_of_recruits+" for "+length(adult_trees);
+			//write "Native: number of recuits: "+number_of_recruits+" for "+length(adult_trees);
 			
 			if(number_of_recruits > length(adult_trees)){
 				recruits_per_adult_trees <- int(number_of_recruits/length(adult_trees));	

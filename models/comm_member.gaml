@@ -180,7 +180,7 @@ species comm_member control: fsm{
 		    create labour{
 				com_identity <- myself;
 				myself.instance_labour <- self;
-				is_nursery_labour <- nil;
+				nursery_labour_type <- -1;
 				is_harvest_labour <- nil;
 				is_planting_labour <- nil;
 				my_plots <- nil;
