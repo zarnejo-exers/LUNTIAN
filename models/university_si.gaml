@@ -18,12 +18,13 @@ global{
 	int NURSERY_LABOUR <- 12; //labor required per nursery, constant
 	int HARVEST_LABOUR <- 1;
 	int PLANTING_LABOUR <- 6;
-	int LABOUR_PCAPACITY <- 5;	//number of trees that the laborer can plant/manage
+	int LABOUR_PCAPACITY <- 25;	//number of trees that the laborer can plant/manage
 	
 	//fixed rate
 	float NURSERY_LCOST <- 331.10;	//labor per day
 	float HARVEST_LCOST <- 50.0;
 	float PLANTING_LCOST <- 25.0;
+	float POLICE_COST <- 500.0; //daily wage
 	
 	int police_count <- 2 update: police_count;
 	int plot_size <- 1 update: plot_size;
@@ -52,6 +53,8 @@ global{
 	int total_ANR_instance <- 0;
 	int total_investment_request <- 0;
 	int total_warned_CM <- 0;
+	
+	int total_seedlings_replanted <- 0;	//per year
 	
 	init{
 		create market;
@@ -120,7 +123,7 @@ global{
 
 species university_si{
 	list<plot> my_invested_plots;		//list of plots invested by the university
-	list<plot> my_nurseries <- (plot where (each.is_nursery)) update: (plot where (each.is_nursery));	//list of nurseries managed by university
+	list<plot> my_nurseries;	//list of nurseries managed by university
 	list<investor> current_investors <- [];
 	
 	float mcost_of_native <- 5.0; //management cost in man hours of labor
@@ -133,6 +136,8 @@ species university_si{
 	int ANR_instance <- 0; 
 	float current_labor_cost <- 0.0;
 	int investment_request_count <- 0;
+	
+	int has_hired <- -1;
 	
 	/*
 	 * Determine amount of investment needed per hectare
@@ -149,16 +154,22 @@ species university_si{
 	}
 	
 	action payLaborer(labour cl){
+		float cost <- 0.0; 
 		//serviced * labor_cost
-		if(cl.nursery_labour_type != -1){
-			cl.com_identity.current_earning <- cl.com_identity.current_earning + (NURSERY_LCOST);	
-		}else if(cl.is_harvest_labour){
-			cl.com_identity.current_earning <- cl.com_identity.current_earning + (HARVEST_LCOST);
+		if(cl.is_harvest_labour){
+			cost <- HARVEST_LCOST;	
 		}else if(cl.is_planting_labour){
-			cl.com_identity.current_earning <- cl.com_identity.current_earning + (PLANTING_LCOST);
+			cost <- PLANTING_LCOST;	
+		}else{
+			cost <- NURSERY_LCOST;
 		}
 		
-		current_labor_cost <- current_labor_cost + cl.com_identity.current_earning;
+		if(cl.com_identity != nil){
+			cl.com_identity.current_earning <- cl.com_identity.current_earning + cost;
+		}else{
+			cl.total_earning <- cl.total_earning + cost;
+		}		
+		current_labor_cost <- current_labor_cost + cost;	
 	}
 
 	action updateInvestors{
@@ -455,12 +466,18 @@ species university_si{
 			candidate_plots <- candidate_plots[0::nursery_count];
 			ask candidate_plots{
 				add self to: nursery_plot;
+				is_nursery <- true;
 				ask university_si{
 					add myself to: my_nurseries;
+					write "Plot added to my_nurseries";
 				}	
 			}	
 		}
 		
+		ask university_si
+		{
+			write "Total nursery count: "+length(my_nurseries);
+		}		
 		ask nursery_plot[0::int(nursery_count/2)]{
 			nursery_type <- NATIVE;
 		}
@@ -470,42 +487,88 @@ species university_si{
 		
 	}
 	
+	//hire 5 laborers 
+	reflex hireNurseryLaborers{
+		
+		if((fruiting_months_N + fruiting_months_E) contains current_month){
+			if(has_hired = -1){
+				bool is_with_mother_trees; 
+			
+				ask university_si{
+					is_with_mother_trees <- length(my_nurseries)>0; 
+				}
+				
+				if(is_with_mother_trees){
+					write "Current month: "+current_month+" university hiring nursery laborers";
+					
+					list<labour> nursery_laborers <- (sort_by(labour where (each.state = "vacant"), each.total_earning))[0::5];	//if there are laborers that the university manages
+					
+					//depending on the fruiting month, set the laborer to gather only that kind of fruit
+					ask nursery_laborers{
+						if(fruiting_months_N contains current_month){	//hire native tree fruit gatherer
+							nursery_labour_type <- NATIVE;
+							myself.has_hired <- NATIVE; 
+						}else{	//hire exotic tree fruit gatherer
+							nursery_labour_type <- EXOTIC;
+							myself.has_hired <- EXOTIC;
+						}	
+						is_nursery_labour <- true;			
+						current_plot <- one_of(plot);	//put laborer on a random location
+					}
+					
+					write "Has hired: "+has_hired;	
+				}		
+			}else{
+				list<labour> hired_nursery_laborers <- labour where (each.nursery_labour_type = NATIVE or each.nursery_labour_type = EXOTIC);
+				loop n_laborers over: hired_nursery_laborers{
+					do payLaborer(n_laborers);
+				}
+				
+			}
+			
+		}else if(has_hired != -1){ //not anymore fruiting season, and has hired someone from the previous fruiting season
+			write "Current month: "+current_month;
+			write "Fruisting seasons: "+(fruiting_months_N + fruiting_months_E);
+			has_hired <- -1;
+			write "Hiring for nursery management while not yet fruiting season";
+			
+			list<plot> nurseries <- plot where each.is_nursery;
+			list<labour> free_laborers <- (sort_by((labour where (each.state = "vacant")), each.total_earning))[0::length(nurseries)];
+			
+			ask free_laborers{
+				is_nursery_labour <- true;
+				nursery_labour_type <- -1;
+				current_plot <- one_of(nurseries);
+				remove current_plot from: nurseries;
+			}
+			
+		}
+	}
+	
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
 	reflex computeTotalCost{
-		float labor_cost <- 500.0;
+		
+		float nursery_other_cost <- 0.0;
+		if(current_month = 0){	//start of the new year
+			nursery_other_cost <- total_seedlings_replanted * 2.40;	//additional management cost per seedlings replanted is 2.40 each
+			total_seedlings_replanted <- 0;
+		}
+		
 		float police_cost <- 1000.0;
 		float ANR_cost <- 250.0;
 		float investment_survey_cost <- 150.0;
-		
-		int own_working_labor <- length(labour where (each.labor_type = each.OWN_LABOUR and (each.state != "vacant"))); 
+		 
 		int working_sp <- length(special_police where (each.is_servicing));
 		
-		total_management_cost <- total_management_cost + (own_working_labor + working_sp + (ANR_instance*250) + current_labor_cost) + (investment_request_count * investment_survey_cost);
+		total_management_cost <- total_management_cost + nursery_other_cost + (working_sp*POLICE_COST) + (ANR_instance*ANR_cost) + current_labor_cost + (investment_request_count * investment_survey_cost);
 		total_ANR_instance <- total_ANR_instance + ANR_instance;
 		total_investment_request <- total_investment_request + investment_request_count;
 		
 		ANR_instance <- 0; 
 		current_labor_cost <- 0.0;
 		investment_request_count <- 0;
-	}
-	
-	//hire 5 laborers 
-	reflex hireNurseryLaborers when: length(my_nurseries)>0 and (fruiting_months_N + fruiting_months_E) contains current_month{
-		write "Current month: "+current_month+" university hiring nursery laborers";
 		
-		list<labour> nursery_laborers <- (labour where !each.is_hired)[0::5];
-		
-		//depending on the fruiting month, set the laborer to gather only that kind of fruit
-		ask nursery_laborers{
-			if(fruiting_months_N contains current_month){	//hire native tree fruit gatherer
-				nursery_labour_type <- NATIVE;
-			}else{	//hire exotic tree fruit gatherer
-				nursery_labour_type <- EXOTIC;
-			}				
-			
-			current_plot <- one_of(plot);	//put laborer on a random location
-		}
-	}
+	}	
 }
 
 

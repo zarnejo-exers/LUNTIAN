@@ -60,7 +60,7 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 //            	}
 //			}
 //		}
-
+//
 //		display chart2 type: java2D{	
 //			chart "Community member according to state" type: series
 //			{
@@ -73,51 +73,45 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 //		}
 //		
 //		display chart3 type: java2D{	
-//			chart "Investor total earnings" type: series
+//			chart "Own laborer according to state" type: series
 //			{
 //				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-//				list<string> risks <-["Averse", "Loving", "Neutral"];
-//				loop i over: investor{
-//            		data i.name+"("+risks[i.rt]+")" value: i.total_profit;
+//				list<string> states <- ["vacant", "manage_nursery", "assigned_nursery", "assigned_itp_harvester", "assigned_itp_planter", "independent"];
+//				loop i over: states{
+//            		data i value: count(labour, each.state = i and each.com_identity=nil);
 //            	}
 //			}
 //		}
 //		
-//		display chart4 type: java2D{	
-//			chart "Community member total earnings" type: series
-//			{
-//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-//				loop i over: comm_member{
-//            		data i.name value: i.total_earning;
-//            	}
-//			}
-//		}
-		
-		display chart5 type: java2D{	
-			chart "Population of Trees" type: series
+		display chart3 type: java2D{	
+			chart "Investor total earnings" type: series
 			{
-				data "Exotic Trees" value: length(trees where (each.type = EXOTIC)) color:#red;
-				data "Native Trees" value: length(trees where (each.type = NATIVE)) color: #blue;
-			}		
+				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+				list<string> risks <-["Averse", "Loving", "Neutral"];
+				loop i over: investor{
+            		data i.name+"("+risks[i.rt]+")" value: i.total_profit;
+            	}
+			}
 		}
 		
-		display chart6 type: java2D{	
-			chart "Population of Trees" type: series
+		display chart4 type: java2D{	
+			chart "Community member total earnings" type: series
 			{
-				data "Native: Seedling" value: length(trees where (each.type = NATIVE and each.state = SEEDLING)) color:#blue;
-				data "Native: Sapling" value: length(trees where (each.type = NATIVE and each.state = SAPLING)) color: #darkblue;
-				data "Native: Pole" value: length(trees where (each.type = NATIVE and each.state = POLE)) color: #lightblue;
-				data "Native: Adult" value: length(trees where (each.type = NATIVE and each.state = ADULT)) color: #blueviolet;
+				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+				loop i over: comm_member{
+            		data i.name value: i.total_earning;
+            	}
 			}
-		}		
+		}
 		
-		display chart7 type: java2D{	
-			chart "Population of Trees" type: series
+		display chart5 type: java2D{	
+			chart "Own laborer total earning" type: series
 			{
-				data "Exotic: Seedling" value: length(trees where (each.type = EXOTIC and each.state = SEEDLING)) color:#red;
-				data "Exotic: Sapling" value: length(trees where (each.type = EXOTIC and each.state = SAPLING)) color: #darkred;
-				data "Exotic: Pole" value: length(trees where (each.type = EXOTIC and each.state = POLE)) color: #pink;
-				data "Exotic: Adult" value: length(trees where (each.type = EXOTIC and each.state = ADULT)) color: #yellowgreen;
+				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+				list<labour> own_laborer <- labour where (each.com_identity=nil); 
+				loop i over: own_laborer{
+            		data i.name value: i.total_earning;
+            	}
 			}
 		}		
 		

@@ -70,9 +70,10 @@ global {
 	int ave_fruits_native <- 100 update: ave_fruits_native;
 	float native_price_per_volume <- 70.0 update: native_price_per_volume;
 	
-	list<int> fruiting_months_N <- [5,6,7];	//seeds fall to the ground, ready to be harvested
-	list<int> flowering_months_E <- [3,4,5,6];
-	list<int> fruiting_months_E <- [12, 1, 2, 3];
+	//Note: 0->January; 11-> December
+	list<int> fruiting_months_N <- [4,5,6];	//seeds fall to the ground, ready to be harvested
+	list<int> flowering_months_E <- [2,3,4,5];
+	list<int> fruiting_months_E <- [11, 0, 1, 2];
 	
 	//native, exotic
 	list<float> min_water <- [1500.0, 1400.0];						//best grow, annual, monthly will be taken in consideration during the growth effect
@@ -537,6 +538,7 @@ species trees{
 	}
 	
 	//tree mortality
+	//true = dead
 	bool checkMortality{
 		float p_dead <- 0.0;
 		switch type{
@@ -554,7 +556,15 @@ species trees{
 				p_dead <- ((1+exp(e))^-1);
 			}
 		}
-		return flip(p_dead);
+		
+		bool is_dead <- flip(p_dead);
+		
+		//add additional 50% of survival if inside nursery
+		if(is_dead and my_plot.is_nursery){
+			return flip(0.5);
+		}
+		
+		return is_dead;
 	}
 	
 	//doesn't yet inhibit growth of tree
