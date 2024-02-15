@@ -629,6 +629,7 @@ species trees{
 		}
 	}
 	
+	//in meters
 	float calculateHeight{
 		switch type{
 			match EXOTIC {
@@ -640,13 +641,14 @@ species trees{
 		}
 	}
 	
+	//in cubic meters
 	float calculateVolume{
 		switch type {
 			match EXOTIC{	
-				return 10^(-1.007 + (2.0086*log(dbh)) + (0.6156*log(calculateHeight())));	//stem volume up to first branch	
+				return 10^(-1.007 + (2.0086*log(dbh*0.01)) + (0.6156*log(calculateHeight())));	//stem volume up to first branch	
 			}
 			match NATIVE{
-				return -0.08069 + 0.31144 * (dbh^2) * calculateHeight();	//Nguyen, T. T. (2009). Modelling Growth and Yield of Dipterocarp Forests in Central Highlands of Vietnam [Ph.D. Dissertation]. Technische Universität München.
+				return -0.08069 + 0.31144 * ((dbh*0.01)^2) * calculateHeight();	//Nguyen, T. T. (2009). Modelling Growth and Yield of Dipterocarp Forests in Central Highlands of Vietnam [Ph.D. Dissertation]. Technische Universität München.
 			}
 		}	
 	}

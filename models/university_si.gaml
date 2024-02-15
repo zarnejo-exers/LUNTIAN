@@ -26,6 +26,8 @@ global{
 	float PLANTING_LCOST <- 25.0;
 	float POLICE_COST <- 18150.0; //average wage per month https://www.salaryexpert.com/salary/job/forest-officer/philippines
 	
+	float HARVESTING_COST <- 17.04; //cost = (0.28+0.33)/2 usd per bdft, 17.04php
+	
 	int police_count <- 2 update: police_count;
 	int plot_size <- 1 update: plot_size;
 	int laborer_count <- 10 update: laborer_count;
@@ -135,6 +137,7 @@ species university_si{
 	int ANR_instance <- 0; 
 	float current_labor_cost <- 0.0;
 	int investment_request_count <- 0;
+	float current_harvest_cost <- 0.0;
 	
 	int has_hired <- -1;
 	
@@ -167,9 +170,11 @@ species university_si{
 			cl.com_identity.current_earning <- cl.com_identity.current_earning + cost;
 		}else{
 			cl.total_earning <- cl.total_earning + cost;
-		}		
-		current_labor_cost <- current_labor_cost + cost;	
+		}
+		current_labor_cost <- current_labor_cost + cost;
+			
 	}
+	
 
 	action updateInvestors{
 		current_investors <- investor where (each.my_plot != nil);
@@ -181,25 +186,6 @@ species university_si{
 	
 	float getManagementCost(int t_type){
 		return ((t_type = 1)?mcost_of_exotic:mcost_of_native);
-	}
-	
-	//pays the hired harvester and gives the earning to laborer
-	action completeITPHarvest(list<trees> harvested, labour hl, bool is_final_harvesting){
-		do payLaborer(hl);
-		hl.is_harvest_labour <- false;	//hl is no longer a harvest labor
-		
-		//give payment to investor
-		investor i <- first(investor where (each.my_plot = hl.plot_to_harvest));	//get the investor who invested on the plot where the harvester harvested
-	    float total_profit <- 0.0;
-	    loop s over: harvested{
-	    	total_profit <- total_profit + (((s.type = 1)?exotic_price_per_volume:native_price_per_volume) * (#pi * (s.dbh/2)^2 * s.th) );
-	    	i.tht <- i.tht + 1;
-	    }
-	    
-	    total_ITP_earning <- total_ITP_earning + (total_profit * 0.25);
-	    i.recent_profit <- total_profit*0.75;		//actual profit of investor is 75% of total profit
-	    i.done_harvesting <- is_final_harvesting;
-	    i.waiting <- false;
 	}
 	
 	//for each plot, determine if plot is investable or not
@@ -299,27 +285,54 @@ species university_si{
 		
 		//bool hire_status <- hireHarvester(investing_investor, true);	//harvester stays on the plot for one step only
 		
-		do timberHarvesting(true, chosen_plot);
+		//1. get all the trees that will be harvested via selective harvesting
+		list<trees> trees_to_harvest_n <- (getTreesToHarvestSH(chosen_plot)) where (each.type = NATIVE);
+		float thv <- timberHarvesting(true, chosen_plot, trees_to_harvest_n);
+		do harvestEarning(investing_investor, thv, NATIVE, false);
+		list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(chosen_plot)) where (each.type = EXOTIC);
+		do timberHarvesting(true, chosen_plot, trees_to_harvest_e);
+		do harvestEarning(investing_investor, thv, EXOTIC, false);
 		write("!!!Investment commenced!!!");
 		return true;
 	}
 	
-	action timberHarvesting(bool is_first_harvest, plot chosen_plot){
-		//1. get all the trees that will be harvested via selective harvesting
-		list<trees> trees_to_harvest <- getTreesToHarvestSH(chosen_plot);
-		
+	//pays the hired harvester and gives the earning to laborer
+	//compute cost
+	action harvestEarning(investor i, float thv, int type, bool is_final_harvesting){
+		//give payment to investor
+	    float c_profit <- 0.0;
+	    c_profit <- thv * ((type = 1)?exotic_price_per_volume:native_price_per_volume);
+	    i.tht <- i.tht + 1;
+	    
+	    total_ITP_earning <- total_ITP_earning + (c_profit * 0.25);
+	    i.recent_profit <- i.recent_profit + (c_profit*0.75);		//actual profit of investor is 75% of total profit
+	    i.total_profit <- i.total_profit + (c_profit*0.75);
+	    i.done_harvesting <- is_final_harvesting;
+	    i.waiting <- false;
+	    
+	    write "Investor earning... "+i.recent_profit;
+	}
+
+	float timberHarvesting(bool is_first_harvest, plot chosen_plot, list<trees> tth){
 		//2. hire harvesters: 2x the number of trees that will be harvested
 		//-- harvest process, harvest each of the trees in n parallel steps, where n = # of harvesters hired --
-		list<labour> hired_harvesters <- getHarvesters(length(trees_to_harvest)*2);
-		float harvested_bdft <- sendHarvesters(hired_harvesters, chosen_plot, trees_to_harvest);
+		list<labour> hired_harvesters <- getHarvesters(length(tth)*2);
+		float harvested_bdft <- sendHarvesters(hired_harvesters, chosen_plot, tth);
 		
 		write "Total harvesters: "+length(hired_harvesters)+" Harvested volume: "+harvested_bdft;
 		
 		//COST: 
 		//3. pay hired harvesters 1month worth of wage
-		//4. compute total bdft harvested BF of 1 tree = volume/12, total bdft = sumofall bf : cost = (0.28+0.33)/2 usd per bdft
+		loop laborers over: hired_harvesters{
+			do payLaborer(laborers);
+			laborers.is_harvest_labour <- false;
+		}
+		//4. compute total bdft harvested BF of 1 tree = volume/12, total bdft = sumofall bf
+		float i_harvesting_cost <- harvested_bdft * HARVESTING_COST;
+		current_harvest_cost <- current_harvest_cost + i_harvesting_cost;
 		//5. add forest tax per tree harvested
-
+		
+		return harvested_bdft;
 	}
 
 	//harvests upto capacity
@@ -602,7 +615,7 @@ species university_si{
 		 
 		int working_sp <- length(special_police where (each.is_servicing));
 		
-		total_management_cost <- total_management_cost + nursery_other_cost + current_labor_cost;	//currently working nursery labor and cost
+		total_management_cost <- total_management_cost + nursery_other_cost + current_labor_cost + current_harvest_cost;	//currently working nursery labor and cost
 		//total_management_cost <- total_management_cost + nursery_other_cost + (working_sp*POLICE_COST) + (ANR_instance*ANR_cost) + current_labor_cost + (investment_request_count * investment_survey_cost);
 		total_ANR_instance <- total_ANR_instance + ANR_instance;
 		total_investment_request <- total_investment_request + investment_request_count;
@@ -610,6 +623,7 @@ species university_si{
 		ANR_instance <- 0; 
 		current_labor_cost <- 0.0;
 		investment_request_count <- 0;
+		current_harvest_cost <- 0.0;
 		
 	}	
 }

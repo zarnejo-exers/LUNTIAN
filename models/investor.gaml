@@ -184,7 +184,6 @@ species investor control: fsm{
 	
 	state investing { 
 	 	do updateRotationYears;
-	    
 	    transition to: potential_active when: (done_harvesting and (recent_profit >= promised_profit));
 	    transition to: potential_passive when: (done_harvesting and (recent_profit < promised_profit));
 	 
@@ -192,7 +191,6 @@ species investor control: fsm{
 	    	done_harvesting <- false;
 	    	my_plot.is_invested <- false;
 	        my_plot <- nil;
-	    	total_profit <- total_profit + recent_profit;	//record final profit
 	    	total_investment <- total_investment + investment;
 	    	recent_profit <- 0.0;
 	    	harvest_monitor <- 0;
