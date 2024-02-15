@@ -33,7 +33,6 @@ species labour control: fsm{
 	
 	int nursery_labour_type <- -1;	//-1 if not labour type, either NATIVE or EXOTIC
 	
-	bool initial_harvesting <- false;	//set to true if the harvester is hired after the investor has sealed an investment
 	comm_member com_identity <- nil;
 	list<trees> all_seedlings_gathered <- [];  
 	list<plot> visited_plot <- [];
@@ -253,9 +252,7 @@ species labour control: fsm{
 		}
 
 		plot_to_harvest.plot_trees <- (plot_to_harvest.plot_trees - trees_to_harvest);
-		ask plot_to_harvest.plot_trees{
-			age <- age + 5; 	//to correspond to TSI
-		}
+
 		man_months[1] <- man_months[1]+1;
 		current_plot <- plot_to_harvest; 
 		
@@ -375,19 +372,9 @@ species labour control: fsm{
 	}
 	
 	state assigned_itp_harvester{
-		transition to: vacant when: !is_harvest_labour;
+		do cutTrees(harvested_trees);
 		
-		do selectiveHarvestITP;
-		if(com_identity != nil){	//meaning, laborer is an instance of community
-		    ask university_si{
-		    	do completeITPHarvest(myself.harvested_trees, myself, myself.initial_harvesting);
-		    }
-	    }
-	    write("Harvester "+self.name+" is doing "+((self.initial_harvesting)?"initial harvesting":"last harvesting"));
-	    do cutTrees(harvested_trees);
-	    if(man_months[0] >= man_months[2]){
-	    	is_harvest_labour <- false;
-	    }
+		transition to: vacant when: !is_harvest_labour;
 	    
 	    exit{
 	    	h_t_type <- -1;

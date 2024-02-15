@@ -97,20 +97,19 @@ global{
 	
 	//start checking once all investor already have investments
 	//stop simulation when the rotation years of all investor is finished
-	reflex waitForHarvest when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
-    	loop i over: investor where (each.my_plot != nil){
-    		if(i.my_plot.rotation_years <=0){
-    			if(!i.waiting){
-    				ask university_si{
-    					write("Investor "+i.name+" last harvesting");
-    					i.waiting <- hireHarvester(i, false);	
-    				}	
-    			}else{
-    				write "Waiting for laborer...";	
-    			}
-    		}
-    	}
-    }
+//	reflex waitForHarvest when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
+//    	loop i over: investor where (each.my_plot != nil){
+//    		if(i.my_plot.rotation_years <=0){
+//    			if(!i.waiting){
+//    				ask university_si{
+//    					write("Investor "+i.name+" last harvesting");
+//    					i.waiting <- hireHarvester(i, false);	
+//    				}	
+//    			}else{
+//    				write "Waiting for laborer...";	
+//    			}
+//    	}
+//    }
     
     reflex warnedCMReportFromSP{
     	int temp_count <- 0;
@@ -274,17 +273,18 @@ species university_si{
 	}
 
 	//returns true if successful, else false
+	//idea: investor decides given the following information, # of species per each plot, future value, investment value, investment payout
 	bool investOnPlot(investor investing_investor, plot chosen_plot, int t_type){
-		list<trees> available_seeds <- (my_nurseries accumulate each.plot_trees) where (each.state = SAPLING and each.type = t_type);	//transplant saplings 
-		if(length(available_seeds) = 0){
-			write "NO SEEDS of type: "+t_type+" at plot: "+chosen_plot.name;
-			return false;
-		}
-		//check available seeds in nursery
-		int no_trees_for_planting <- getAvailableSpaces(chosen_plot, t_type);
-		if(length(available_seeds)< no_trees_for_planting){	//check if the available seeds is sufficient to start investment on plot, if no, deny investment
-			return false;
-		}
+//		list<trees> available_seeds <- (my_nurseries accumulate each.plot_trees) where (each.state = SAPLING and each.type = t_type);	//transplant saplings 
+//		if(length(available_seeds) = 0){
+//			write "NO SEEDS of type: "+t_type+" at plot: "+chosen_plot.name;
+//			return false;
+//		}
+//		//check available seeds in nursery
+//		int no_trees_for_planting <- getAvailableSpaces(chosen_plot, t_type);
+//		if(length(available_seeds)< no_trees_for_planting){	//check if the available seeds is sufficient to start investment on plot, if no, deny investment
+//			return false;
+//		}
 
 		//confirm investment 
 		chosen_plot.is_nursery <- false;
@@ -297,54 +297,96 @@ species university_si{
 		do setRotationYears(chosen_plot, t_type);
 		chosen_plot.is_itp <- true;
 		
-		bool hire_status <- hireHarvester(investing_investor, true);	//harvester stays on the plot for one step only
-		write("Investor hired harvesters "+hire_status);
+		//bool hire_status <- hireHarvester(investing_investor, true);	//harvester stays on the plot for one step only
+		
+		do timberHarvesting(true, chosen_plot);
+		write("!!!Investment commenced!!!");
 		return true;
 	}
 	
-	    //harvest on the plot of investor i
-    bool hireHarvester (investor i, bool init_harvesting){
-    	list<labour> available_harvesters <- labour where (each.labor_type = each.OWN_LABOUR and each.state="vacant");	//get own laborers that are not nursery|planting labours
-		labour chosen_labour; 
+	action timberHarvesting(bool is_first_harvest, plot chosen_plot){
+		//1. get all the trees that will be harvested via selective harvesting
+		list<trees> trees_to_harvest <- getTreesToHarvestSH(chosen_plot);
 		
-		if(length(available_harvesters) > 0){	//own laborers
-			chosen_labour <- first(shuffle(available_harvesters));	 
-			chosen_labour.man_months <- [HARVEST_LABOUR, 0, 0]; 
-			chosen_labour.is_harvest_labour <- true;
-			chosen_labour.h_t_type <- i.i_t_type;	//set the kind of tree to be harvested
-			hiring_prospect <- false;
-			chosen_labour.state <- "assigned_itp_harvester";
-		}
-		else{	//hire from community
+		//2. hire harvesters: 2x the number of trees that will be harvested
+		//-- harvest process, harvest each of the trees in n parallel steps, where n = # of harvesters hired --
+		list<labour> hired_harvesters <- getHarvesters(length(trees_to_harvest)*2);
+		float harvested_bdft <- sendHarvesters(hired_harvesters, chosen_plot, trees_to_harvest);
+		
+		write "Total harvesters: "+length(hired_harvesters)+" Harvested volume: "+harvested_bdft;
+		
+		//COST: 
+		//3. pay hired harvesters 1month worth of wage
+		//4. compute total bdft harvested BF of 1 tree = volume/12, total bdft = sumofall bf : cost = (0.28+0.33)/2 usd per bdft
+		//5. add forest tax per tree harvested
+
+	}
+
+	//harvests upto capacity
+	//only returns what can be harvested in the plot
+	list<trees> getTreesToHarvestSH(plot pth){
+		
+		list<trees> tree60to70 <- pth.plot_trees where (each.dbh >= 60 and each.dbh < 70);
+		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
+		list<trees> tree70to80 <- pth.plot_trees where (each.dbh >= 70 and each.dbh < 80);
+		tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
+		list<trees> tree80up <- pth.plot_trees where (each.dbh >= 80);
+
+		return tree60to70 + tree70to80 + tree80up;
+	}
+	
+	list<labour> getHarvesters(int needed_harvesters){
+		list<labour> available_harvesters <- labour where (each.labor_type = each.OWN_LABOUR and each.state="vacant");	//get own laborers that are not nursery|planting labours
+		int still_needed_harvesters <- needed_harvesters - length(available_harvesters);
+		if(still_needed_harvesters > 0){	//hires from the community if there lacks need
 			list<comm_member> avail_member <- comm_member where (each.state = "potential_partner" and each.instance_labour = nil);
-			if(avail_member != nil and length(avail_member)>0){	//there exist an available member 
-				comm_member cm <- first(shuffle(avail_member));	//use the first member 
+			int total_to_hire <- (length(avail_member) > still_needed_harvesters)?still_needed_harvesters:length(avail_member);
+			
+			write "Total_to_hire: "+total_to_hire+" length of comm_member: "+length(avail_member);
+			loop i from: 0 to: total_to_hire-1{
+				comm_member cm <- one_of(avail_member);	//use the first member
+				write "Community member: "+cm.name+" is chosen! i: "+i; 
 				create labour{
-					man_months <- [HARVEST_LABOUR, 0, 0];
 					labor_type <- COMM_LABOUR; 
-					is_harvest_labour <- true;
 					com_identity <- cm;
 					cm.instance_labour <- self;
-					h_t_type <- i.i_t_type;
-					state <- "assigned_itp_harvester";
-				}
-				chosen_labour <- cm.instance_labour;
-				hiring_prospect <- false;
-			}else{	//no available member
-				hiring_prospect <- true;
+				}	
+				add cm.instance_labour to: available_harvesters;
+				remove cm from: avail_member;
 			}
 		}
-			
-		if(!hiring_prospect){
-			ask chosen_labour{
-				do setPlotToHarvest(i.my_plot);
-			}
-			chosen_labour.initial_harvesting <- init_harvesting;
-			add chosen_labour to: i.my_plot.my_laborers;	
-			return true;
-		}return false;
-    }
-
+		
+		hiring_prospect <- (length(available_harvesters) < needed_harvesters)?true:false;	//if the total labour isn't supplied, create a call for hiring prospect
+		return available_harvesters;
+	}
+	
+	//returns the hired harvesters that completed the harvesting
+	float sendHarvesters(list<labour> hh, plot pth, list<trees> trees_to_harvest){
+		float total_bdft <- getTotalBDFT(trees_to_harvest, pth);
+		
+		ask hh{
+			man_months <- [HARVEST_LABOUR, 1, 0];
+			is_harvest_labour <- true;
+			state <- "assigned_itp_harvester";
+			current_plot <- pth;
+			plot_to_harvest <- pth;
+			harvested_trees <- trees_to_harvest[0::1];
+			remove harvested_trees from: trees_to_harvest;
+		}
+		
+		return total_bdft;
+	}
+	
+	float getTotalBDFT(list<trees> tth, plot pth){
+		float total_bdft <- 0.0;
+		
+		loop i over: tth{
+			total_bdft <- total_bdft + (i.calculateVolume() / 12);	
+		}
+		pth.plot_trees <- (pth.plot_trees - tth);
+		return total_bdft;
+	}
+	
 	//type 0: automatically base on harvesting age of native
 	//type 1: automatically base on harvesting age of exotic
 	action setRotationYears(plot the_plot, int t_type){
