@@ -21,10 +21,10 @@ global{
 	int LABOUR_PCAPACITY <- 25;	//number of trees that the laborer can plant/manage
 	
 	//fixed rate
-	float NURSERY_LCOST <- 331.10;	//labor per day
-	float HARVEST_LCOST <- 50.0;
+	float NURSERY_LCOST <- 12810.0;	//labor per month https://velocityglobal.com/resources/blog/minimum-wage-by-country
+	float HARVEST_LCOST <- 13834.51;	//one month labor
 	float PLANTING_LCOST <- 25.0;
-	float POLICE_COST <- 500.0; //daily wage
+	float POLICE_COST <- 18150.0; //average wage per month https://www.salaryexpert.com/salary/job/forest-officer/philippines
 	
 	int police_count <- 2 update: police_count;
 	int plot_size <- 1 update: plot_size;
@@ -560,7 +560,8 @@ species university_si{
 		 
 		int working_sp <- length(special_police where (each.is_servicing));
 		
-		total_management_cost <- total_management_cost + nursery_other_cost + (working_sp*POLICE_COST) + (ANR_instance*ANR_cost) + current_labor_cost + (investment_request_count * investment_survey_cost);
+		total_management_cost <- total_management_cost + nursery_other_cost + current_labor_cost;	//currently working nursery labor and cost
+		//total_management_cost <- total_management_cost + nursery_other_cost + (working_sp*POLICE_COST) + (ANR_instance*ANR_cost) + current_labor_cost + (investment_request_count * investment_survey_cost);
 		total_ANR_instance <- total_ANR_instance + ANR_instance;
 		total_investment_request <- total_investment_request + investment_request_count;
 		

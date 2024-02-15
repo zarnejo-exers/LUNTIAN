@@ -294,7 +294,6 @@ species trees{
 	
 	float ba;
 	float dipy;
-	float vol;
 	
 	float total_biomass <- 0.0;	//in kg
 	float age;
@@ -479,16 +478,6 @@ species trees{
 		return g_coeff;
 	}
 	
-	//height of tree
-	//list<float> native_hcoeffs <- [6.364, 0.1308]; //a, b	
-	//list<float> exotic_hcoeffs <- [6.9418, 0.0759]; //a, b
-	float calculateHeight{
-		matrix<float> hcoeffs <- matrix([[6.364, 0.1308],[6.9418, 0.0759]]);
-		
-		//1.4 + (b+a/dbh)^-2.5
-		return 1.4 + (hcoeffs[{type,1}] + hcoeffs[{type,0}] / dbh)^-2.5;
-	}
-	
 	float neighborhoodInteraction{
 		my_neighbors <- (my_plot.plot_trees select ((each.state = ADULT) and (each distance_to self) < 20#m));
 		float ni <- 0.0;
@@ -638,6 +627,28 @@ species trees{
 				}
 			}
 		}
+	}
+	
+	float calculateHeight{
+		switch type{
+			match EXOTIC {
+				return (1.3 + (12.3999 * (1 - exp(-0.105*dbh)))^1.79);	///Downloads/BKrisnawati1110.pdf
+			}
+			match NATIVE {
+				return (1.3 + (dbh / (1.7116 + (0.3415 * dbh)))^3);	//https://d-nb.info/1002231884/34		
+			}
+		}
+	}
+	
+	float calculateVolume{
+		switch type {
+			match EXOTIC{	
+				return 10^(-1.007 + (2.0086*log(dbh)) + (0.6156*log(calculateHeight())));	//stem volume up to first branch	
+			}
+			match NATIVE{
+				return -0.08069 + 0.31144 * (dbh^2) * calculateHeight();	//Nguyen, T. T. (2009). Modelling Growth and Yield of Dipterocarp Forests in Central Highlands of Vietnam [Ph.D. Dissertation]. Technische Universität München.
+			}
+		}	
 	}
 	
 	//based on Vanclay(1994) schematic representation of growth model
