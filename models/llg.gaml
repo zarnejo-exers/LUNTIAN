@@ -710,6 +710,10 @@ species plot{
 	int rotation_years <- 0; 	//only set once an investor decided to invest on a plot
 	bool is_invested <- false;
 	
+	int getSpeciesCount(int t_type){
+		return length(plot_trees where (each.type = t_type));
+	}
+	
 	action compute_neighbors {
 		list<plot> my_neighborhood <- (plot select ((each distance_to self) < 5));
 		

@@ -48,116 +48,55 @@ species investor control: fsm{
 	//computes for the rate of return on the invested plots
 	//once investment has been successfully completed; university starts the planting and assigns rotation years per plot.
 	action decideInvestment{	////reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
-		
-		map<int, list<plot>> investable_plots; 
+		plot investable_plot; 
 		int s_type;	//supported ITP type
 		ask university_si{
 			s_type <- itp_type;
-			investable_plots <- determineInvestablePlots();	
+			investable_plot <- getInvestableGivenSpecies(itp_type);		//get the first plot with highest SBA;
 			investment_request_count <- investment_request_count + 1;
 		}
 		
-//		ask investable_plots[0]{
-//			if(projected_profit <= 0){
-//				write "HERE: "+projected_profit;
-//			}
-//		}
-//		write "YO!";
-//		ask investable_plots[1]{
-//			if(projected_profit <= 0){
-//				write "HERE: "+projected_profit+" plot: "+name;
-//			}
-//		}
-		
-		//decide investment based on risk type
-		map<plot, int> chosen_plot <- getSuitablePlot(investable_plots, rt, s_type);
-		write "CHOSEN PLOT: "+chosen_plot;
-		if(length(chosen_plot) > 0){
-			plot c_plot <- first(chosen_plot.keys);
-			bool investment_status <- false;
-			
-			ask university_si{
-				investment_status <- investOnPlot(myself, c_plot, chosen_plot[c_plot]);
-				write "Investment status: "+investment_status;
-			}			
-			if(investment_status){	//investment successful, put investor on investor's list of plot
+		if(investable_plot != nil){
+			//decide investment based on risk type
+			bool decision <- decideOnRisk(investable_plot, rt);
+			if(decision){
+				ask university_si{
+					do investOnPlot(myself, investable_plot, itp_type);
+				}			
 				harvest_monitor <- 0;
-				c_plot.is_investable <- false;
-				c_plot.is_invested <- true;
-				investment <- c_plot.investment_cost;
-				promised_profit <- c_plot.projected_profit;
-				my_plot <- c_plot;
+				investable_plot.is_investable <- false;
+				investable_plot.is_invested <- true;
+				investment <- investable_plot.investment_cost;
+				promised_profit <- investable_plot.projected_profit;
+				my_plot <- investable_plot;
 				write "Investment granted -- cost: "+investment+" promised profit: "+promised_profit;
 			}else{
-				write "Investment denied";	
-			}
+				write "Risk not satisfied!";
+			}	
 		}else{
-			write "Risk not satisfied!";
-		}	
-		
+			write "No ready plot";
+		}
 	}
 	
-	/* list<plot> plot_wroad <- investable_plots where each.has_road;	//get plots with road
-		plot chosen_plot <- ((length(plot_wroad)>0)? plot_wroad:investable_plots) with_max_of each.projected_profit;	//get the chosen plot from those with road, or if there's no plot with road, just get the plot with max profit
-	 */
-	map<plot, int> getSuitablePlot(map<int, list<plot>> ip, int risk_type, int s_type){
+	bool decideOnRisk(plot i_plot, int risk_type){
 		string risk <- risk_types.keys[risk_type];
-		map<int, list<plot>> all <- [];
-		map<plot,int> chosen <- nil;
-		
 		if(risk = "Neutral"){	//if risk tyep = neutral, flip what kind of risk it will be on this step
 			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
 		}
 		
-		if(risk = "Averse"){
-			if(s_type = 2){
-				add 1::(ip[1] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
-				add 0::(ip[0] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
-			}else{
-				add s_type::(ip[s_type] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) < risk_types[risk])) to: all;	//get all the plots that are suitable
+		switch risk{
+			match "Averse" {
+				if(i_plot.projected_profit>0 and (1-(i_plot.investment_cost / i_plot.projected_profit) < risk_types[risk])){
+					return true;
+				}	
 			}
-			
-			chosen <- getBetterPlot(all, s_type);
-		}else{	//risk = "Loving"
-			if(s_type = 2){
-				add 1::(ip[1] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable
-				add 0::(ip[0] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable
-			}else{
-				add s_type::(ip[s_type] where (each.projected_profit > 0 and (1-(each.investment_cost / each.projected_profit)) >= risk_types[risk])) to: all;	//get all the plots that are suitable				
-			}
-			chosen <- getBetterPlot(all, s_type);
-		}
-		
-		return chosen;
-	}
-	
-	map<plot, int> getBetterPlot(map<int, list<plot>> ip, int s_type){
-		if(s_type = 2){
-			plot b1 <- ip[0] with_max_of (1-(each.investment_cost / each.projected_profit));
-			plot b2 <- ip[1] with_max_of (1-(each.investment_cost / each.projected_profit));
-			
-			write "B1: "+b1+" complete: "+ip[0];
-			write "B2: "+b2+" complete: "+ip[1];
-			
-			if(b1=nil and b2!=nil){
-				return [b2::1];
-			}else if(b1!=nil and b2=nil){
-				return [b1::0];
-			}else if(b1!=nil and b2!=nil){
-				float b1_profit <- (1-(b1.investment_cost / b1.projected_profit));
-				float b2_profit <- (1-(b2.investment_cost / b2.projected_profit));
-				if(b1_profit > b2_profit){
-					return [b1::0];	
+			match "Loving" {
+				if(i_plot.projected_profit > 0 and (1-(i_plot.investment_cost / i_plot.projected_profit)) >= risk_types[risk]){
+					return true;
 				}
-				return [b2::1];	
 			}
-			return nil;
 		}
-		plot temp <- ip[s_type] with_max_of (1-(each.investment_cost / each.projected_profit));
-		if(temp!=nil){
-			return [temp::s_type];	
-		}
-		return nil;
+		return true; //TODO: check projected profit and investment cost
 	}
 	
 	//to signal when to harvest and earn
@@ -184,6 +123,7 @@ species investor control: fsm{
 	
 	state investing { 
 	 	do updateRotationYears;
+	 	
 	    transition to: potential_active when: (done_harvesting and (recent_profit >= promised_profit));
 	    transition to: potential_passive when: (done_harvesting and (recent_profit < promised_profit));
 	 
