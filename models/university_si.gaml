@@ -99,19 +99,22 @@ global{
 	
 	//start checking once all investor already have investments
 	//stop simulation when the rotation years of all investor is finished
-//	reflex waitForHarvest when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
-//    	loop i over: investor where (each.my_plot != nil){
-//    		if(i.my_plot.rotation_years <=0){
-//    			if(!i.waiting){
-//    				ask university_si{
-//    					write("Investor "+i.name+" last harvesting");
-//    					i.waiting <- hireHarvester(i, false);	
-//    				}	
-//    			}else{
-//    				write "Waiting for laborer...";	
-//    			}
-//    	}
-//    }
+	reflex waitForHarvest when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
+    	loop i over: investor where (each.my_plot != nil){
+    		if(i.my_plot.rotation_years =0 and i.waiting){
+    			ask university_si{
+    				write("Investor "+i.name+" last harvesting");
+    				list<trees> trees_to_harvest_n <- (getTreesToHarvestSH(i.my_plot)) where (each.type = NATIVE);
+    				do harvestEarning(i, timberHarvesting(false, i.my_plot, trees_to_harvest_n), NATIVE, false);
+    				list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(i.my_plot)) where (each.type = EXOTIC);
+					do harvestEarning(i, timberHarvesting(false, i.my_plot, trees_to_harvest_e), EXOTIC, false);
+    			}
+    			i.waiting <- false;	
+    		}else{
+    			write "Waiting for laborer...";	
+    		}
+    	}
+    }
     
     reflex warnedCMReportFromSP{
     	int temp_count <- 0;
@@ -193,16 +196,12 @@ species university_si{
 	//profit : current trees in n years, where n = rotation of newly planted trees
 	//cost : number of wildlings that needs to be planted + maintenance cost per wildling
 	//note: consider that the policy of the government will have an effect on the actual profit, where only x% can be harvested from a plot of y area
-	plot getInvestableGivenSpecies(int t_type){
-		list<plot> investable_plots <- reverse(sort_by(plot where (!each.is_near_water and !each.is_nursery and !each.is_invested), each.getStandBasalArea())); 
+	plot getInvestablePlot{
+		list<plot> investable_plots <- reverse(sort_by(plot where (!each.is_near_water and !each.is_nursery and !each.is_invested), each.getStandBasalArea(-1))); 
 		
-		loop i over: investable_plots{
-			if((t_type = NATIVE and (i.getSpeciesCount(NATIVE) > i.getSpeciesCount(EXOTIC))) or (t_type = EXOTIC and (i.getSpeciesCount(NATIVE) < i.getSpeciesCount(EXOTIC)))){
-				return i;
-			}
-		}
+		write "plot: "+first(investable_plots).name+" sba: "+first(investable_plots).getStandBasalArea(-1) + " tree_count: "+length(first(investable_plots).plot_trees);
 		
-		return nil;
+		return first(investable_plots);
 	}
 
 	//returns true if successful, else false
@@ -213,19 +212,18 @@ species university_si{
 		investing_investor.my_plot <- chosen_plot;
 		investing_investor.investment <- chosen_plot.investment_cost;
 		investing_investor.i_t_type <- t_type;
+		
 		//assign laborer and get available seeds from the nursery 		
 		do assignLaborerToPlot(chosen_plot, t_type);	//planters stays on the plot until the end of teh 
-		//set rotation years to plot
-		do setRotationYears(chosen_plot, t_type);
+		do setRotationYears(chosen_plot, t_type);		//set rotation years to plot
 		chosen_plot.is_itp <- true;
-		
-		//bool hire_status <- hireHarvester(investing_investor, true);	//harvester stays on the plot for one step only
 		
 		//1. get all the trees that will be harvested via selective harvesting
 		list<trees> trees_to_harvest_n <- (getTreesToHarvestSH(chosen_plot)) where (each.type = NATIVE);
 		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_n), NATIVE, false);
 		list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(chosen_plot)) where (each.type = EXOTIC);
 		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_e), EXOTIC, false);
+		investing_investor.waiting <- true;
 		write("!!!Investment commenced!!!");
 	}
 	
@@ -240,8 +238,7 @@ species university_si{
 	    total_ITP_earning <- total_ITP_earning + (c_profit * 0.25);
 	    i.recent_profit <- i.recent_profit + (c_profit*0.75);		//actual profit of investor is 75% of total profit
 	    i.total_profit <- i.total_profit + (c_profit*0.75);
-	    i.done_harvesting <- is_final_harvesting;
-	    i.waiting <- false;
+	    i.waiting <- is_final_harvesting;
 	    
 	    write "CProfit: "+c_profit+" thv: "+thv;
 	    write "Investor earning... "+i.recent_profit;
@@ -251,6 +248,8 @@ species university_si{
 	float timberHarvesting(bool is_first_harvest, plot chosen_plot, list<trees> tth){
 		//2. hire harvesters: 2x the number of trees that will be harvested
 		//-- harvest process, harvest each of the trees in n parallel steps, where n = # of harvesters hired --
+		write "Total tree to harvest: "+length(tth);
+		
 		list<labour> hired_harvesters <- getHarvesters(length(tth)*2);
 		float harvested_bdft <- sendHarvesters(hired_harvesters, chosen_plot, tth);
 		
@@ -310,6 +309,7 @@ species university_si{
 	//returns the hired harvesters that completed the harvesting
 	float sendHarvesters(list<labour> hh, plot pth, list<trees> trees_to_harvest){
 		float total_bdft <- getTotalBDFT(trees_to_harvest, pth);
+		write "total bdft: "+total_bdft;
 		
 		ask hh{
 			man_months <- [HARVEST_LABOUR, 1, 0];
@@ -319,6 +319,9 @@ species university_si{
 			plot_to_harvest <- pth;
 			harvested_trees <- trees_to_harvest[0::1];
 			remove harvested_trees from: trees_to_harvest;
+			ask harvested_trees{
+				do die;
+			}
 		}
 		
 		return total_bdft;
@@ -339,11 +342,12 @@ species university_si{
 	action setRotationYears(plot the_plot, int t_type){
 		float mean_age_tree <- mean((the_plot.plot_trees where (each.type = itp_type)) accumulate each.age); //get the minimum age of the tree in the plot
 		
-		if(t_type = 0){	
+		if(t_type = NATIVE){	
 			the_plot.rotation_years <- (harvesting_age_native < mean_age_tree)?harvesting_age_native:int(harvesting_age_native - mean_age_tree);
 		}else{
 			the_plot.rotation_years <- (harvesting_age_exotic < mean_age_tree)?harvesting_age_exotic:int(harvesting_age_exotic - mean_age_tree);
 		}		
+		write "Rotation years: "+the_plot.rotation_years;
 	}
 	
 	list<trees> getAllSaplingsInNurseries{

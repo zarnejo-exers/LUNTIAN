@@ -37,7 +37,6 @@ species investor control: fsm{
 	float total_investment <- 0.0;
 	float investment <- 0.0;
 	float promised_profit; 
-	bool done_harvesting <- false;
 	int tht <- 0;	//total harvested trees
 	
 	int rt;	//risk type
@@ -47,12 +46,12 @@ species investor control: fsm{
 	//investor is deciding whether to invest or not
 	//computes for the rate of return on the invested plots
 	//once investment has been successfully completed; university starts the planting and assigns rotation years per plot.
+	// get firstbjarvestable plot
 	action decideInvestment{	////reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
 		plot investable_plot; 
 		int s_type;	//supported ITP type
 		ask university_si{
-			s_type <- itp_type;
-			investable_plot <- getInvestableGivenSpecies(itp_type);		//get the first plot with highest SBA;
+			investable_plot <- getInvestablePlot();		//get the first plot with highest SBA;
 			investment_request_count <- investment_request_count + 1;
 		}
 		
@@ -110,6 +109,7 @@ species investor control: fsm{
 			}
 			harvest_monitor <- 0;
 		}
+		write "Current rotation year: "+my_plot.rotation_years;
 	}
 	
 	state potential_active initial: true{ 
@@ -124,11 +124,10 @@ species investor control: fsm{
 	state investing { 
 	 	do updateRotationYears;
 	 	
-	    transition to: potential_active when: (done_harvesting and (recent_profit >= promised_profit));
-	    transition to: potential_passive when: (done_harvesting and (recent_profit < promised_profit));
+	    transition to: potential_active when: (!waiting and (recent_profit >= promised_profit));
+	    transition to: potential_passive when: (!waiting and (recent_profit < promised_profit));
 	 
 	    exit {
-	    	done_harvesting <- false;
 	    	my_plot.is_invested <- false;
 	        my_plot <- nil;
 	    	total_investment <- total_investment + investment;

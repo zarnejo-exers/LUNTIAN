@@ -540,7 +540,7 @@ species trees{
 				float x_0 <- -4.0527+(1/d);
 				float x_1 <- -0.1582*d;
 				float x_2 <- 0.0011*(d^2);
-				float x_3 <- 0.0951*self.my_plot.getStandBasalArea();
+				float x_3 <- 0.0951*self.my_plot.getStandBasalArea(-1);
 				float e <- -(x_0 + x_1 + x_2 + x_3);
 				p_dead <- ((1+exp(e))^-1);
 			}
@@ -732,7 +732,7 @@ species plot{
 		list<trees> adult_trees <- reverse((trees select (each.age >= 15 and each.type=NATIVE and each.has_fruit_growing = 0)) sort_by (each.dbh));	//get all adult trees with age>= 15
 		if(length(adult_trees) > 1){	//if count > 1, compute total number of recruits
 			int count_of_native <- trees count (each.type = NATIVE);
-			float number_of_recruits <- 4.202 + (0.017*count_of_native) + (-0.126*getStandBasalArea());
+			float number_of_recruits <- 4.202 + (0.017*count_of_native) + (-0.126*getStandBasalArea(-1));
 			int recruits_per_adult_trees <- 1;
 			//write "Native: number of recuits: "+number_of_recruits+" for "+length(adult_trees);
 			
@@ -751,11 +751,19 @@ species plot{
 	}
 	
 	//sum of all the basal areas of the tree inside the plot
-	float getStandBasalArea{
+	float getStandBasalArea(int t_type){
 		float stand_basal_area <- 0.0;
-		ask plot_trees{
-			stand_basal_area <- stand_basal_area + ba;
+		
+		if(t_type = EXOTIC or t_type = NATIVE){
+			ask plot_trees where (each.type = t_type){
+				stand_basal_area <- stand_basal_area + ba;
+			}
+		}else{
+			ask plot_trees{
+				stand_basal_area <- stand_basal_area + ba;
+			}
 		}
+		
 		return stand_basal_area;
 	}
 	
