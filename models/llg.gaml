@@ -540,7 +540,7 @@ species trees{
 				float x_0 <- -4.0527+(1/d);
 				float x_1 <- -0.1582*d;
 				float x_2 <- 0.0011*(d^2);
-				float x_3 <- 0.0951*self.my_plot.getStandBasalArea(-1);
+				float x_3 <- 0.0951*self.my_plot.stand_basal_area;
 				float e <- -(x_0 + x_1 + x_2 + x_3);
 				p_dead <- ((1+exp(e))^-1);
 			}
@@ -570,7 +570,7 @@ species trees{
 			}	
 		}
 		
-		ba <- (dbh^2) * 0.00007854;	//calculate basal area before calculating dbh increment
+		ba <- (dbh^2) * 0.005454;	//calculate basal area before calculating dbh increment
 		diameter_increment <- computeDiameterIncrement(nieghborh_effect);
 		dbh <- dbh + diameter_increment;	 
 		crown_diameter <- cr*(dbh) + dbh;
@@ -709,6 +709,7 @@ species plot{
 	bool is_candidate_nursery <- false; //true if there exist a mother tree in one of its trees;
 	int rotation_years <- 0; 	//only set once an investor decided to invest on a plot
 	bool is_invested <- false;
+	float stand_basal_area;
 	
 	int getSaplingsCountS(int t_type){
 		return length(plot_trees where (each.type = t_type and each.state = SAPLING));
@@ -732,7 +733,7 @@ species plot{
 		list<trees> adult_trees <- reverse((trees select (each.age >= 15 and each.type=NATIVE and each.has_fruit_growing = 0)) sort_by (each.dbh));	//get all adult trees with age>= 15
 		if(length(adult_trees) > 1){	//if count > 1, compute total number of recruits
 			int count_of_native <- trees count (each.type = NATIVE);
-			float number_of_recruits <- 4.202 + (0.017*count_of_native) + (-0.126*getStandBasalArea(-1));
+			float number_of_recruits <- 4.202 + (0.017*count_of_native) + (-0.126*stand_basal_area);
 			int recruits_per_adult_trees <- 1;
 			//write "Native: number of recuits: "+number_of_recruits+" for "+length(adult_trees);
 			
@@ -751,20 +752,14 @@ species plot{
 	}
 	
 	//sum of all the basal areas of the tree inside the plot
-	float getStandBasalArea(int t_type){
-		float stand_basal_area <- 0.0;
+	reflex getStandBasalArea{
+		float sba <- 0.0;
 		
-		if(t_type = EXOTIC or t_type = NATIVE){
-			ask plot_trees where (each.type = t_type){
-				stand_basal_area <- stand_basal_area + ba;
-			}
-		}else{
-			ask plot_trees{
-				stand_basal_area <- stand_basal_area + ba;
-			}
+		ask plot_trees{
+			sba <- sba + ba;
 		}
-		
-		return stand_basal_area;
+	
+		stand_basal_area <- sba;
 	}
 	
 	aspect default{

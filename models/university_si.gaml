@@ -200,9 +200,9 @@ species university_si{
 	//cost : number of wildlings that needs to be planted + maintenance cost per wildling
 	//note: consider that the policy of the government will have an effect on the actual profit, where only x% can be harvested from a plot of y area
 	plot getInvestablePlot{
-		list<plot> investable_plots <- reverse(sort_by(plot where (!each.is_near_water and !each.is_nursery and !each.is_invested), each.getStandBasalArea(-1))); 
+		list<plot> investable_plots <- reverse(sort_by(plot where (!each.is_near_water and !each.is_nursery and !each.is_invested), each.stand_basal_area)); 
 		
-		write "plot: "+first(investable_plots).name+" sba: "+first(investable_plots).getStandBasalArea(-1) + " tree_count: "+length(first(investable_plots).plot_trees);
+		write "plot: "+first(investable_plots).name+" sba: "+first(investable_plots).stand_basal_area+ " tree_count: "+length(first(investable_plots).plot_trees);
 		
 		return first(investable_plots);
 	}
@@ -515,6 +515,11 @@ species university_si{
 			}
 			
 		}
+	}
+	
+	reflex monitorSBAforANR{
+		
+		
 	}
 	
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
