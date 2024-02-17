@@ -17,7 +17,8 @@ species labour control: fsm{
 	int labor_type; 	//important when hiring community labor 
 	
 	list<plot> my_plots <- [];
-	plot plot_to_harvest;	//for harvesting laborer
+	plot plot_to_harvest;	//for ITP harvesting laborer
+	plot plot_to_plant; 	//for ITP planting laborer
 	list<trees> harvested_trees;
 	
 	plot current_plot;
@@ -125,7 +126,7 @@ species labour control: fsm{
 	//gather all seedlings from the current plot
 	list<trees> gatherSeedlings(plot curr_plot){
 		
-		list<trees> all_seedlings <- curr_plot.plot_trees where (each.state = SEEDLING and each.type = nursery_labour_type);
+		list<trees> all_seedlings <- curr_plot.plot_trees where (each.state = SEEDLING);
 		list<plot> coverage <- closest_to(plot, curr_plot, 8);	//a single nursery laborer can scan 9 neighborhoods in 1 month
 		
 		loop c_plot over: coverage{
@@ -133,7 +134,7 @@ species labour control: fsm{
 				all_seedlings <- all_seedlings[0::carrying_capacity];
 				break;
 			}else{
-				all_seedlings <- all_seedlings + (c_plot.plot_trees where (each.state = SEEDLING and each.type = nursery_labour_type));
+				all_seedlings <- all_seedlings + (c_plot.plot_trees where (each.state = SEEDLING));
 			}
 		}
 		write "Total seedlings in the plot: "+length(all_seedlings);
@@ -148,17 +149,18 @@ species labour control: fsm{
 		return all_seedlings;
 	}
 	
-	action plantInPlot(list<trees> trees_to_plant, plot nursery, geometry remaining_space){
+	action plantInPlot(list<trees> trees_to_plant, plot pt_plant){
 		list<trees> t <- [];
 		loop i over: trees_to_plant{
 			if(i != nil){
 				add i to: t;
 			}
 		}
-		self.current_plot <- nursery;
+		self.current_plot <- pt_plant;
 		location <- current_plot.location;
 		write "Number of trees to be planted: "+length(t);
 		write "Trees to be planted: "+t;
+		geometry remaining_space <- pt_plant.removeTreeOccupiedSpace(pt_plant.shape, pt_plant.plot_trees);
 		loop while: remaining_space != nil and (remaining_space.area > 0 and length(t) > 0){
 			trees to_plant <- one_of(t);
 			try{
@@ -166,12 +168,12 @@ species labour control: fsm{
 				if(to_plant.location != nil){
 					geometry to_plant_area <- circle(to_plant.dbh+5, to_plant.location);
 				
-					trees closest_tree <-nursery.plot_trees closest_to to_plant;
+					trees closest_tree <-pt_plant.plot_trees closest_to to_plant;
 						
 					//make sure it is safe to replant, meaning, it doesn't overlap a nearby tree
 					if(closest_tree = nil or (closest_tree != nil and !(circle(closest_tree.dbh+5, closest_tree.location) overlaps to_plant_area))){	//if the closest tree overlaps with the tree that will be planted, do not continue planting the tree		
 						//plant the tree
-						to_plant.my_plot <- nursery;
+						to_plant.my_plot <- pt_plant;
 						add to_plant to: to_plant.my_plot.plot_trees;
 						remove to_plant from: my_trees;
 						geometry new_occupied_space <- circle(to_plant.dbh+5) translated_to to_plant.location;	//+5 allows for spacing between plants
@@ -179,14 +181,14 @@ species labour control: fsm{
 						ask university_si{
 							total_seedlings_replanted <- total_seedlings_replanted + 1;
 						}
-						write "Tree is successfully replanted to nursery";
+						write "Tree is successfully replanted to plot: "+pt_plant.name;
 					}	
 				}		
 			}
 			remove to_plant from: t;
 			
 		}
-		write "Number of trees not planted to nursery: "+length(t);
+		write "Number of trees not planted in plot: "+length(t);
 	}
 	
 	//done by nursery laborer after completing gathering of all seedlings
@@ -202,16 +204,22 @@ species labour control: fsm{
 		}
 		if(length(to_plant_plot)>0){
 			loop tpp over: to_plant_plot{
-				geometry remaining_space <- tpp.removeTreeOccupiedSpace(tpp.shape, tpp.plot_trees);
-				if(remaining_space != nil){
-					do plantInPlot(t, tpp, remaining_space);
-					break;
-				}
+				do plantInPlot(t, tpp);
 			}
 		}
 		if(labor_type = COMM_LABOUR){
 			man_months[1] <- man_months[1] + 1;
 		}
+	}
+
+	action cutTrees(list<trees> t){
+		ask t{
+			remove self from: myself.harvested_trees;
+			remove self from: my_plot.plot_trees;
+			remove myself from: my_plot.my_laborers;
+			do die;
+		}
+		plot_to_harvest <- nil;
 	}
 	
 	//find a nursery with seedling and return the plot
@@ -265,16 +273,6 @@ species labour control: fsm{
 	
 	action setPlotToHarvest(plot pth){
 		plot_to_harvest <- pth;
-	}
-	
-	action cutTrees(list<trees> t){
-		ask t{
-			remove self from: myself.harvested_trees;
-			remove self from: my_plot.plot_trees;
-			remove myself from: my_plot.my_laborers;
-			do die;
-		}
-		plot_to_harvest <- nil;
 	}
 	
 	//harvests upto capacity
@@ -335,8 +333,7 @@ species labour control: fsm{
 				ask university_si{
 					n_plot <- one_of(my_nurseries where (each.nursery_type = myself.nursery_labour_type));	
 				}
-				geometry remaining_space <- n_plot.removeTreeOccupiedSpace(n_plot.shape, n_plot.plot_trees);
-				do plantInPlot(all_seedlings_gathered, n_plot, remaining_space);	//put to nursery all the gathered seedlings
+				do plantInPlot(all_seedlings_gathered, n_plot);	//put to nursery all the gathered seedlings
 				all_seedlings_gathered <- [];
 				visited_plot <- [];
 				nursery_labour_type <- -1;
@@ -347,24 +344,33 @@ species labour control: fsm{
 		}
 	}
 	
+	//assigned_ANR_planter, this one is responsible for replanting all plots with SBA<threshold
+	
+	//hired only once
 	state assigned_itp_planter{
-		plot nursery <- goToNursery();
-		if(nursery != nil){
-			list<trees> saplings_gathered <- gatherSaplings(nursery); 
-			do replant(saplings_gathered);
-		}
-		if(com_identity != nil){	//meaning, laborer is an instance of community
-			ask university_si{
-				write "Paying laborer: current earning (before) - "+myself.com_identity.current_earning;
-				do payLaborer(myself);
-				write "Paying laborer: current earning (after) - "+myself.com_identity.current_earning;
+		//go to nurseries and get trees as much as it can carry => carrying_capacity
+		list<plot> nurseries <- plot where (each.is_nursery);
+		list<trees> tt_plant <- [];
+		
+		int my_capacity <- carrying_capacity;
+		ask nurseries{
+			if(my_capacity<1){break;}
+			list<trees> saplings <- plot_trees where (each.state = SAPLING);
+			if(length(saplings) > my_capacity){
+				tt_plant <<+ saplings[0::my_capacity];
+				break;
+			}else{
+				tt_plant <<+ saplings;
+				my_capacity <- my_capacity - length(saplings);
 			}
 		}
-		transition to: vacant when: !is_planting_labour;
 		
-		if(man_months[0] >= man_months[2]){
-	    	is_planting_labour <- false;
-	    }
+		//go to plot where to plant and replant the trees
+		do plantInPlot(tt_plant, plot_to_plant);
+		write "After planting tree count: "+length(plot_to_plant.plot_trees);
+		transition to: vacant when: !is_planting_labour{
+			plot_to_plant <- nil;
+		}
 	    
 	    exit{
 	    	p_t_type <- -1;
@@ -374,7 +380,9 @@ species labour control: fsm{
 	state assigned_itp_harvester{
 		do cutTrees(harvested_trees);
 		
-		transition to: vacant when: !is_harvest_labour;
+		transition to: vacant when: !is_harvest_labour{
+			plot_to_harvest <- nil;	
+		}
 	    
 	    exit{
 	    	h_t_type <- -1;

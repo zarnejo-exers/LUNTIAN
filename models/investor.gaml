@@ -9,6 +9,8 @@
 model investor
 import "university_si.gaml"
 
+//NOTE:open plots to investor when there's sufficient saplings in the nurseries 
+
 /* Insert your model definition here */
 global{
 	float risk_averse <- 0.5; 	//type = 0

@@ -710,8 +710,8 @@ species plot{
 	int rotation_years <- 0; 	//only set once an investor decided to invest on a plot
 	bool is_invested <- false;
 	
-	int getSpeciesCount(int t_type){
-		return length(plot_trees where (each.type = t_type));
+	int getSaplingsCountS(int t_type){
+		return length(plot_trees where (each.type = t_type and each.state = SAPLING));
 	}
 	
 	action compute_neighbors {
