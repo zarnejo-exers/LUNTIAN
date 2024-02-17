@@ -355,7 +355,7 @@ species labour control: fsm{
 		int my_capacity <- carrying_capacity;
 		ask nurseries{
 			if(my_capacity<1){break;}
-			list<trees> saplings <- plot_trees where (each.state = SAPLING);
+			list<trees> saplings <- plot_trees where (!dead(each) and each.state = SAPLING);
 			if(length(saplings) > my_capacity){
 				tt_plant <<+ saplings[0::my_capacity];
 				break;

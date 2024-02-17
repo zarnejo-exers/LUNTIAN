@@ -387,6 +387,7 @@ species university_si{
 		list<plot> nurseries <- plot where each.is_nursery;
 		int tree_count <- 0;
 		ask nurseries{
+			write "I am nursery: "+name;
 			tree_count <- tree_count + getSaplingsCountS(NATIVE) + getSaplingsCountS(EXOTIC);
 		}
 		
