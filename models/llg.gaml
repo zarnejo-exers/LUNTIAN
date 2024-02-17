@@ -712,7 +712,8 @@ species plot{
 	float stand_basal_area;
 	
 	int getSaplingsCountS(int t_type){
-		return length(plot_trees where (each.type = t_type and each.state = SAPLING));
+		list<trees> pt <- plot_trees where !dead(each);
+		return length(pt where (each.type = t_type and each.state = SAPLING));
 	}
 	
 	action compute_neighbors {

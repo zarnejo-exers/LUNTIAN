@@ -54,9 +54,8 @@ species investor control: fsm{
 		int s_type;	//supported ITP type
 		ask university_si{
 			investable_plot <- getInvestablePlot();		//get the first plot with highest SBA;
-			investment_request_count <- investment_request_count + 1;
 		}
-		
+		write "Investor: "+name+" is investing on plot: "+investable_plot.name+" with sba: "+investable_plot.stand_basal_area;
 		if(investable_plot != nil){
 			//decide investment based on risk type
 			bool decision <- decideOnRisk(investable_plot, rt);
@@ -111,7 +110,6 @@ species investor control: fsm{
 			}
 			harvest_monitor <- 0;
 		}
-		write "Current rotation year: "+my_plot.rotation_years;
 	}
 	
 	state potential_active initial: true{ 
@@ -145,7 +143,6 @@ species investor control: fsm{
 		if(risk = "Neutral"){
 			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
 		}
-		write "Neutral becomes "+risk;
 		bool to_transition <- flip(risk_types[risk]);
 	    
 	    transition to: potential_active when: (to_transition);
