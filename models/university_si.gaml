@@ -206,6 +206,7 @@ species university_si{
 		
 		//assign laborer and get available seeds from the nursery 		 
 		do setRotationYears(chosen_plot, t_type);		//set rotation years to plot
+		add chosen_plot.rotation_years to: investing_investor.investment_rotation_years;
 		chosen_plot.is_itp <- true;
 		
 		//1. get all the trees that will be harvested via selective harvesting
@@ -501,7 +502,7 @@ species university_si{
 	
 	reflex monitorSBAforANR{
 		//get plots less than SBA = 35
-		list<plot> plot_for_ANR <- plot where (each.stand_basal_area < 35);	//35 = threshold for sustainable stand basal area
+		list<plot> plot_for_ANR <- sort_by((plot where (each.stand_basal_area < 35)), each.stand_basal_area);	//35 = threshold for sustainable stand basal area
 		
 		write "Performing ANR on plots";
 		loop pfa over: plot_for_ANR{

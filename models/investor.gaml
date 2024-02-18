@@ -40,7 +40,8 @@ species investor control: fsm{
 	float investment <- 0.0;
 	float promised_profit; 
 	int tht <- 0;	//total harvested trees
-	
+	int investment_count <- 0;
+	list<int> investment_rotation_years <- [];
 	int rt;	//risk type
 	bool waiting <- false;
 	
@@ -69,6 +70,7 @@ species investor control: fsm{
 				promised_profit <- investable_plot.projected_profit;
 				my_plot <- investable_plot;
 				write "Investment granted -- cost: "+investment+" promised profit: "+promised_profit;
+				investment_count <- investment_count + 1;
 			}else{
 				write "Risk not satisfied!";
 			}	

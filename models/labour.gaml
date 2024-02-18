@@ -136,7 +136,7 @@ species labour control: fsm{
 		return all_seedlings;
 	}
 	
-	action plantInPlot(list<trees> trees_to_plant, plot pt_plant){
+	action plantInPlot(list<trees> trees_to_plant, plot pt_plant, plot source_plot){
 		pt_plant.plot_trees <- pt_plant.plot_trees where !dead(each);
 		list<trees> ttp <- trees_to_plant where !dead(each);
 		self.current_plot <- pt_plant;
@@ -159,6 +159,9 @@ species labour control: fsm{
 						total_seedlings_replanted <- total_seedlings_replanted + 1;
 					}
 					remove to_plant from: my_trees;
+					if(source_plot != nil){
+						remove to_plant from: source_plot.plot_trees;
+					}
 					i <- i+1;
 				}	
 			}		
@@ -168,25 +171,26 @@ species labour control: fsm{
 	}
 	
 	//done by nursery laborer after completing gathering of all seedlings
-	action replant(list<trees> t){
-		
-		list<plot> to_plant_plot <- []; 
-		ask university_si{
-			ask myself.my_plots{
-				if(length(myself.getAvailableSpaces(self, 0)) > 0){
-					add self to: to_plant_plot;
-				}
-			}
-		}
-		if(length(to_plant_plot)>0){
-			loop tpp over: to_plant_plot{
-				do plantInPlot(t, tpp);
-			}
-		}
-		if(labor_type = COMM_LABOUR){
-			man_months[1] <- man_months[1] + 1;
-		}
-	}
+//	action replant(list<trees> t){
+//		
+//		list<plot> to_plant_plot <- []; 
+//		ask university_si{
+//			ask myself.my_plots{
+//				if(length(myself.getAvailableSpaces(self, 0)) > 0){
+//					add self to: to_plant_plot;
+//				}
+//			}
+//		}
+//		if(length(to_plant_plot)>0){
+//			loop tpp over: to_plant_plot{
+//				write "Called in replant";
+//				do plantInPlot(t, tpp);
+//			}
+//		}
+//		if(labor_type = COMM_LABOUR){
+//			man_months[1] <- man_months[1] + 1;
+//		}
+//	}
 
 	action cutTrees(list<trees> t){
 		ask t{
@@ -241,10 +245,6 @@ species labour control: fsm{
 		current_plot <- plot_to_harvest; 
 		
 		harvested_trees <- trees_to_harvest;
-	}
-	
-	list<trees> gatherSaplings(plot nursery){
-		return (nursery.plot_trees where (each.state = SAPLING and each.type = p_t_type));
 	}
 	
 	action setPlotToHarvest(plot pth){
@@ -304,12 +304,12 @@ species labour control: fsm{
 		transition to: vacant when: !((fruiting_months_N + fruiting_months_E) contains current_month){	//stop gathering of seedlings once fruiting month has ended
 			write "---Putting all gathered seedlings to plot---";
 			if(length(all_seedlings_gathered) > 0){
-				write "inside";
 				plot n_plot <- nil;
 				ask university_si{
 					n_plot <- one_of(my_nurseries where (each.nursery_type = myself.nursery_labour_type));	
 				}
-				do plantInPlot(all_seedlings_gathered, n_plot);	//put to nursery all the gathered seedlings
+				write "Called in nursery";
+				do plantInPlot(all_seedlings_gathered, n_plot, nil);	//put to nursery all the gathered seedlings
 				all_seedlings_gathered <- [];
 				visited_plot <- [];
 				nursery_labour_type <- -1;
@@ -324,23 +324,23 @@ species labour control: fsm{
 	state assigned_planter{
 		//go to nurseries and get trees as much as it can carry => carrying_capacity
 		list<plot> nurseries <- plot where (each.is_nursery);
-		list<trees> tt_plant <- [];
 		
 		int my_capacity <- carrying_capacity;
-		ask nurseries{
+		loop i over: nurseries{
 			if(my_capacity<1){break;}
-			list<trees> saplings <- plot_trees where (!dead(each) and each.state = SAPLING);
-			if(length(saplings) > my_capacity){
-				tt_plant <<+ saplings[0::my_capacity];
+			list<trees> tt_plant <- [];
+			list<trees> saplings <- i.plot_trees where (!dead(each) and each.state = SAPLING);	//get all the saplings from the nursery
+			write "Called in planter";
+			if(length(saplings) > my_capacity){	//laborers' capacity is less than available saplings
+				tt_plant <- saplings[0::my_capacity];	//get only what can be carried by the laborer
+				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
 				break;
-			}else{
-				tt_plant <<+ saplings;
+			}else{		//laborer can carry all the saplings 
+				tt_plant <- saplings;
 				my_capacity <- my_capacity - length(saplings);
+				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
 			}
 		}
-		
-		//go to plot where to plant and replant the trees
-		do plantInPlot(tt_plant, plot_to_plant);
 		transition to: vacant when: !is_planting_labour{
 			plot_to_plant <- nil;
 		}

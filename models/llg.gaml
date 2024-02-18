@@ -696,6 +696,7 @@ species plot{
 	geometry neighborhood_shape <- nil;
 	bool is_policed <- false;
 	list<trees> plot_trees<- [] update: plot_trees where !dead(each);
+	int tree_count <- 0 update: length(plot_trees);
 	soil my_soil <- soil closest_to location;
 	climate my_climate <- climate closest_to location;
 	float investment_cost;
