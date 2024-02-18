@@ -389,9 +389,11 @@ species university_si{
 		list<labour> avail_planters <- getLaborers(needed_planters);	//get laborers
 		
 		if(length(avail_planters) = 0){
+			write "No available planters!";
 			return false;
 		}
 		
+		write "still inside hirePlanter";
 		ask avail_planters{
 			man_months <- [PLANTING_LABOUR, 1, 0];
 			is_planting_labour <- true;
@@ -429,22 +431,17 @@ species university_si{
 		list<plot> nursery_plot;
 		if(candidate_plots != nil and length(candidate_plots) > nursery_count){
 			candidate_plots <- candidate_plots[0::nursery_count];
+			bool is_native <- true;
 			ask candidate_plots{
 				add self to: nursery_plot;
 				is_nursery <- true;
+				nursery_type <- (is_native)?NATIVE:EXOTIC;
+				is_native <- !is_native;
 				ask university_si{
 					add myself to: my_nurseries;
 				}	
 			}	
 		}
-		
-		ask nursery_plot[0::int(nursery_count/2)]{
-			nursery_type <- NATIVE;
-		}
-		ask nursery_plot[int(nursery_count/2)+1::nursery_count]{
-			nursery_type <- EXOTIC;
-		}
-		
 	}
 	
 	//hire 5 laborers 
@@ -507,11 +504,12 @@ species university_si{
 		write "Performing ANR on plots";
 		loop pfa over: plot_for_ANR{
 			if(!hirePlanter(pfa)){
+				write "Inside conditional statement";
 				break;
 			}
 			ANR_instance <- ANR_instance + 1;
 		}
-		
+		write "end of ANR";
 	}
 	
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)

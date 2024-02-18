@@ -169,28 +169,6 @@ species labour control: fsm{
 		}
 		write "Total planted trees: "+i+" in plot: "+pt_plant.name;
 	}
-	
-	//done by nursery laborer after completing gathering of all seedlings
-//	action replant(list<trees> t){
-//		
-//		list<plot> to_plant_plot <- []; 
-//		ask university_si{
-//			ask myself.my_plots{
-//				if(length(myself.getAvailableSpaces(self, 0)) > 0){
-//					add self to: to_plant_plot;
-//				}
-//			}
-//		}
-//		if(length(to_plant_plot)>0){
-//			loop tpp over: to_plant_plot{
-//				write "Called in replant";
-//				do plantInPlot(t, tpp);
-//			}
-//		}
-//		if(labor_type = COMM_LABOUR){
-//			man_months[1] <- man_months[1] + 1;
-//		}
-//	}
 
 	action cutTrees(list<trees> t){
 		ask t{
@@ -308,11 +286,13 @@ species labour control: fsm{
 				ask university_si{
 					n_plot <- one_of(my_nurseries where (each.nursery_type = myself.nursery_labour_type));	
 				}
-				write "Called in nursery";
-				do plantInPlot(all_seedlings_gathered, n_plot, nil);	//put to nursery all the gathered seedlings
-				all_seedlings_gathered <- [];
-				visited_plot <- [];
-				nursery_labour_type <- -1;
+				if(n_plot != nil){	//if n_plot = nil, the nursery laborer just manages the nursery and doesn't have anything to replant
+					do plantInPlot(all_seedlings_gathered, n_plot, nil);	//put to nursery all the gathered seedlings
+					all_seedlings_gathered <- [];
+					visited_plot <- [];
+					nursery_labour_type <- -1;	
+				}
+				
 			}else{
 				write "Nursery laborers wasn't able to gather seeds";
 			}
@@ -330,14 +310,19 @@ species labour control: fsm{
 			if(my_capacity<1){break;}
 			list<trees> tt_plant <- [];
 			list<trees> saplings <- i.plot_trees where (!dead(each) and each.state = SAPLING);	//get all the saplings from the nursery
-			write "Called in planter";
 			if(length(saplings) > my_capacity){	//laborers' capacity is less than available saplings
 				tt_plant <- saplings[0::my_capacity];	//get only what can be carried by the laborer
+				write "if -- Called in planter to plant in: ";
+				write plot_to_plant.name;
+				write " --";
 				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
 				break;
 			}else{		//laborer can carry all the saplings 
 				tt_plant <- saplings;
 				my_capacity <- my_capacity - length(saplings);
+				write "else -- Called in planter to plant in: ";
+				write plot_to_plant.name;
+				write " --";
 				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
 			}
 		}
