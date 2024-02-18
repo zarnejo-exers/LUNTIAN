@@ -306,23 +306,21 @@ species labour control: fsm{
 		list<plot> nurseries <- plot where (each.is_nursery);
 		
 		int my_capacity <- carrying_capacity;
+		write "Inside assigned planter getting saplings from nurseries";
 		loop i over: nurseries{
 			if(my_capacity<1){break;}
 			list<trees> tt_plant <- [];
 			list<trees> saplings <- i.plot_trees where (!dead(each) and each.state = SAPLING);	//get all the saplings from the nursery
+			if(length(saplings) = 0){continue;}
 			if(length(saplings) > my_capacity){	//laborers' capacity is less than available saplings
+				write "To plant: "+my_capacity;
 				tt_plant <- saplings[0::my_capacity];	//get only what can be carried by the laborer
-				write "if -- Called in planter to plant in: ";
-				write plot_to_plant.name;
-				write " --";
 				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
 				break;
-			}else{		//laborer can carry all the saplings 
+			}else{		//laborer can carry all the saplings
+				write "To plant: "+length(saplings); 
 				tt_plant <- saplings;
 				my_capacity <- my_capacity - length(saplings);
-				write "else -- Called in planter to plant in: ";
-				write plot_to_plant.name;
-				write " --";
 				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
 			}
 		}

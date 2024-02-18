@@ -13,7 +13,7 @@ import "university_si.gaml"
 global{
 	int member_count <- 8 update: member_count;
 	int waiting_allowance <- 12 update: waiting_allowance;
-	float max_harvest_pay <- HARVEST_LABOUR * HARVEST_LCOST;
+	float max_harvest_pay <- HARVEST_LABOUR * HARVESTING_LCOST;
 	float max_planting_pay <- PLANTING_LABOUR * PLANTING_LCOST;
 	float max_nursery_pay <- NURSERY_LABOUR * NURSERY_LCOST;
 	

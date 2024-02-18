@@ -699,8 +699,6 @@ species plot{
 	int tree_count <- 0 update: length(plot_trees);
 	soil my_soil <- soil closest_to location;
 	climate my_climate <- climate closest_to location;
-	float investment_cost;
-	float projected_profit;
 	bool is_nursery <- false;
 	int nursery_type <- -1; //
 	bool is_itp <- false;
@@ -711,6 +709,9 @@ species plot{
 	int rotation_years <- 0; 	//only set once an investor decided to invest on a plot
 	bool is_invested <- false;
 	float stand_basal_area;
+	
+	float projected_profit;
+	float investment_cost;
 	
 	int getSaplingsCountS(int t_type){
 		list<trees> pt <- plot_trees where !dead(each);
