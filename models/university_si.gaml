@@ -42,8 +42,8 @@ global{
 	int itp_type; //0 ->plant native, 1->plant exotic, 2->plant mix 
 	bool hiring_prospect <- false;
 	
-	int harvesting_age_exotic <- 10 update: harvesting_age_exotic;	//temp
-	int harvesting_age_native <- 10 update: harvesting_age_native;	//actual 40
+	int harvesting_age_exotic <- 25 update: harvesting_age_exotic;	//temp
+	int harvesting_age_native <- 25 update: harvesting_age_native;	//actual 40
 	
 	bool assignedNurseries <- false;
 	bool start_harvest <- false;
@@ -203,7 +203,6 @@ species university_si{
 		chosen_plot.is_nursery <- false;
 		investing_investor.my_plot <- chosen_plot;
 		investing_investor.investment <- chosen_plot.investment_cost;
-		investing_investor.i_t_type <- t_type;
 		
 		//assign laborer and get available seeds from the nursery 		 
 		do setRotationYears(chosen_plot, t_type);		//set rotation years to plot
@@ -301,15 +300,22 @@ species university_si{
 	
 	//returns the hired harvesters that completed the harvesting
 	float sendHarvesters(list<labour> hh, plot pth, list<trees> trees_to_harvest){
-		float total_bdft <- getTotalBDFT(trees_to_harvest, pth);
+		list<trees> tth <- trees_to_harvest where !dead(each);
+		float total_bdft <- getTotalBDFT(tth, pth);
 		
-		ask hh{
-			man_months <- [HARVEST_LABOUR, 1, 0];
-			is_harvest_labour <- true;
-			current_plot <- pth;
-			plot_to_harvest <- pth;
-			harvested_trees <- trees_to_harvest[0::1];
-			state <- "assigned_itp_harvester";
+		loop while:(length(tth) > 0 and length(hh) > 0){
+			labour instance <- first(hh);
+			trees to_harvest <- first(trees_to_harvest);
+			ask instance{
+				man_months <- [HARVEST_LABOUR, 1, 0];
+				is_harvest_labour <- true;
+				current_plot <- pth;
+				plot_to_harvest <- pth;
+				add to_harvest to: harvested_trees;
+				state <- "assigned_itp_harvester";	
+			}
+			remove instance from: hh;
+			remove to_harvest from: tth;
 		}
 		
 		return total_bdft;

@@ -292,7 +292,7 @@ species trees{
 	float cr; 	//crown ratio, set at the reading of the data
 	float crown_diameter;	//crown diameter
 	
-	float ba;
+	float basal_area <- 0.0 update: ((dbh/2.54)^2) * 0.005454;	//calculate basal area before calculating dbh increment; in m2
 	float dipy;
 	
 	float total_biomass <- 0.0;	//in kg
@@ -442,8 +442,8 @@ species trees{
 				default {return (((1.38+(0.26*is_dry_season))/12) *neighbor_impact);}	//>70
 			}
 		}else if(type = NATIVE){	//palosapis
-			float increment <- (((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*ba))/12); 
-			return ((((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*ba))/12)*neighbor_impact); 
+			float increment <- (((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*basal_area))/12); 
+			return ((((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*basal_area))/12)*neighbor_impact); 
 		}
 	}	
 	
@@ -479,13 +479,14 @@ species trees{
 	}
 	
 	float neighborhoodInteraction{
-		my_neighbors <- (my_plot.plot_trees select ((each.state = ADULT) and (each distance_to self) < 20#m));
+		list<trees> t <- my_plot.plot_trees where !dead(each);
+		my_neighbors <- (t select ((each.state = ADULT) and (each distance_to self) < 20#m));
 		float ni <- 0.0;
 		
 		loop n over: (my_neighbors-self){
 			float dis <- n distance_to self;
 			if(dis > 0){
-				ni <- ni + ((n.ba * ((self.type = n.type)?1:0.5))/(n distance_to self));	
+				ni <- ni + ((n.basal_area * ((self.type = n.type)?1:0.5))/(n distance_to self));	
 			}
 		}
 		
@@ -570,7 +571,6 @@ species trees{
 			}	
 		}
 		
-		ba <- (dbh^2) * 0.005454;	//calculate basal area before calculating dbh increment
 		diameter_increment <- computeDiameterIncrement(nieghborh_effect);
 		dbh <- dbh + diameter_increment;	 
 		crown_diameter <- cr*(dbh) + dbh;
@@ -752,12 +752,12 @@ species plot{
 		}
 	}
 	
-	//sum of all the basal areas of the tree inside the plot
+	//sum of all the basal areas of the tree inside the plot, in m2
 	reflex getStandBasalArea{
 		float sba <- 0.0;
 		
 		ask plot_trees{
-			sba <- sba + ba;
+			sba <- sba + basal_area;
 		}
 	
 		stand_basal_area <- sba;

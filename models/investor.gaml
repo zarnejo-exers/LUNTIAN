@@ -43,7 +43,6 @@ species investor control: fsm{
 	
 	int rt;	//risk type
 	bool waiting <- false;
-	int i_t_type <- -1;	//investor, tree type
 	
 	//investor is deciding whether to invest or not
 	//computes for the rate of return on the invested plots
@@ -134,7 +133,6 @@ species investor control: fsm{
 	    	recent_profit <- 0.0;
 	    	harvest_monitor <- 0;
 	    	investment <- 0.0;
-	    	i_t_type <- -1;
 	    } 
 	}
 	
