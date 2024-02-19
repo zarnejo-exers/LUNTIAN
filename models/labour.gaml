@@ -236,6 +236,10 @@ species labour control: fsm{
 	action harvestPlot{
 		list<trees> trees_to_harvest <- [];
 		
+		if(state = "independent"){
+			carrying_capacity <- int(carrying_capacity/2);
+		}
+		
 		if(!(plot_to_harvest.my_laborers contains self)){
 			add self to: plot_to_harvest.my_laborers;	
 		}
@@ -373,13 +377,13 @@ species labour control: fsm{
 	}
 	
 	state independent{	//if instance of independent community member 
-//		if(plot_to_harvest != nil){
-//			do harvestPlot;
-//			ask com_identity{
-//				do completeHarvest(myself.harvested_trees);
-//			}
-//			do cutTrees(harvested_trees);
-//		}
+		if(plot_to_harvest != nil){
+			do harvestPlot;
+			ask com_identity{
+				do completeHarvest(myself.harvested_trees);
+			}
+			do cutTrees(harvested_trees);
+		}
 		
 		transition to: assigned_itp_harvester when: is_harvest_labour;
 		transition to: assigned_planter when: is_planting_labour;

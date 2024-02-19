@@ -19,6 +19,17 @@ species market{
 		return ((t_type = 1)?bprice_of_exotic:bprice_of_native);
 	}
 	
+	float getTotalBDFT(list<trees> tth){
+		float total_bdft <- 0.0;
+		
+		loop i over: tth{
+			total_bdft <- total_bdft + (i.calculateVolume(i.dbh, i.type) / 12);	
+		}
+		return total_bdft;
+	}	
 	
+	float getProfit(int type, float thv){
+		return thv * ((type = EXOTIC)?exotic_price_per_volume:native_price_per_volume);
+	}
 }
 

@@ -285,7 +285,9 @@ species university_si{
 				dbh <- n_adult_ave_DBH;
 				type <- NATIVE;
 			}
-			total_bdft_n <- getTotalBDFT(n_trees);	
+			ask market{
+				total_bdft_n <- getTotalBDFT(n_trees);	
+			}
 			ask n_trees{
 				do die;
 			}
@@ -295,33 +297,30 @@ species university_si{
 				dbh <- e_adult_ave_DBH;
 				type <- EXOTIC;
 			}	
-			total_bdft_e <- getTotalBDFT(e_trees);
+			ask market{
+				total_bdft_e <- getTotalBDFT(e_trees);
+			}
 			ask e_trees{
 				do die;
 			}
 		}
-
-		return (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.75;
-	}
-	
-	float getTotalBDFT(list<trees> tth){
-		float total_bdft <- 0.0;
 		
-		loop i over: tth{
-			total_bdft <- total_bdft + (i.calculateVolume(i.dbh, i.type) / 12);	
+		float total_profit; 
+		ask market {
+			total_profit <- (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.75;
 		}
-		return total_bdft;
-	}
-	
-	float getProfit(int type, float thv){
-		return thv * ((type = EXOTIC)?exotic_price_per_volume:native_price_per_volume);
+
+		return total_profit;
 	}
 	
 	//pays the hired harvester and gives the earning to laborer
 	//compute cost
 	action harvestEarning(investor i, float thv, int type, bool is_final_harvesting){
 		//give payment to investor
-	    float c_profit <- getProfit(type, thv);
+	    float c_profit;
+	    ask market{
+	    	c_profit <- getProfit(type, thv);
+	    }
 	    
 	    if(i != nil){
 	    	i.tht <- i.tht + 1;
@@ -413,7 +412,10 @@ species university_si{
 	//returns the hired harvesters that completed the harvesting
 	float sendHarvesters(list<labour> hh, plot pth, list<trees> trees_to_harvest){
 		list<trees> tth <- trees_to_harvest where !dead(each);
-		float total_bdft <- getTotalBDFT(tth);
+		float total_bdft;
+		ask market{
+			total_bdft <- getTotalBDFT(tth);	
+		}
 		pth.plot_trees <- (pth.plot_trees - tth);
 		
 		loop while:(length(tth) > 0 and length(hh) > 0){

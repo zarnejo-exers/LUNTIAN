@@ -85,13 +85,18 @@ species comm_member control: fsm{
 	//uses the same metrics as with the university in terms of determining the cost per harvested tree
 	float computeEarning(list<trees> harvested_trees){
 		float temp_earning <- 0.0;
+		float thv_n;
+		float thv_e; 
+		list<trees> native <- harvested_trees where (each.type = NATIVE);
+		list<trees> exotic <- harvested_trees where (each.type = EXOTIC);
+		ask market{
+			thv_n <- getTotalBDFT(native);
+			thv_e <- getTotalBDFT(exotic);
+		}
 		
-	    loop s over: harvested_trees{
-	    	//use specific price per type
-	    	temp_earning <- temp_earning + (((s.type = 1)?exotic_price_per_volume:native_price_per_volume) * (#pi * (s.dbh/2)^2 * s.th) ); 
+	    ask market{
+	    	return getProfit(NATIVE, thv_n) + getProfit(EXOTIC, thv_e);
 	    }
-		
-		return temp_earning;
 	}
 	
 	//determines hiring prospecti
@@ -233,6 +238,6 @@ species comm_member control: fsm{
 	        caught <- 0;
 	        lapsed_time <- waiting_allowance;
 	    }
-	    transition to: independent_harvesting when: (probaHarvest()); 	//if there's hiring prospective, choose to cooperate
+	    transition to: independent_harvesting when: (probaHarvest()); 	//if there's no hiring prospective, hire on one's own
 	}	
 }
