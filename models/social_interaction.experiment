@@ -112,7 +112,7 @@ experiment social_interaction model: "university_si.gaml" type:gui {
             		data i.name value: i.total_earning;
             	}
 			}
-		}		
+		}	
 		
 		monitor "Total University Earning" value: total_ITP_earning;
 		monitor "Total Management Cost" value: total_management_cost;

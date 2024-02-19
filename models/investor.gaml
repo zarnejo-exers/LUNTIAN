@@ -68,6 +68,7 @@ species investor control: fsm{
 				ask university_si{
 					do investOnPlot(myself, investable_plot, itp_type);
 					do hirePlanter(investable_plot, needed_native);
+					total_management_cost <- total_management_cost + ((NATIVE_price_per_SAPLING) * needed_native); 
 				}			
 				harvest_monitor <- 0;
 				investable_plot.is_investable <- false;

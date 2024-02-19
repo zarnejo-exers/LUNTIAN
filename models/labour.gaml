@@ -281,7 +281,15 @@ species labour control: fsm{
 	//	create #native_count new saplings
 	//	plant this new saplings on the_plot
 	action plantBoughtSaplings{
+		create trees number: count_bought_nsaplings returns: bought_saplings{
+			dbh <- n_sapling_ave_DBH;
+			type <- NATIVE;
+			age <- dbh/growth_rate_exotic; 
+		}
 		
+		write "BoughtSaplings - Count of trees before: "+length(plot_to_plant);
+		do plantInPlot(bought_saplings, plot_to_plant, nil);
+		write "BoughtSaplings - Count of trees after: "+length(plot_to_plant);
 	}
 	
 	state vacant initial: true{	

@@ -58,13 +58,13 @@ global {
 	int current_month <- 0 update:(cycle mod NB_TS);
 	
 	//note: information about the trees can be compiled in a csv	
-	float growth_rate_exotic <- 0.73 update: growth_rate_exotic;
+	float growth_rate_exotic <- 0.10417 update: growth_rate_exotic;	//average monthly Schneider, T., Ashton, M. S., Montagnini, F., & Milan, P. P. (2014). Growth performance of sixty tree species in smallholder reforestation trials on Leyte, Philippines. New Forests, 45(1), 83–96. https://doi.org/10.1007/s11056-013-9393-5
 	float max_dbh_exotic <- 110.8 update: max_dbh_exotic;
 	float min_dbh_exotic <- 1.0 update: min_dbh_exotic;
 	int ave_fruits_exotic <- 700 update: ave_fruits_exotic;
 	float exotic_price_per_volume <- 70.0 update: exotic_price_per_volume;
 	
-	float growth_rate_native <- 2.0 update: growth_rate_native;
+	float growth_rate_native <- 0.09917 update: growth_rate_native;	//average monthly (Shorea guiso Blaco Blume) Schneider, T., Ashton, M. S., Montagnini, F., & Milan, P. P. (2014). Growth performance of sixty tree species in smallholder reforestation trials on Leyte, Philippines. New Forests, 45(1), 83–96. https://doi.org/10.1007/s11056-013-9393-5
 	float max_dbh_native <- 130.0 update: max_dbh_native;
 	float min_dbh_native <- 1.0 update: min_dbh_native;
 	int ave_fruits_native <- 100 update: ave_fruits_native;
