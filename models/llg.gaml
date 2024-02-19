@@ -182,8 +182,8 @@ global {
 						nieghborh_effect <- 1-exp(log(neighborhoodInteraction()) * log(prev_dbh));	
 					}	
 				}				
-				dbh <- computeDiameterIncrement(nieghborh_effect) + prev_dbh;
-				th <- calculateHeight();	
+				dbh <- computeDiameterIncrement(nieghborh_effect, self.location) + prev_dbh;
+				th <- calculateHeight(dbh, type);	
 			}
 		}
 		
@@ -422,9 +422,9 @@ species trees{
 	//assume: growth coefficient doesn't apply on plots for ITP 
 	//note: monthly increment 
 	//returns diameter_increment
-	float computeDiameterIncrement(float neighbor_impact){
+	float computeDiameterIncrement(float neighbor_impact, point loc){
 		if(type = EXOTIC){ //mahogany 
-			climate closest_clim <- climate closest_to self.location;	//closest climate descriptor to the point
+			climate closest_clim <- climate closest_to loc;	//closest climate descriptor to the point
 			float precip_value <- closest_clim.precipitation[current_month];
 			float etp_value <- closest_clim.etp[current_month];
 			
@@ -571,10 +571,10 @@ species trees{
 			}	
 		}
 		
-		diameter_increment <- computeDiameterIncrement(nieghborh_effect);
+		diameter_increment <- computeDiameterIncrement(nieghborh_effect, self.location);
 		dbh <- dbh + diameter_increment;	 
 		crown_diameter <- cr*(dbh) + dbh;
-		th <- calculateHeight();
+		th <- calculateHeight(dbh, type);
 		if(!my_plot.is_itp and closest_tree != nil and (circle(self.crown_diameter/2, self.location) overlaps circle(closest_tree.crown_diameter/2, closest_tree.location))){	//inhibit growth if will overlap
 			dbh <- prev_dbh;
 			th <- prev_th;	
@@ -630,25 +630,25 @@ species trees{
 	}
 	
 	//in meters
-	float calculateHeight{
-		switch type{
+	float calculateHeight(float temp_dbh, int t_type){
+		switch t_type{
 			match EXOTIC {
-				return (1.3 + (12.3999 * (1 - exp(-0.105*dbh)))^1.79);	///Downloads/BKrisnawati1110.pdf
+				return (1.3 + (12.3999 * (1 - exp(-0.105*temp_dbh)))^1.79);	///Downloads/BKrisnawati1110.pdf
 			}
 			match NATIVE {
-				return (1.3 + (dbh / (1.7116 + (0.3415 * dbh)))^3);	//https://d-nb.info/1002231884/34		
+				return (1.3 + (temp_dbh / (1.7116 + (0.3415 * temp_dbh)))^3);	//https://d-nb.info/1002231884/34		
 			}
 		}
 	}
 	
 	//in cubic meters
-	float calculateVolume{
-		switch type {
+	float calculateVolume(float temp_dbh, int t_type){
+		switch t_type {
 			match EXOTIC{	
-				return 10^(-1.007 + (2.0086*log(dbh*0.01)) + (0.6156*log(calculateHeight())));	//stem volume up to first branch	
+				return 10^(-1.007 + (2.0086*log(temp_dbh*0.01)) + (0.6156*log(calculateHeight(temp_dbh, t_type))));	//stem volume up to first branch	
 			}
 			match NATIVE{
-				return -0.08069 + 0.31144 * ((dbh*0.01)^2) * calculateHeight();	//Nguyen, T. T. (2009). Modelling Growth and Yield of Dipterocarp Forests in Central Highlands of Vietnam [Ph.D. Dissertation]. Technische Universität München.
+				return -0.08069 + 0.31144 * ((temp_dbh*0.01)^2) * calculateHeight(temp_dbh, t_type);	//Nguyen, T. T. (2009). Modelling Growth and Yield of Dipterocarp Forests in Central Highlands of Vietnam [Ph.D. Dissertation]. Technische Universität München.
 			}
 		}	
 	}

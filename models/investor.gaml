@@ -54,6 +54,8 @@ species investor control: fsm{
 		int s_type;	//supported ITP type
 		ask university_si{
 			investable_plot <- getInvestablePlot();		//get the first plot with highest SBA;
+			write "Getting Details of Investment";
+			do getInvestmentDetailsOfPlot(investable_plot);
 		}
 		write "Investor: "+name+" is investing on plot: "+investable_plot.name+" with sba: "+investable_plot.stand_basal_area;
 		if(investable_plot != nil){
@@ -97,7 +99,7 @@ species investor control: fsm{
 				}
 			}
 		}
-		return true; //TODO: check projected profit and investment cost
+		return false; 
 	}
 	
 	//to signal when to harvest and earn

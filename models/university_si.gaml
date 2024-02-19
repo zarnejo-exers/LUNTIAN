@@ -35,7 +35,6 @@ global{
 	int laborer_count <- 10 update: laborer_count;
 	int nlaborer_count<- 5 update: nlaborer_count;
 	float planting_space <- 1.0 update: planting_space; 
-	int planting_age <- 1 update: planting_age;
 	int nursery_count <- 5 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
 	float dbh_policy <- 50.0 update: dbh_policy; 
@@ -58,6 +57,19 @@ global{
 	int total_warned_CM <- 0;
 	
 	int total_seedlings_replanted <- 0;	//per year
+	
+	/*Dipterocarp: max_dbh = [80,120]cm
+	 *Mahogany: max_dbh = 150cm
+	 *				Exotic			Native
+	 * seedling		[0,1)			[0,5)
+	 * sapling		[1,5)			[5,10)
+	 * pole			[5,30)			[10,20)
+	 * adult 		[30,150)		[20,100)
+	*/
+	 float n_sapling_ave_DBH <- 7.5;
+	 float e_sapling_ave_DBH <- 2.5; 
+	 float n_adult_ave_DBH <- 60.0;
+	 float e_adult_ave_DBH <- 90.0;
 	
 	init{
 		create market;
@@ -221,7 +233,7 @@ species university_si{
 		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_n), NATIVE, false);
 		list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(chosen_plot)) where (each.type = EXOTIC);
 		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_e), EXOTIC, false);
-		do hirePlanter(chosen_plot);
+		do hirePlanter(chosen_plot);	
 		investing_investor.waiting <- true;
 		write("!!!Investment commenced!!!");
 	}
@@ -235,14 +247,24 @@ species university_si{
 		int count_exotic <- length(getAllSaplingsInNurseries(EXOTIC));	//get the count of exotic trees in the c_plot (after filling up the plot)
 		
 		int needed_native <- (average_no_trees_in1ha < (count_native + count_exotic))?(average_no_trees_in1ha - (count_native + count_exotic)):0;	//given the existing count, determine how much more is needed to fill the plot
+		
+		write "NATIVE: "+count_native+" EXOTIC: "+count_exotic+" NEEDED: "+needed_native;
+		
 		float needed_cost <- needed_native * (NATIVE_price_per_SAPLING);	////buying_sapling_cost = determine the cost of the needed saplings
 		
-		int trees_tobe_harvested <- 0; //given selective harvesting rule, count the trees that will be removed
-		int total_trees_tobeplanted <- count_native + count_exotic + needed_native - (length(c_plot.plot_trees)-trees_tobe_harvested);
+		list<trees> trees_tobe_harvested <- getTreesToHarvestSH(c_plot); //given selective harvesting rule, count the trees that will be removed
+		int total_trees_tobeplanted <- count_native + count_exotic + needed_native - (length(c_plot.plot_trees)-length(trees_tobe_harvested));
 		int labor_needed <- int(total_trees_tobeplanted/LABOUR_PCAPACITY)+1;
 		float labor_cost <- labor_needed * PLANTING_LCOST;//labor_cost = compute the planting cost given all the needed saplings
+		
+		write "Projected labor cost: "+labor_cost;
 		//get the average harvesting cost for a filled up hectare (noting the rule on selective harvesting)
 		float init_harvest_cost <- (int(total_trees_tobeplanted/LABOUR_PCAPACITY)+1) * HARVESTING_LCOST;
+		write "Projected harvest cost: "+init_harvest_cost;
+	
+		count_native <- count_native + length(trees_tobe_harvested where (each.type=NATIVE));
+		count_exotic <- count_exotic + length(trees_tobe_harvested where (each.type=EXOTIC));
+		write "Native: "+(count_native+needed_native)+" Exotic: "+count_exotic;
 		c_plot.projected_profit <- projectProfit(count_native+needed_native, count_exotic);
 	}
 	//end get InvestmentDeatilsOfPlot
@@ -252,18 +274,53 @@ species university_si{
 	//	the investor decides whether to be active or passive depending on the actual gain after the investment 
 	
 	//projected profit: 
-	//	project the dbh of the tree after the rotation year (c_plot.rotation_years)
-	//  set dbh 
+	//	given all the trees in the stand, assume that they will all be adult at the end of the rotation 
 	float projectProfit(int ct_native, int ct_exotic){
-		return 0.0;
+		float total_bdft_n <- 0.0;
+		float total_bdft_e <- 0.0;
+		
+		if(ct_native > 0){
+			create trees number: ct_native returns: n_trees{
+				dbh <- n_adult_ave_DBH;
+				type <- NATIVE;
+			}
+			total_bdft_n <- getTotalBDFT(n_trees);	
+			ask n_trees{
+				do die;
+			}
+		}
+		if(ct_exotic > 0){
+			create trees number: ct_exotic returns: e_trees{
+				dbh <- e_adult_ave_DBH;
+				type <- EXOTIC;
+			}	
+			total_bdft_e <- getTotalBDFT(e_trees);
+			ask e_trees{
+				do die;
+			}
+		}
+
+		return (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.75;
+	}
+	
+	float getTotalBDFT(list<trees> tth){
+		float total_bdft <- 0.0;
+		
+		loop i over: tth{
+			total_bdft <- total_bdft + (i.calculateVolume(i.dbh, i.type) / 12);	
+		}
+		return total_bdft;
+	}
+	
+	float getProfit(int type, float thv){
+		return thv * ((type = EXOTIC)?exotic_price_per_volume:native_price_per_volume);
 	}
 	
 	//pays the hired harvester and gives the earning to laborer
 	//compute cost
 	action harvestEarning(investor i, float thv, int type, bool is_final_harvesting){
 		//give payment to investor
-	    float c_profit <- 0.0;
-	    c_profit <- thv * ((type = EXOTIC)?exotic_price_per_volume:native_price_per_volume);
+	    float c_profit <- getProfit(type, thv);
 	    
 	    if(i != nil){
 	    	i.tht <- i.tht + 1;
@@ -283,8 +340,14 @@ species university_si{
 		//2. hire harvesters: 2x the number of trees that will be harvested
 		//-- harvest process, harvest each of the trees in n parallel steps, where n = # of harvesters hired --
 		
-		list<labour> hired_harvesters <- getLaborers(length(tth)*2);
-		float harvested_bdft <- sendHarvesters(hired_harvesters, chosen_plot, tth);
+		list<labour> hired_harvesters <- getLaborers(length(tth)*2, false);	//if there's no laborer avail, get all assigned_planter 
+		if(length(hired_harvesters) = 0){
+			write "No available laborers!";
+			hired_harvesters <- getLaborers(length(tth)*2, true);
+			write "Laborers now: "+length(hired_harvesters);
+		}
+		
+		float harvested_bdft <- sendHarvesters(hired_harvesters, chosen_plot, tth);	
 		
 		//COST: 
 		//3. pay hired harvesters 1month worth of wage
@@ -314,8 +377,8 @@ species university_si{
 		return tree60to70 + tree70to80 + tree80up;
 	}
 	
-	list<labour> getLaborers(int needed_laborers){
-		list<labour> available_laborers <- labour where (each.labor_type = each.OWN_LABOUR and each.state="vacant");	//get own laborers that are not nursery|planting labours
+	list<labour> getLaborers(int needed_laborers, bool is_also_planters){
+		list<labour> available_laborers <- labour where ((each.labor_type = each.OWN_LABOUR and each.state="vacant") or (is_also_planters and each.state="assigned_planter"));	//get own laborers that are not nursery|planting labours
 		int still_needed_harvesters <- needed_laborers - length(available_laborers);
 		if(still_needed_harvesters > 0){	//hires from the community if there lacks need
 			list<comm_member> avail_member <- comm_member where (each.state = "potential_partner" and each.instance_labour = nil);
@@ -337,14 +400,20 @@ species university_si{
 			}
 		}
 		
-		hiring_prospect <- (length(available_laborers) < needed_laborers)?true:false;	//if the total labour isn't supplied, create a call for hiring prospect
+		hiring_prospect <- (length(available_laborers) < needed_laborers or is_also_planters)?true:false;	//if the total labour isn't supplied, create a call for hiring prospect
+		
+		if(length(available_laborers) > needed_laborers){
+			available_laborers <- (sort_by(available_laborers, each.total_earning))[0::needed_laborers];
+		}
+		
 		return available_laborers;
 	}
 	
 	//returns the hired harvesters that completed the harvesting
 	float sendHarvesters(list<labour> hh, plot pth, list<trees> trees_to_harvest){
 		list<trees> tth <- trees_to_harvest where !dead(each);
-		float total_bdft <- getTotalBDFT(tth, pth);
+		float total_bdft <- getTotalBDFT(tth);
+		pth.plot_trees <- (pth.plot_trees - tth);
 		
 		loop while:(length(tth) > 0 and length(hh) > 0){
 			labour instance <- first(hh);
@@ -361,16 +430,6 @@ species university_si{
 			remove to_harvest from: tth;
 		}
 		
-		return total_bdft;
-	}
-	
-	float getTotalBDFT(list<trees> tth, plot pth){
-		float total_bdft <- 0.0;
-		
-		loop i over: tth{
-			total_bdft <- total_bdft + (i.calculateVolume() / 12);	
-		}
-		pth.plot_trees <- (pth.plot_trees - tth);
 		return total_bdft;
 	}
 	
@@ -403,9 +462,9 @@ species university_si{
 	int getAvailableSpaces(plot p, int type){
 		//remove from occupied spaces
 		geometry temp_shape <- p.removeTreeOccupiedSpace(p.shape, p.plot_trees);
-		float temp_dbh <- determineDBHGrowth(type, planting_age);
+		float sig_dbh <- (type=NATIVE)?n_sapling_ave_DBH:e_sapling_ave_DBH;	//dbh of a sapling tree given type
 		
-		geometry tree_shape <- circle(temp_dbh);
+		geometry tree_shape <- circle(sig_dbh);
 		
 		if(temp_shape = nil){return 0;}
 		else{
@@ -428,11 +487,10 @@ species university_si{
 		int planting_capacity <- (space_available > tree_count)?tree_count:space_available;
 		int needed_planters <- int(planting_capacity / LABOUR_PCAPACITY)+1;	//each laborer have planting capacity
 		
-		list<labour> avail_planters <- getLaborers(needed_planters);	//get laborers
+		list<labour> avail_planters <- getLaborers(needed_planters, false);	//if there's no laborer avail, get all assigned_planter
 		
 		if(length(avail_planters) = 0){
-			write "No available planters!";
-			return false;
+			avail_planters <- getLaborers(needed_planters, true);
 		}
 		
 		ask avail_planters{
@@ -441,7 +499,7 @@ species university_si{
 			plot_to_plant <- the_plot;
 			state <- "assigned_planter";
 		}
-		write "Total hired planters: "+length(avail_planters)+" for plot: "+the_plot.name;
+		//write "Total hired planters: "+length(avail_planters)+" for plot: "+the_plot.name;
 		
 		//COST: 
 		//3. pay hired harvesters 1month worth of wage
@@ -453,13 +511,6 @@ species university_si{
 		return true;
 	}
 	
-	float determineDBHGrowth(int t_type, int age){
-		if(t_type=1){	//to plant exotic
-			return max_dbh_exotic * (1-exp(-mahogany_von_gr * (current_month+age)));
-		}else{		//to plant native
-			return max_dbh_native * (1-exp(-mayapis_von_gr * (current_month+age)));
-		}
-	}	
 	//determine if a plot is to be a nursery or not
 	//	where there is a mother tree, it becomes a nursery
 	action assignNurseries{
@@ -553,7 +604,7 @@ species university_si{
 	}
 	
 	reflex checkForITPHarvesting{
-		list<plot> pt <- plot where (each.stand_basal_area > 80);
+		list<plot> pt <- plot where (each.stand_basal_area > 60);
 		write "University harvesting";
 		write "total_ITP_earning before: "+total_ITP_earning;
 		loop p over: pt{

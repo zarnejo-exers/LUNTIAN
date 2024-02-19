@@ -28,7 +28,6 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	parameter "Price per Volume (N)" category: "Native Setup" var: native_price_per_volume;
 	
 	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
-	parameter "Planting age" category: "Management" var: planting_age min: 1;
 	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
 	parameter "DBH policy" category: "Management" var: dbh_policy min: 50.0 max: 70.0;
 	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
