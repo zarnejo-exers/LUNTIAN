@@ -259,8 +259,7 @@ species university_si{
 		
 		write "Projected labor cost: "+labor_cost;
 		//get the average harvesting cost for a filled up hectare (noting the rule on selective harvesting)
-		float init_harvest_cost <- (int(total_trees_tobeplanted/LABOUR_PCAPACITY)+1) * HARVESTING_LCOST;
-		write "Projected harvest cost: "+init_harvest_cost;
+		c_plot.investment_cost <- (int(total_trees_tobeplanted/LABOUR_PCAPACITY)+1) * HARVESTING_LCOST;
 	
 		count_native <- count_native + length(trees_tobe_harvested where (each.type=NATIVE));
 		count_exotic <- count_exotic + length(trees_tobe_harvested where (each.type=EXOTIC));

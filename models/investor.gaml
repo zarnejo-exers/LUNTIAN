@@ -64,11 +64,12 @@ species investor control: fsm{
 			//decide investment based on risk type
 			bool decision <- decideOnRisk(investable_plot, rt);
 			if(decision){
-				write "Must plant: "+needed_native;
+				write "Must plant: "+needed_native+" investment_cost: "+investable_plot.investment_cost;
 				ask university_si{
 					do investOnPlot(myself, investable_plot, itp_type);
 					do hirePlanter(investable_plot, needed_native);
-					total_management_cost <- total_management_cost + ((NATIVE_price_per_SAPLING) * needed_native); 
+					total_management_cost <- total_management_cost + ((NATIVE_price_per_SAPLING) * needed_native);
+					total_ITP_earning <- total_ITP_earning + investable_plot.investment_cost; 	//give the investment to the university
 				}			
 				harvest_monitor <- 0;
 				investable_plot.is_investable <- false;
