@@ -241,7 +241,7 @@ species university_si{
 	//called at the beginnning of the investment 
 	//sets projected_profit (c_plot.projected_profit) = future_profit of all trees in the plot assuming 0% mortality
 	//sets investment_cost (c_plot.investment_cost) = labor_harvester(start, end) + labor_planter(start) 
-	action getInvestmentDetailsOfPlot(plot c_plot){
+	int getInvestmentDetailsOfPlot(plot c_plot){
 		//get the # of saplings in the nursery
 		int count_native <- length(getAllSaplingsInNurseries(NATIVE));	//get the count of native trees in the c_plot (after filling up the plot) 
 		int count_exotic <- length(getAllSaplingsInNurseries(EXOTIC));	//get the count of exotic trees in the c_plot (after filling up the plot)
@@ -266,6 +266,7 @@ species university_si{
 		count_exotic <- count_exotic + length(trees_tobe_harvested where (each.type=EXOTIC));
 		write "Native: "+(count_native+needed_native)+" Exotic: "+count_exotic;
 		c_plot.projected_profit <- projectProfit(count_native+needed_native, count_exotic);
+		return needed_native; //return the needed_native in case the investor agrees with the deal
 	}
 	//end get InvestmentDeatilsOfPlot
 	//	the investor decides given projected profit and investment_cost and risk profile

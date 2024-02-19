@@ -52,16 +52,19 @@ species investor control: fsm{
 	action decideInvestment{	////reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
 		plot investable_plot; 
 		int s_type;	//supported ITP type
+		
+		int needed_native; 
 		ask university_si{
 			investable_plot <- getInvestablePlot();		//get the first plot with highest SBA;
 			write "Getting Details of Investment";
-			do getInvestmentDetailsOfPlot(investable_plot);
+			needed_native <- getInvestmentDetailsOfPlot(investable_plot);
 		}
 		write "Investor: "+name+" is investing on plot: "+investable_plot.name+" with sba: "+investable_plot.stand_basal_area;
 		if(investable_plot != nil){
 			//decide investment based on risk type
 			bool decision <- decideOnRisk(investable_plot, rt);
 			if(decision){
+				write "Must plant: "+needed_native;
 				ask university_si{
 					do investOnPlot(myself, investable_plot, itp_type);
 				}			
