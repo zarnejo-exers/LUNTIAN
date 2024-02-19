@@ -67,6 +67,7 @@ species investor control: fsm{
 				write "Must plant: "+needed_native;
 				ask university_si{
 					do investOnPlot(myself, investable_plot, itp_type);
+					do hirePlanter(investable_plot, needed_native);
 				}			
 				harvest_monitor <- 0;
 				investable_plot.is_investable <- false;

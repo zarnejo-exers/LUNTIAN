@@ -124,7 +124,7 @@ global{
     				do harvestEarning(i, timberHarvesting(false, i.my_plot, trees_to_harvest_n), NATIVE, false);
     				list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(i.my_plot)) where (each.type = EXOTIC);
 					do harvestEarning(i, timberHarvesting(false, i.my_plot, trees_to_harvest_e), EXOTIC, false);
-					do hirePlanter(i.my_plot);
+					do hirePlanter(i.my_plot, 0);
     			}
     			i.waiting <- false;	
     		}else{
@@ -233,7 +233,7 @@ species university_si{
 		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_n), NATIVE, false);
 		list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(chosen_plot)) where (each.type = EXOTIC);
 		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_e), EXOTIC, false);
-		do hirePlanter(chosen_plot);	
+		do hirePlanter(chosen_plot, 0);	
 		investing_investor.waiting <- true;
 		write("!!!Investment commenced!!!");
 	}
@@ -246,7 +246,7 @@ species university_si{
 		int count_native <- length(getAllSaplingsInNurseries(NATIVE));	//get the count of native trees in the c_plot (after filling up the plot) 
 		int count_exotic <- length(getAllSaplingsInNurseries(EXOTIC));	//get the count of exotic trees in the c_plot (after filling up the plot)
 		
-		int needed_native <- (average_no_trees_in1ha < (count_native + count_exotic))?(average_no_trees_in1ha - (count_native + count_exotic)):0;	//given the existing count, determine how much more is needed to fill the plot
+		int needed_native <- (average_no_trees_in1ha > (count_native + count_exotic))?(average_no_trees_in1ha - (count_native + count_exotic)):0;	//given the existing count, determine how much more is needed to fill the plot
 		
 		write "NATIVE: "+count_native+" EXOTIC: "+count_exotic+" NEEDED: "+needed_native;
 		
@@ -474,18 +474,25 @@ species university_si{
 	}
 	
 	//Prioritize replanting native trees
-	bool hirePlanter(plot the_plot){
+	//native_count > 0
+	// after investment, must buy #native_count of saplings and replant it in the_plot to fill the plot
+	// TODO: 
+	//	incur additional cost 
+	bool hirePlanter(plot the_plot, int native_count){
 		//get the number of trees that can be accommodated in the plot
-		int space_available <- getAvailableSpaces(the_plot, NATIVE)+getAvailableSpaces(the_plot, EXOTIC);
-		
-		//get the number of trees in the nurseries
-		list<plot> nurseries <- plot where each.is_nursery;
-		int tree_count <- 0;
-		ask nurseries{
-			tree_count <- tree_count + getSaplingsCountS(NATIVE) + getSaplingsCountS(EXOTIC);
+		int space_available <- getAvailableSpaces(the_plot, NATIVE)+((native_count = 0)?getAvailableSpaces(the_plot, EXOTIC):0);
+		int planting_capacity <- native_count; 
+		if(native_count = 0){
+			//get the number of trees in the nurseries
+			list<plot> nurseries <- plot where each.is_nursery;
+			int tree_count <- 0;
+			ask nurseries{
+				tree_count <- tree_count + getSaplingsCountS(NATIVE) + getSaplingsCountS(EXOTIC);
+			}
+			
+			planting_capacity <- (space_available > tree_count)?tree_count:space_available;	
 		}
 		
-		int planting_capacity <- (space_available > tree_count)?tree_count:space_available;
 		int needed_planters <- int(planting_capacity / LABOUR_PCAPACITY)+1;	//each laborer have planting capacity
 		
 		list<labour> avail_planters <- getLaborers(needed_planters, false);	//if there's no laborer avail, get all assigned_planter
@@ -494,13 +501,19 @@ species university_si{
 			avail_planters <- getLaborers(needed_planters, true);
 		}
 		
+		//write "Total hired planters: "+length(avail_planters)+" for plot: "+the_plot.name;
 		ask avail_planters{
 			man_months <- [PLANTING_LABOUR, 1, 0];
 			is_planting_labour <- true;
 			plot_to_plant <- the_plot;
 			state <- "assigned_planter";
+			if(native_count > LABOUR_PCAPACITY){
+				count_bought_nsaplings <- LABOUR_PCAPACITY;
+				native_count <- native_count - LABOUR_PCAPACITY;	
+			}else{
+				count_bought_nsaplings <- native_count;
+			}
 		}
-		//write "Total hired planters: "+length(avail_planters)+" for plot: "+the_plot.name;
 		
 		//COST: 
 		//3. pay hired harvesters 1month worth of wage
@@ -596,7 +609,7 @@ species university_si{
 		
 		write "Performing ANR on plots";
 		loop pfa over: plot_for_ANR{
-			if(!hirePlanter(pfa)){
+			if(!hirePlanter(pfa, 0)){
 				break;
 			}
 			ANR_instance <- ANR_instance + 1;
@@ -615,7 +628,7 @@ species university_si{
     			do harvestEarning(nil, timberHarvesting(false, p, trees_to_harvest_n), NATIVE, false);
     			list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(p)) where (each.type = EXOTIC);
 				do harvestEarning(nil, timberHarvesting(false, p, trees_to_harvest_e), EXOTIC, false);
-				do hirePlanter(p);
+				do hirePlanter(p, 0);
     		}
 		}
 		write "total_ITP_earning after: "+total_ITP_earning;

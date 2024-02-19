@@ -34,6 +34,8 @@ species labour control: fsm{
 	
 	int nursery_labour_type <- -1;	//-1 if not labour type, either NATIVE or EXOTIC
 	
+	int count_bought_nsaplings; 
+	
 	comm_member com_identity <- nil;
 	list<trees> all_seedlings_gathered <- [];  
 	list<plot> visited_plot <- [];
@@ -252,6 +254,36 @@ species labour control: fsm{
 		harvested_trees <- trees_to_harvest;
 	}
 	
+	action getFromNursery{
+		list<plot> nurseries <- plot where (each.is_nursery);
+		
+		int my_capacity <- carrying_capacity;
+		write "Inside assigned planter getting saplings from nurseries";
+		loop i over: nurseries{
+			if(my_capacity<1){break;}
+			list<trees> tt_plant <- [];
+			list<trees> saplings <- i.plot_trees where (!dead(each) and each.state = SAPLING);	//get all the saplings from the nursery
+			if(length(saplings) = 0){continue;}
+			if(length(saplings) > my_capacity){	//laborers' capacity is less than available saplings
+				write "To plant: "+my_capacity;
+				tt_plant <- saplings[0::my_capacity];	//get only what can be carried by the laborer
+				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
+				break;
+			}else{		//laborer can carry all the saplings
+				write "To plant: "+length(saplings); 
+				tt_plant <- saplings;
+				my_capacity <- my_capacity - length(saplings);
+				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
+			}
+		}		
+	}
+	
+	//	create #native_count new saplings
+	//	plant this new saplings on the_plot
+	action plantBoughtSaplings{
+		
+	}
+	
 	state vacant initial: true{	
 		transition to: assigned_nursery when: nursery_labour_type != -1;
 		transition to: manage_nursery when: (is_nursery_labour and nursery_labour_type = -1);
@@ -303,27 +335,13 @@ species labour control: fsm{
 	//hired only once
 	state assigned_planter{
 		//go to nurseries and get trees as much as it can carry => carrying_capacity
-		list<plot> nurseries <- plot where (each.is_nursery);
 		
-		int my_capacity <- carrying_capacity;
-		write "Inside assigned planter getting saplings from nurseries";
-		loop i over: nurseries{
-			if(my_capacity<1){break;}
-			list<trees> tt_plant <- [];
-			list<trees> saplings <- i.plot_trees where (!dead(each) and each.state = SAPLING);	//get all the saplings from the nursery
-			if(length(saplings) = 0){continue;}
-			if(length(saplings) > my_capacity){	//laborers' capacity is less than available saplings
-				write "To plant: "+my_capacity;
-				tt_plant <- saplings[0::my_capacity];	//get only what can be carried by the laborer
-				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
-				break;
-			}else{		//laborer can carry all the saplings
-				write "To plant: "+length(saplings); 
-				tt_plant <- saplings;
-				my_capacity <- my_capacity - length(saplings);
-				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
-			}
+		if(count_bought_nsaplings > 0){
+			do plantBoughtSaplings();
+		}else{
+			do getFromNursery();
 		}
+		
 		transition to: vacant when: !is_planting_labour{
 			plot_to_plant <- nil;
 		}
@@ -338,6 +356,7 @@ species labour control: fsm{
 		
 		transition to: vacant when: !is_harvest_labour{
 			plot_to_harvest <- nil;	
+			count_bought_nsaplings <- 0;
 		}
 	    
 	    exit{
