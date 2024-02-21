@@ -355,7 +355,8 @@ species labour control: fsm{
 		}
 		
 		transition to: vacant when: !is_planting_labour{
-			plot_to_plant <- nil;
+			count_bought_nsaplings <- 0;
+			plot_to_plant <- nil; 
 		}
 	    
 	    exit{
@@ -366,10 +367,7 @@ species labour control: fsm{
 	state assigned_itp_harvester{
 		do cutTrees(harvested_trees);
 		
-		transition to: vacant when: !is_harvest_labour{
-			plot_to_harvest <- nil;	
-			count_bought_nsaplings <- 0;
-		}
+		transition to: vacant when: plot_to_harvest = nil;
 	    
 	    exit{
 	    	h_t_type <- -1;

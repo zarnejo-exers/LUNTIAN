@@ -43,8 +43,8 @@ global{
 	int itp_type; //0 ->plant native, 1->plant exotic, 2->plant mix 
 	bool hiring_prospect <- false;
 	
-	int harvesting_age_exotic <- 25 update: harvesting_age_exotic;	//temp
-	int harvesting_age_native <- 25 update: harvesting_age_native;	//actual 40
+	int harvesting_age_exotic <- 10 update: harvesting_age_exotic;	//temp
+	int harvesting_age_native <- 10 update: harvesting_age_native;	//actual 40
 	
 	bool assignedNurseries <- false;
 	bool start_harvest <- false;
@@ -172,12 +172,13 @@ species university_si{
 	 */ 
 	
 	action payLaborer(labour cl){
+		
 		float cost <- 0.0; 
 		//serviced * labor_cost
 		if(cl.is_harvest_labour){
-			cost <- HARVESTING_LCOST;	
+			cost <- HARVESTING_LCOST;
 		}else if(cl.is_planting_labour){
-			cost <- PLANTING_LCOST;	
+			cost <- PLANTING_LCOST;
 		}else{
 			cost <- NURSERY_LCOST;
 		}
@@ -188,7 +189,7 @@ species university_si{
 			cl.total_earning <- cl.total_earning + cost;
 		}
 		current_labor_cost <- current_labor_cost + cost;
-			
+		
 	}
 	
 
@@ -350,9 +351,10 @@ species university_si{
 		
 		//COST: 
 		//3. pay hired harvesters 1month worth of wage
-		loop laborers over: hired_harvesters{
-			do payLaborer(laborers);
-			laborers.is_harvest_labour <- false;
+		loop laborer over: hired_harvesters{
+			do payLaborer(laborer);
+			laborer.is_harvest_labour <- false;
+			laborer.plot_to_harvest <- nil;
 		}
 		//4. compute total bdft harvested BF of 1 tree = volume/12, total bdft = sumofall bf
 		float i_harvesting_cost <- harvested_bdft * HARVESTING_COST;
@@ -376,13 +378,13 @@ species university_si{
 		return tree60to70 + tree70to80 + tree80up;
 	}
 	
+	//check why the laborers aren't hired based on total_earning... seemingly
 	list<labour> getLaborers(int needed_laborers, bool is_also_planters){
 		list<labour> available_laborers <- labour where ((each.labor_type = each.OWN_LABOUR and each.state="vacant") or (is_also_planters and each.state="assigned_planter"));	//get own laborers that are not nursery|planting labours
 		int still_needed_harvesters <- needed_laborers - length(available_laborers);
 		if(still_needed_harvesters > 0){	//hires from the community if there lacks need
 			list<comm_member> avail_member <- comm_member where (each.state = "potential_partner" and each.instance_labour = nil);
 			int total_to_hire <- (length(avail_member) > still_needed_harvesters)?still_needed_harvesters:length(avail_member);
-			
 			if(total_to_hire = 0) { total_to_hire <- 1;}
 			
 			loop i from: 0 to: total_to_hire-1{
@@ -401,8 +403,9 @@ species university_si{
 		
 		hiring_prospect <- (length(available_laborers) < needed_laborers or is_also_planters)?true:false;	//if the total labour isn't supplied, create a call for hiring prospect
 		
+		available_laborers <- sort_by(available_laborers, each.total_earning);
 		if(length(available_laborers) > needed_laborers){
-			available_laborers <- (sort_by(available_laborers, each.total_earning))[0::needed_laborers];
+			available_laborers <- available_laborers[0::needed_laborers];
 		}
 		
 		return available_laborers;
@@ -598,7 +601,7 @@ species university_si{
 				nursery_labour_type <- -1;
 				current_plot <- one_of(nurseries);
 				remove current_plot from: nurseries;
-				state <- "assigned_nursery";
+				state <- "manage_nursery";
 			}
 			
 		}

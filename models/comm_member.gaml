@@ -38,7 +38,7 @@ species comm_member control: fsm{
 	int caught <- 0; 
 	bool is_caught <- false;
 	
-	int total_harvested_trees <- 0; //for independent harvesting
+	//int total_harvested_trees <- 0; //for independent harvesting
 	
 	reflex tickService when: instance_labour != nil{	//monitor lapsed time
 		instance_labour.man_months[2] <- instance_labour.man_months[2]+1;
@@ -127,9 +127,10 @@ species comm_member control: fsm{
 		current_earning <- computeEarning(harvested_trees);	//compute earning of community member
 		total_earning <- total_earning + current_earning;
 		success <- success + 1;
-		total_harvested_trees <- total_harvested_trees + 1;
-		h_monitor[self] <- total_harvested_trees;
 		current_earning <- 0.0;
+		if(state = "independent_harvesting"){
+			h_monitor[self] <- h_monitor[self] + 1;	
+		}
 	}
 	
 	//waiting to be hired
