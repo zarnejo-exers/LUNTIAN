@@ -378,8 +378,7 @@ species university_si{
 		return tree60to70 + tree70to80 + tree80up;
 	}
 	
-	//check why the laborers aren't hired based on total_earning... seemingly
-	list<labour> getLaborers(int needed_laborers, bool is_also_planters){
+	list<labour> getLaborers(int needed_laborers, bool is_also_planters){ 
 		list<labour> available_laborers <- labour where ((each.labor_type = each.OWN_LABOUR and each.state="vacant") or (is_also_planters and each.state="assigned_planter"));	//get own laborers that are not nursery|planting labours
 		int still_needed_harvesters <- needed_laborers - length(available_laborers);
 		if(still_needed_harvesters > 0){	//hires from the community if there lacks need

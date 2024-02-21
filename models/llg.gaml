@@ -33,10 +33,13 @@ global {
 	graph river_network;
 	
 	field elev <- field(elev_file);
-	field water_content <- field(dem_file)+400;
-	field water_before_runoff <- field(water_content.columns, water_content.rows, 0.0);	// Ia
+	//field water_content <- field(dem_file)+400;
+	//field water_before_runoff <- field(water_content.columns, water_content.rows, 0.0);	// Ia
 	field remaining_precip <- field(water_content.columns, water_content.rows, 0.0);	// RP in mm
 	field inflow <- field(water_content.columns, water_content.rows, 0.0);	// RP
+	
+	file water_file <- file("../images/water_level.tif");
+	field water_content <- field(water_file);
 	
 	geometry shape <- envelope(elev_file);
 	bool fill <- true;
@@ -115,12 +118,13 @@ global {
 		float min_height <- drain_cells min_of (water_content[each]);
 		drain_cells <- drain_cells where (water_content[each] < min_height+20);
 
-		//Determine initial amount of water
-		loop pp over: points where (water_content[each] > 400){
-			soil closest_soil <- soil closest_to pp;	//closest soil descriptor to the point
-			water_content[pp] <- water_content[pp] + (0.2 * closest_soil.S);
-			water_before_runoff[pp] <- 0.2 * closest_soil.S;	//Ia
-		}
+//		Useful when there is no water_level yet
+//		Determine initial amount of water
+//		loop pp over: points where (water_content[each] > 400){
+//			soil closest_soil <- soil closest_to pp;	//closest soil descriptor to the point
+//			//water_content[pp] <- water_content[pp] + (0.2 * closest_soil.S);
+//			//water_before_runoff[pp] <- water_content[pp];	//Ia
+//		}
 		
 		create trees from: trees_shapefile{
 //			dbh <- float(read("Book2_DBH"));
@@ -158,14 +162,15 @@ global {
 		create plot from: Plot_shapefile{
 			if((water_content[self.location] <= 400)){	//if the plot is actually a river, do not include it
 				do die;
-			}
-			plot_trees <- trees inside self;
-			loop p over: plot_trees{
-				p.my_plot <- self;
-			}
-			 
-			if(length(road crossing self)>0){
-				has_road <- true;
+			}else{
+				plot_trees <- trees inside self;
+				loop p over: plot_trees{
+					p.my_plot <- self;
+				}
+				 
+				if(length(road crossing self)>0){
+					has_road <- true;
+				}	
 			}
 		}
 		
@@ -249,13 +254,13 @@ global {
 			inflow[p] <- 0.0;	//set inflow back to 0
 			
 			//determine if there will be a runoff
-			if(remaining_precip[p] > water_before_runoff[p]){	//there will be runoff
+			if(remaining_precip[p] > water_content[p]){	//there will be runoff
 				//write "Water runoff";
 				//compute for Q, where Q = (RP-Ia)^2 / ((RP-Ia+S)
-				float Q <- ((remaining_precip[p] - water_before_runoff[p])^2)/(remaining_precip[p] - water_before_runoff[p]+closest_soil.S);
+				float Q <- ((remaining_precip[p] - water_content[p])^2)/(remaining_precip[p] - water_content[p]+closest_soil.S);
 				
 				//subtract runoff from remaining_precip
-				water_before_runoff[p] <- (remaining_precip[p] - Q);	//in mm
+				water_content[p] <- (remaining_precip[p] - Q);	//in mm
 				
 				//distribute runoff to lower elevation neighbors (add to neighbor's inflow)
 				float height <- elev[p];
@@ -268,19 +273,24 @@ global {
 			done[p] <- true;
 		}
 	}
-	
-	reflex waterViz{
-		loop pp over: points where (water_content[each] > 0){
-			water_content[pp] <- water_before_runoff[pp] + 400;
-		}
-	}
+
+//	useful at the beginning when "water_level" is not yet present 	
+//	reflex waterViz{
+//		loop pp over: points where (water_content[each] > 0){
+//			water_content[pp] <- water_before_runoff[pp] + 400;
+//		}
+//	}
 
 	reflex drainCells{
 		loop pp over: drain_cells{
 			water_content[pp] <- 0;
-			water_before_runoff[pp] <- 0;
 		}
 	}
+
+//	useful at the beginning when "water_level" is not yet present
+//	reflex saveField when: cycle = 75{
+//    	save water_content to: "../images/water_level.tif" format: "geotiff" crs: "EPSG:25393";
+//    }
 }
 
 species trees{
