@@ -138,14 +138,14 @@ species labour control: fsm{
 		return all_seedlings;
 	}
 	
-	action plantInPlot(list<trees> trees_to_plant, plot pt_plant, plot source_plot){
+	list<trees> plantInPlot(list<trees> trees_to_plant, plot pt_plant, plot source_plot){
 		pt_plant.plot_trees <- pt_plant.plot_trees where !dead(each);
 		list<trees> ttp <- trees_to_plant where !dead(each);
 		self.current_plot <- pt_plant;
 		int i <- 0;
 		geometry remaining_space <- pt_plant.removeTreeOccupiedSpace(pt_plant.shape, pt_plant.plot_trees);
 		loop while: (remaining_space != nil and (remaining_space.area > 0 and length(ttp) > 0)){
-			trees to_plant <- one_of(ttp);
+			trees to_plant <- first(ttp);
 			if(to_plant != nil){
 				to_plant.location <- any_location_in(remaining_space);	//put the seedling in one of the available location in the nursery
 				geometry to_plant_area <- circle(to_plant.dbh+5) translated_to to_plant.location;	//+5 allows for spacing between plants
@@ -156,7 +156,6 @@ species labour control: fsm{
 					//plant the tree
 					to_plant.my_plot <- pt_plant;
 					add to_plant to: pt_plant.plot_trees;
-					remaining_space <- remaining_space - to_plant_area;
 					ask university_si{
 						total_seedlings_replanted <- total_seedlings_replanted + 1;
 					}
@@ -165,11 +164,15 @@ species labour control: fsm{
 						remove to_plant from: source_plot.plot_trees;
 					}
 					i <- i+1;
+					write "Replanting tree: "+to_plant.name;
+					remove to_plant from: ttp;
+					write "TTP: "+ttp;
 				}	
-			}		
-			remove to_plant from: ttp;
+				remaining_space <- remaining_space - to_plant_area;	//remove the area from remaining space
+			}
 		}
 		write "Total planted trees: "+i+" in plot: "+pt_plant.name;
+		return ttp;
 	}
 
 	action cutTrees(list<trees> t){
@@ -265,19 +268,15 @@ species labour control: fsm{
 		write "Inside assigned planter getting saplings from nurseries";
 		loop i over: nurseries{
 			if(my_capacity<1){break;}
-			list<trees> tt_plant <- [];
 			list<trees> saplings <- i.plot_trees where (!dead(each) and each.state = SAPLING);	//get all the saplings from the nursery
 			if(length(saplings) = 0){continue;}
 			if(length(saplings) > my_capacity){	//laborers' capacity is less than available saplings
-				write "To plant: "+my_capacity;
-				tt_plant <- saplings[0::my_capacity];	//get only what can be carried by the laborer
-				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
+				//get only what can be carried by the laborer
+				do plantInPlot(saplings[0::my_capacity], plot_to_plant, i);	//go to plot where to plant and replant the trees
 				break;
 			}else{		//laborer can carry all the saplings
-				write "To plant: "+length(saplings); 
-				tt_plant <- saplings;
 				my_capacity <- my_capacity - length(saplings);
-				do plantInPlot(tt_plant, plot_to_plant, i);	//go to plot where to plant and replant the trees
+				do plantInPlot(saplings, plot_to_plant, i);	//go to plot where to plant and replant the trees
 			}
 		}		
 	}
@@ -285,15 +284,16 @@ species labour control: fsm{
 	//	create #native_count new saplings
 	//	plant this new saplings on the_plot
 	action plantBoughtSaplings{
+		write "Count of bought saplings: "+count_bought_nsaplings;
 		create trees number: count_bought_nsaplings returns: bought_saplings{
 			dbh <- n_sapling_ave_DBH;
 			type <- NATIVE;
 			age <- dbh/growth_rate_exotic; 
 		}
 		
-		write "BoughtSaplings - Count of trees before: "+length(plot_to_plant);
-		do plantInPlot(bought_saplings, plot_to_plant, nil);
-		write "BoughtSaplings - Count of trees after: "+length(plot_to_plant);
+		write "BoughtSaplings: "+bought_saplings+" - Count of trees before: "+length(plot_to_plant);
+		bought_saplings <- plantInPlot(bought_saplings, plot_to_plant, nil);
+		write "BoughtSaplings: "+bought_saplings+" - Count of trees after: "+length(plot_to_plant);
 	}
 	
 	state vacant initial: true{	
@@ -347,10 +347,10 @@ species labour control: fsm{
 	//hired only once
 	state assigned_planter{
 		//go to nurseries and get trees as much as it can carry => carrying_capacity
-		
-		if(count_bought_nsaplings > 0){
+		write "Count of bought saplings: "+count_bought_nsaplings;
+		if(count_bought_nsaplings > 0){	//count_bought_nsaplings is the number of saplings bought by the university that is allotted to the planter for replanting
 			do plantBoughtSaplings();
-		}else{
+		}else{	//if there's no allotted saplings, get from the nursery # of saplings = laborer capacity
 			do getFromNursery();
 		}
 		

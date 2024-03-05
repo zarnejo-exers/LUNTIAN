@@ -38,13 +38,10 @@ global{
 	int nursery_count <- 5 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
 	float dbh_policy <- 50.0 update: dbh_policy; 
-	bool plant_native <- true update: plant_native;
-	bool plant_exotic <- false update: plant_exotic;
-	int itp_type; //0 ->plant native, 1->plant exotic, 2->plant mix 
 	bool hiring_prospect <- false;
 	
-	int harvesting_age_exotic <- 10 update: harvesting_age_exotic;	//temp
-	int harvesting_age_native <- 10 update: harvesting_age_native;	//actual 40
+	int harvesting_age_exotic <- 15 update: harvesting_age_exotic;	//temp
+	int harvesting_age_native <- 25 update: harvesting_age_native;	//actual 40
 	
 	bool assignedNurseries <- false;
 	bool start_harvest <- false;
@@ -80,9 +77,6 @@ global{
 		create special_police number: police_count{
 			is_servicing <- true;
 		}
-		
-		itp_type <- (plant_native and plant_exotic)?2:(plant_native?0:1);
-		
 		//always set plot 263 as a nursery
 		ask university_si{
 			do setNursery(first(plot where (each.name = "plot263")), true);	
@@ -218,14 +212,14 @@ species university_si{
 
 	//returns true if successful, else false
 	//idea: investor decides given the following information, # of species per each plot, future value, investment value, investment payout
-	action investOnPlot(investor investing_investor, plot chosen_plot, int t_type){
+	action investOnPlot(investor investing_investor, plot chosen_plot){
 		//confirm investment 
 		chosen_plot.is_nursery <- false;
 		investing_investor.my_plot <- chosen_plot;
 		investing_investor.investment <- chosen_plot.investment_cost;
 		
 		//assign laborer and get available seeds from the nursery 		 
-		do setRotationYears(chosen_plot, t_type);		//set rotation years to plot
+		do setRotationYears(chosen_plot);		//set rotation years to plot
 		add chosen_plot.rotation_years to: investing_investor.investment_rotation_years;
 		chosen_plot.is_itp <- true;
 		
@@ -439,10 +433,14 @@ species university_si{
 	
 	//type 0: automatically base on harvesting age of native
 	//type 1: automatically base on harvesting age of exotic
-	action setRotationYears(plot the_plot, int t_type){
-		float mean_age_tree <- mean((the_plot.plot_trees where (each.type = itp_type)) accumulate each.age); //get the minimum age of the tree in the plot
+	action setRotationYears(plot the_plot){
+		float mean_age_tree <- mean(the_plot.plot_trees accumulate each.age); //get the minimum age of the tree in the plot
 		
-		if(t_type = NATIVE){	
+		int n_count <- length(the_plot.plot_trees where (each.type = NATIVE));
+		int e_count <- length(the_plot.plot_trees where (each.type = EXOTIC));
+		
+		
+		if(n_count > e_count){	
 			the_plot.rotation_years <- (harvesting_age_native < mean_age_tree)?harvesting_age_native:int(harvesting_age_native - mean_age_tree);
 		}else{
 			the_plot.rotation_years <- (harvesting_age_exotic < mean_age_tree)?harvesting_age_exotic:int(harvesting_age_exotic - mean_age_tree);
@@ -477,23 +475,19 @@ species university_si{
 	}
 	
 	//Prioritize replanting native trees
+	//native count is the number of native saplings bought by the university to fill the plot with trees
 	//native_count > 0
 	// after investment, must buy #native_count of saplings and replant it in the_plot to fill the plot
 	// TODO: 
 	//	incur additional cost 
 	bool hirePlanter(plot the_plot, int native_count){
-		//get the number of trees that can be accommodated in the plot
-		int space_available <- getAvailableSpaces(the_plot, NATIVE)+((native_count = 0)?getAvailableSpaces(the_plot, EXOTIC):0);
-		int planting_capacity <- native_count; 
-		if(native_count = 0){
-			//get the number of trees in the nurseries
-			list<plot> nurseries <- plot where each.is_nursery;
-			int tree_count <- 0;
-			ask nurseries{
-				tree_count <- tree_count + getSaplingsCountS(NATIVE) + getSaplingsCountS(EXOTIC);
-			}
+		int planting_capacity <- native_count;
+		if(native_count = 0){	//no needed native saplings
+			list<plot> nurseries <- plot where each.is_nursery;	//get the number of trees in the nurseries
 			
-			planting_capacity <- (space_available > tree_count)?tree_count:space_available;	
+			ask nurseries{
+				planting_capacity <- planting_capacity + getSaplingsCountS(NATIVE) + getSaplingsCountS(EXOTIC);
+			}
 		}
 		
 		int needed_planters <- int(planting_capacity / LABOUR_PCAPACITY)+1;	//each laborer have planting capacity
@@ -505,16 +499,16 @@ species university_si{
 		}
 		
 		//write "Total hired planters: "+length(avail_planters)+" for plot: "+the_plot.name;
-		ask avail_planters{
-			man_months <- [PLANTING_LABOUR, 1, 0];
-			is_planting_labour <- true;
-			plot_to_plant <- the_plot;
-			state <- "assigned_planter";
+		loop p over: avail_planters{
+			p.man_months <- [PLANTING_LABOUR, 1, 0];
+			p.is_planting_labour <- true;
+			p.plot_to_plant <- the_plot;
+			p.state <- "assigned_planter";
 			if(native_count > LABOUR_PCAPACITY){
-				count_bought_nsaplings <- LABOUR_PCAPACITY;
+				p.count_bought_nsaplings <- LABOUR_PCAPACITY;
 				native_count <- native_count - LABOUR_PCAPACITY;	
 			}else{
-				count_bought_nsaplings <- native_count;
+				p.count_bought_nsaplings <- native_count;
 			}
 		}
 		

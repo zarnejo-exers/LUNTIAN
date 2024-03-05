@@ -9,13 +9,7 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 	/** Insert here the definition of the input and output of the model */
 	
 	parameter "Growth rate (E)" category: "Exotic Setup" var:growth_rate_exotic;
-	parameter "Max DBH (E)" category: "Exotic Setup"  var:max_dbh_exotic;
-	parameter "Number of fruits per year (E)" category: "Exotic Setup" var: ave_fruits_exotic;
-	
 	parameter "Growth rate (N)" category: "Native Setup" var:growth_rate_native;
-	parameter "Max DBH (N)" category: "Native Setup"  var:max_dbh_native;
-	parameter "Number of fruits per year (N)" category: "Native Setup" var: ave_fruits_native;
-
 	
 	output {
 		layout #split;

@@ -64,13 +64,13 @@ global {
 	float growth_rate_exotic <- 0.10417 update: growth_rate_exotic;	//average monthly Schneider, T., Ashton, M. S., Montagnini, F., & Milan, P. P. (2014). Growth performance of sixty tree species in smallholder reforestation trials on Leyte, Philippines. New Forests, 45(1), 83–96. https://doi.org/10.1007/s11056-013-9393-5
 	float max_dbh_exotic <- 110.8 update: max_dbh_exotic;
 	float min_dbh_exotic <- 1.0 update: min_dbh_exotic;
-	int ave_fruits_exotic <- 700 update: ave_fruits_exotic;
+	//int ave_fruits_exotic <- 700 update: ave_fruits_exotic;
 	float exotic_price_per_volume <- 70.0 update: exotic_price_per_volume;
 	
 	float growth_rate_native <- 0.09917 update: growth_rate_native;	//average monthly (Shorea guiso Blaco Blume) Schneider, T., Ashton, M. S., Montagnini, F., & Milan, P. P. (2014). Growth performance of sixty tree species in smallholder reforestation trials on Leyte, Philippines. New Forests, 45(1), 83–96. https://doi.org/10.1007/s11056-013-9393-5
 	float max_dbh_native <- 130.0 update: max_dbh_native;
 	float min_dbh_native <- 1.0 update: min_dbh_native;
-	int ave_fruits_native <- 100 update: ave_fruits_native;
+	//int ave_fruits_native <- 100 update: ave_fruits_native;
 	float native_price_per_volume <- 70.0 update: native_price_per_volume;
 	
 	//Note: 0->January; 11-> December
@@ -87,8 +87,8 @@ global {
 	list<float> max_temp <- [34.0, 39.0];							//true value - best grow	
 
 	//computed K based on Von Bertalanffy Growth Function 
-	float mahogany_von_gr;
-	float mayapis_von_gr; 
+	//float mahogany_von_gr;
+	//float mayapis_von_gr; 
 	
 	list<plot> entrance_plot;
 	
@@ -157,7 +157,7 @@ global {
 			}
 		}
 		
-		do computeGrowthRate;
+		//do computeGrowthRate;
 		
 		create plot from: Plot_shapefile{
 			if((water_content[self.location] <= 400)){	//if the plot is actually a river, do not include it
@@ -214,13 +214,13 @@ global {
 		return reverse(sort_by(plot where (!each.has_road and each.plot_trees != nil), each.location.y))[0::200];	//entrance_plot is the first 100 lowest point
 	}
 	
-	action computeGrowthRate{
-		 mahogany_von_gr <- growth_rate_exotic / (max_dbh_exotic - min_dbh_exotic);
-		 mayapis_von_gr <- growth_rate_native / (max_dbh_native - min_dbh_native);
-		 
-		 write "growth rate mahogany: "+mahogany_von_gr;
-		 write "growth_rate_mayapis: "+mayapis_von_gr;
-	}
+//	action computeGrowthRate{
+//		 mahogany_von_gr <- growth_rate_exotic / (max_dbh_exotic - min_dbh_exotic);
+//		 mayapis_von_gr <- growth_rate_native / (max_dbh_native - min_dbh_native);
+//		 
+//		 write "growth rate mahogany: "+mahogany_von_gr;
+//		 write "growth_rate_mayapis: "+mayapis_von_gr;
+//	}
 	
 	//base on the current month, add precipitation
 	reflex addingPrecipitation{
@@ -692,6 +692,7 @@ species trees{
 		if(dbh < max_dbh_per_class[type][0]){
 			state <- SEEDLING;
 		}else if(dbh<max_dbh_per_class[type][1]){
+			is_new_tree <- false;
 			state <- SAPLING;
 		}else if(dbh<max_dbh_per_class[type][2]){
 			state <- POLE;
