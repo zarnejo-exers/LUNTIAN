@@ -118,5 +118,7 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		monitor "Total ANR instance" value: total_ANR_instance;
 		monitor "Total Warned Independent Harvester" value: total_warned_CM;
 		monitor "Tree count" value: length(trees);
-	}	
+		monitor "Closed investment" value: total_investment_count;
+	}
+		
 }

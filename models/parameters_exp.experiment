@@ -1,0 +1,17 @@
+/**
+* Name: parametersexp
+* This wizard creates a new experiment file. 
+* Author: admin
+* Tags: 
+*/
+
+//50 years simulation
+experiment parametersexp model: "university_si.gaml" type: batch keep_seed:true until:( cycle > 600) {
+    parameter "nursery count" var: nursery_count min: 0 max: 5; 
+    parameter "laborer count" var: laborer_count min: 0 max: 15; 
+    parameter "community members" var: member_count min: 0 max: 15; 
+    parameter "count of special police" var: police_count min: 0 max: 5;
+    parameter "planting spaces" var: planting_space min: 1.0 max: 5.0;
+     
+    method sobol outputs:["total_investment_count", "total_ITP_earning", "total_management_cost", "total_warned_CM", "length(trees)"] sample:3 report:"Results/sobol_5.txt" results:"Results/sobol_raw_600_5.csv";
+}

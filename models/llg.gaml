@@ -291,6 +291,10 @@ global {
 //	reflex saveField when: cycle = 75{
 //    	save water_content to: "../images/water_level.tif" format: "geotiff" crs: "EPSG:25393";
 //    }
+
+	reflex count_plots{
+		write "length: "+length(plot);
+	}
 }
 
 species trees{
@@ -653,14 +657,7 @@ species trees{
 	
 	//in cubic meters
 	float calculateVolume(float temp_dbh, int t_type){
-		switch t_type {
-			match EXOTIC{	
-				return 10^(-1.007 + (2.0086*log(temp_dbh*0.01)) + (0.6156*log(calculateHeight(temp_dbh, t_type))));	//stem volume up to first branch	
-			}
-			match NATIVE{
-				return -0.08069 + 0.31144 * ((temp_dbh*0.01)^2) * calculateHeight(temp_dbh, t_type);	//Nguyen, T. T. (2009). Modelling Growth and Yield of Dipterocarp Forests in Central Highlands of Vietnam [Ph.D. Dissertation]. Technische Universität München.
-			}
-		}	
+		return -0.08069 + 0.31144 * ((temp_dbh*0.01)^2) * calculateHeight(temp_dbh, t_type);	//Nguyen, T. T. (2009). Modelling Growth and Yield of Dipterocarp Forests in Central Highlands of Vietnam [Ph.D. Dissertation]. Technische Universität München.	
 	}
 	
 	//based on Vanclay(1994) schematic representation of growth model
