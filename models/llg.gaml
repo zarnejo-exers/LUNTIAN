@@ -21,13 +21,14 @@ global {
 	/** Insert the global definitions, variables and actions here */
 	file elev_file <- file("../images/ITP_Reprojected_Filled.tif"); //resolution 30m-by-30m
 	file dem_file <- file("../images/ITP_colored_100.tif");		//resolution 100m-by-100m
-	file road_shapefile <- file("../includes/Itp_Road.shp");	
+	file road_shapefile <- file("../includes/ITP_Road.shp");	
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/soil_group_pH.shp");
 //	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
-	file trees_shapefile <- shape_file("../includes/Dummy_Data50x50.shp");	//randomly positioned, dummy equal distribution
-	file Plot_shapefile <- shape_file("../includes/parcel-polygon-100mx100m.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//randomly positioned, dummy equal distribution
+	file Plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
+//	file Plot_shapefile <- shape_file("../includes/parcel-polygon-100mx100m.shp");
 	
 	graph road_network;
 	graph river_network;
@@ -93,6 +94,7 @@ global {
 	list<plot> entrance_plot;
 	
 	init {
+		write "Begin initialization";
 		create climate from: Precip_TAverage {
 			temperature <- [float(get("1_TAvg")),float(get("2_TAvg")),float(get("3_TAvg")),float(get("4_TAvg")),float(get("5_TAvg")),float(get("6_TAvg")),float(get("7_TAvg")),float(get("8_TAvg")),float(get("9_TAvg")),float(get("10_TAvg")),float(get("11_TAvg")),float(get("12_TAvg"))];
 			precipitation <- [float(get("1_Prec")),float(get("2_Prec")),float(get("3_Prec")),float(get("4_Prec")),float(get("5_Prec")),float(get("6_Prec")),float(get("7_Prec")),float(get("8_Prec")),float(get("9_Prec")),float(get("10_Prec")),float(get("11_Prec")),float(get("12_Prec"))];
@@ -100,6 +102,7 @@ global {
 		
 			total_precipitation <- sum(precipitation);	
 		}
+		write "Done reading climate...";
 		create soil from: Soil_Group with: [id::int(get("VALUE")), soil_pH::float(get("Average_pH"))];
 		
 		//clean_network(road_shapefile.contents,tolerance,split_lines,reduce_to_main_connected_components
@@ -117,7 +120,7 @@ global {
 		drain_cells <- remove_duplicates(drain_cells);
 		float min_height <- drain_cells min_of (water_content[each]);
 		drain_cells <- drain_cells where (water_content[each] < min_height+20);
-
+		write "Done reading soil...";
 //		Useful when there is no water_level yet
 //		Determine initial amount of water
 //		loop pp over: points where (water_content[each] > 400){
@@ -127,18 +130,18 @@ global {
 //		}
 		
 		create trees from: trees_shapefile{
-//			dbh <- float(read("Book2_DBH"));
-//			mh <- float(read("Book2_MH"));		
-//			th <- float(read("Book2_TH"));		
-//			r <- float(read("Book2_R"));		
-//			type <- ((read("Book2_Clas")) = "Native")? 0:1;	
+			dbh <- float(read("Book2_DBH"));
+			mh <- float(read("Book2_MH"));		
+			th <- float(read("Book2_TH"));		
+			r <- float(read("Book2_R"));		
+			type <- (string(read("Book2_Clas")) = "Native")? NATIVE:EXOTIC;	
 			
 			//Dummy
-			dbh <- float(read("Dummy_Data"));	//Dummy_Data
-			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
-			th <- float(read("Dummy_Da_2"));		//Dummy_Da_1
-			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
-			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
+//			dbh <- float(read("Dummy_Data"));	//Dummy_Data
+//			mh <- float(read("Dummy_Da_1"));		//Dummy_Da_1
+//			th <- float(read("Dummy_Da_2"));		//Dummy_Da_1
+//			r <- float(read("Dummy_Da_5"));		//Dummy_Da_5
+//			type <- ((read("Dummy_Da_3")) = "Native")? NATIVE:EXOTIC;	//Dummy_Da_3
 			
 			if(mh > th){
 				float temp_ <- mh;
@@ -156,6 +159,7 @@ global {
 				shade_tolerant <- true;
 			}
 		}
+		write "Done reading trees...";
 		
 		//do computeGrowthRate;
 		
@@ -172,8 +176,9 @@ global {
 					has_road <- true;
 				}	
 			}
+			id <- int(read("id"));
 		}
-		
+		write "Done reading plot...";
 		entrance_plot <- getEntrancePlot();	//determine the entrance plots for competing community
 		
 		ask plot{
@@ -190,7 +195,10 @@ global {
 				dbh <- computeDiameterIncrement(nieghborh_effect, self.location) + prev_dbh;
 				th <- calculateHeight(dbh, type);	
 			}
+			write "Assigning plot: "+id;
 		}
+		
+		write "Done associating trees to plot";
 		
 		//clean data, with the given options
 		clean_lines <- clean_network(river_shapefile.contents,3.0,true,false);
@@ -206,7 +214,7 @@ global {
 		//computed the connected components of the graph (for visualization purpose)
 		connected_components <- list<list<point>>(connected_components_of(river_network));
 		loop times: length(connected_components) {colors << rnd_color(255);}
-		
+		write "End initialization";
 	}
 	
 	//returns the entrance plots
@@ -717,6 +725,7 @@ species plot{
 	int rotation_years <- 0; 	//only set once an investor decided to invest on a plot
 	bool is_invested <- false;
 	float stand_basal_area;
+	int id; 
 	
 	float projected_profit;
 	float investment_cost;
