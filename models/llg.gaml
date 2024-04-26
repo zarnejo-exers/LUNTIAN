@@ -25,8 +25,8 @@ global {
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/soil_group_pH.shp");
-//	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
-	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//randomly positioned, dummy equal distribution
+	file trees_shapefile <- shape_file("../includes/Initial_Distribution_Trees.shp");	//randomly positioned, actual
+//	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//randomly positioned, dummy equal distribution
 	file Plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
 //	file Plot_shapefile <- shape_file("../includes/parcel-polygon-100mx100m.shp");
 	

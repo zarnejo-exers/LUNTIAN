@@ -17,6 +17,7 @@ global{
 	float risk_loving <- 1.0;	//type = 1
 	int investor_count <- 10 update: investor_count;
 	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.75, "Neutral"::0.5];
+	int total_investment_count <- 0 update: total_investment_count;
 	
 	init{
 		//assign risk type for each investor randomly
@@ -79,6 +80,7 @@ species investor control: fsm{
 				my_plot <- investable_plot;
 				write "Investment granted -- cost: "+investment+" promised profit: "+promised_profit;
 				investment_count <- investment_count + 1;
+				total_investment_count <- total_investment_count + 1;
 			}else{
 				write "Risk not satisfied!";
 			}	

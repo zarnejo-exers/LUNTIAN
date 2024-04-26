@@ -138,39 +138,48 @@ species labour control: fsm{
 		return all_seedlings;
 	}
 	
+	
+	//if nursery: replant randomly
+	//if !nursery: following the outplanting guide, 3x3m square area distance from closest tree should be at least 2m on all sides 
 	list<trees> plantInPlot(list<trees> trees_to_plant, plot pt_plant, plot source_plot){
 		pt_plant.plot_trees <- pt_plant.plot_trees where !dead(each);
 		list<trees> ttp <- trees_to_plant where !dead(each);
-		self.current_plot <- pt_plant;
 		int i <- 0;
-		geometry remaining_space <- pt_plant.removeTreeOccupiedSpace(pt_plant.shape, pt_plant.plot_trees);
-		loop while: (remaining_space != nil and (remaining_space.area > 0 and length(ttp) > 0)){
-			trees to_plant <- first(ttp);
-			if(to_plant != nil){
-				to_plant.location <- any_location_in(remaining_space);	//put the seedling in one of the available location in the nursery
-				geometry to_plant_area <- circle(to_plant.dbh+5) translated_to to_plant.location;	//+5 allows for spacing between plants
-				trees closest_tree <-pt_plant.plot_trees closest_to to_plant;
-					
-				//make sure it is safe to replant, meaning, it doesn't overlap a nearby tree
-				if(closest_tree = nil or (closest_tree != nil and !(circle(closest_tree.dbh+5, closest_tree.location) overlaps to_plant_area))){	//if the closest tree overlaps with the tree that will be planted, do not continue planting the tree		
-					//plant the tree
-					to_plant.my_plot <- pt_plant;
-					add to_plant to: pt_plant.plot_trees;
-					ask university_si{
-						total_seedlings_replanted <- total_seedlings_replanted + 1;
-					}
-					remove to_plant from: my_trees;
-					if(source_plot != nil){
-						remove to_plant from: source_plot.plot_trees;
-					}
-					i <- i+1;
-					write "Replanting tree: "+to_plant.name;
-					remove to_plant from: ttp;
-					write "TTP: "+ttp;
-				}	
-				remaining_space <- remaining_space - to_plant_area;	//remove the area from remaining space
+						
+		if(pt_plant.is_nursery){
+			self.current_plot <- pt_plant;
+			geometry remaining_space <- pt_plant.removeTreeOccupiedSpace(pt_plant.shape, pt_plant.plot_trees);
+			loop while: (remaining_space != nil and (remaining_space.area > 0 and length(ttp) > 0)){
+				trees to_plant <- first(ttp);
+				if(to_plant != nil){
+					to_plant.location <- any_location_in(remaining_space);	//put the seedling in one of the available location in the nursery
+					geometry to_plant_area <- circle(to_plant.dbh+5) translated_to to_plant.location;	//+5 allows for spacing between plants
+					trees closest_tree <-pt_plant.plot_trees closest_to to_plant;
+						
+					//make sure it is safe to replant, meaning, it doesn't overlap a nearby tree
+					if(closest_tree = nil or (closest_tree != nil and !(circle(closest_tree.dbh+5, closest_tree.location) overlaps to_plant_area))){	//if the closest tree overlaps with the tree that will be planted, do not continue planting the tree		
+						//plant the tree
+						to_plant.my_plot <- pt_plant;
+						add to_plant to: pt_plant.plot_trees;
+						ask university_si{
+							total_seedlings_replanted <- total_seedlings_replanted + 1;
+						}
+						remove to_plant from: my_trees;
+						if(source_plot != nil){
+							remove to_plant from: source_plot.plot_trees;
+						}
+						i <- i+1;
+						write "Replanting tree: "+to_plant.name;
+						remove to_plant from: ttp;
+						write "TTP: "+ttp;
+					}	
+					remaining_space <- remaining_space - to_plant_area;	//remove the area from remaining space
+				}
 			}
+		}else{
+			write "follow the guide ";
 		}
+		
 		write "Total planted trees: "+i+" in plot: "+pt_plant.name;
 		return ttp;
 	}

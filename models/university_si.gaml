@@ -21,13 +21,14 @@ global{
 	int LABOUR_PCAPACITY <- 15;	//number of trees that the laborer can plant/manage
 	
 	//fixed rate
-	float NATIVE_price_per_SAPLING <- 100.0; //TODO: must set
 	float NURSERY_LCOST <- 12810.0;	//labor per month https://velocityglobal.com/resources/blog/minimum-wage-by-country
 	float HARVESTING_LCOST <- 13834.51;	//one month labor
-	float PLANTING_LCOST <- 25.0;
+	float PLANTING_LCOST <- 25.0;	//
+	
 	float POLICE_COST <- 18150.0; //average wage per month https://www.salaryexpert.com/salary/job/forest-officer/philippines
 	
 	float HARVESTING_COST <- 17.04; //cost = (0.28+0.33)/2 usd per bdft, 17.04php
+	float NATIVE_price_per_SAPLING <- 100.0; //Temporary variable, plants native on every ANR
 	
 	int average_no_trees_in1ha <- 20;
 	int police_count <- 2 update: police_count;
@@ -41,7 +42,7 @@ global{
 	bool hiring_prospect <- false;
 	
 	int harvesting_age_exotic <- 15 update: harvesting_age_exotic;	//temp
-	int harvesting_age_native <- 25 update: harvesting_age_native;	//actual 40
+	int harvesting_age_native <- 20 update: harvesting_age_native;	//actual 40
 	
 	bool assignedNurseries <- false;
 	bool start_harvest <- false;
