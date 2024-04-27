@@ -16,9 +16,14 @@ global{
 	float growth_rate_exotic <- 0.10417;
 	float growth_rate_native <- 0.09917;	
 	
-	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//randomly positioned, actual
-	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_INIT_1PLOT.shp");	//randomly positioned, actual
+	file plot_shapefile <- shape_file("../includes/ITP_1_PLOT.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
+	
+	float n_sapling_ave_DBH <- 7.5;
+	float e_sapling_ave_DBH <- 2.5; 
+	float n_adult_ave_DBH <- 60.0;
+	float e_adult_ave_DBH <- 90.0;
 	
 	geometry shape <- envelope(plot_shapefile);
 	list<geometry> clean_lines;
@@ -36,8 +41,6 @@ global{
 				mh <- th;
 				th <- temp_;
 			}
-			cr <- mh;
-			crown_diameter <- cr; 
 			
 			if(type = EXOTIC){ //exotic trees, mahogany
 				age <- self.dbh/growth_rate_exotic;
@@ -66,6 +69,43 @@ global{
 			basin <- int(read("BASIN"));
 		}
 	}
+	
+	reflex replant{
+		ask plot{
+			geometry remaining_space <- myself.removeOccSpace(shape, plot_trees);
+			shape <- remaining_space;
+			
+			list<geometry> available_spaces <- (to_squares(remaining_space, 3#m) where (each.area >= 9#m));
+
+			if(available_spaces != []){
+				geometry sq <- available_spaces[0];
+				create trees number: 1 returns: new_trees{
+					dbh <- n_sapling_ave_DBH;
+					type <- NATIVE;
+					age <- dbh/growth_rate_exotic; 
+					location <- sq.location;
+					th <- calculateHeight(dbh, type);
+					my_plot <- myself;	//assigns the plot where the tree is located
+				}
+				plot_trees <- plot_trees + new_trees;
+				write "Created "+length(new_trees)+" trees. Area: "+sq.area;	
+			}else{
+				write "NO SPACE LEFT!";
+			}
+		}
+	}
+	
+	geometry removeOccSpace(geometry main_space, list<trees> to_remove_space){
+		geometry t_shape <- nil; 
+			
+		ask to_remove_space{
+			//the centre of the square is by default the location of the current agent in which has been called this operator.
+			t_shape <- t_shape + square(5#m);
+		}
+			
+		return main_space - t_shape;	//remove all occupied space;		
+	}
+	
 }
 
 species plot{
@@ -96,8 +136,8 @@ species trees{
 	float mh;	//merchantable height
 	float r; //distance from tree to a point 
 	int type;  //0-palosapis; 1-mahogany
-	float cr; 	//crown ratio, set at the reading of the data
-	float crown_diameter;	//crown diameter
+	float cr <- (type=0)?(1/4):(1/3);	//by default 
+	float crown_diameter <- (cr*dbh) update: (cr*dbh);	//crown diameter
 	float age;
 	bool shade_tolerant;
 	plot my_plot;
@@ -114,13 +154,28 @@ species trees{
 			draw circle(dbh#cm) at: {location.x,location.y} color: #brown depth: th#ft;
 		}	
 	}
+	
+	float calculateHeight(float temp_dbh, int t_type){
+		float predicted_height; 
+		switch t_type{
+			match EXOTIC {
+				//in meters
+				predicted_height <- (1.3 + (12.3999 * (1 - exp(-0.105*temp_dbh)))^1.79);	///Downloads/BKrisnawati1110.pdf 
+			}
+			match NATIVE {
+				predicted_height <- (1.3 + (temp_dbh / (1.7116 + (0.3415 * temp_dbh)))^3);	//https://d-nb.info/1002231884/34		
+			}
+		}
+		
+		return predicted_height *3.28084;	//convert to feet	
+	}
 }
 
 experiment oneplot type: gui{
 	output{
 		display op type: opengl camera:#isometric{
 			species plot; 
-			species trees aspect: geom3D;
+			//species trees aspect: geom3D;
 			species river;
 		}
 	}
