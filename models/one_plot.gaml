@@ -22,10 +22,10 @@ global{
 	float growth_rate_exotic <- 0.10417;
 	float growth_rate_native <- 0.09917;	
 	
-	file trees_shapefile <- shape_file("../includes/TREES_INIT_1PLOT.shp");	//randomly positioned, actual
-	file plot_shapefile <- shape_file("../includes/ITP_1_PLOT.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_1PLOT.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_GRID_1PLOT.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
-	file Precip_TAverage <- file("../includes/Monthly_Climate.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
+	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	
 	float n_sapling_ave_DBH <- 7.5;
 	float e_sapling_ave_DBH <- 2.5; 
@@ -36,7 +36,7 @@ global{
 	map<point, climate> cell_climate;
 	int current_month <- 0 update:(cycle mod NB_TS);
 	
-	geometry shape <- envelope(plot_shapefile);
+	geometry shape <- envelope(Precip_TAverage);
 	list<geometry> clean_lines;
 
 	init{
@@ -79,6 +79,8 @@ global{
 			}
 
 			id <- int(read("id"));
+			closest_clim <- climate closest_to self;
+			
 		}
 		
 		clean_lines <- clean_network(river_shapefile.contents,3.0,true,false);
@@ -130,6 +132,7 @@ species plot{
 	list<trees> plot_trees<- [];
 	int id;
 	geometry available_space <- shape;
+	climate closest_clim;
 	
 	aspect default{
 		draw shape color: rgb(153,136,0);
@@ -213,11 +216,11 @@ species trees{
 	//assume: growth coefficient doesn't apply on plots for ITP 
 	//note: monthly increment 
 	//returns diameter_increment
-	float computeDiameterIncrement(float neighbor_impact, point loc){
+	float computeDiameterIncrement(float neighbor_impact){
 		if(type = EXOTIC){ //mahogany 
-			climate closest_clim <- climate closest_to loc;	//closest climate descriptor to the point
-			float precip_value <- closest_clim.precipitation[current_month];
-			float etp_value <- closest_clim.etp[current_month];
+			write "closest clim is: "+my_plot.closest_clim+" to: "+self.name;
+			float precip_value <- my_plot.closest_clim.precipitation[current_month];
+			float etp_value <- my_plot.closest_clim.etp[current_month];
 			
 			int is_dry_season <- (precip_value <etp_value)?-1:1;
 				
@@ -244,7 +247,7 @@ species trees{
 		float prev_dbh <- dbh;
 		float prev_th <- th;
 		
-		diameter_increment <- computeDiameterIncrement(neighborh_effect, self.location);
+		diameter_increment <- computeDiameterIncrement(neighborh_effect);
 		dbh <- dbh + diameter_increment;	 
 		th <- calculateHeight(dbh, type);
 	}
