@@ -22,7 +22,6 @@ global{
 	//mean annual increments for diameter
 	float growth_rate_exotic <- 1.25;//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	float growth_rate_native <- 0.72;	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
-	list<float> exotic_shade_tolerance <- [0.0, 0.33, 0.66, 1.0];
 	
 	file trees_shapefile <- shape_file("../includes/TREES_1PLOT.shp");	//mixed species
 	file plot_shapefile <- shape_file("../includes/ITP_GRID_1PLOT.shp");
@@ -58,6 +57,7 @@ global{
 			r <- float(read("Book2_R"));		
 			type <- (string(read("Book2_Clas")) = "Native")? NATIVE:EXOTIC;	
 			th <- calculateHeight(dbh, type);
+			basal_area <- ((dbh/2.54)^2) * 0.005454;
 			do setState();
 			
 			if(mh > th){
@@ -84,6 +84,7 @@ global{
 
 			id <- int(read("id"));
 			closest_clim <- climate closest_to self;
+			stand_basal_area <- plot_trees sum_of (each.basal_area);
 			
 		}
 		
@@ -98,7 +99,7 @@ global{
 	
 	reflex replant{
 		ask plot{
-			available_space <- myself.removeOccSpace(available_space, plot_trees);
+			geometry available_space <- myself.removeOccSpace(shape, plot_trees);
 			list<geometry> available_square <- (to_squares(available_space, 3#m) where (each.area >= 9#m));
 
 			if(available_square != []){
@@ -135,10 +136,9 @@ global{
 species plot{
 	list<trees> plot_trees<- [];
 	int id;
-	geometry available_space <- shape;
 	climate closest_clim;
 	int is_dry; 
-	float stand_basal_area <- plot_trees sum_of (each.basal_area) update: plot_trees sum_of (each.basal_area);
+	float stand_basal_area <- 0.0 update: plot_trees sum_of (each.basal_area);
 	
 	aspect default{
 		draw shape color: rgb(153,136,0);
@@ -180,7 +180,7 @@ species trees{
 	
 	float cr <- 1/5;	//by default 
 	float crown_diameter <- (cr*dbh) update: (cr*dbh);	//crown diameter
-	float basal_area <- ((dbh/2.54)^2) * 0.005454 update: ((dbh/2.54)^2) * 0.005454;	//calculate basal area before calculating dbh increment; in m2
+	float basal_area <- 0.0 update: ((dbh/2.54)^2) * 0.005454;	//calculate basal area before calculating dbh increment; in m2
 	
 	//STATUS: CHECKED
 	aspect geom3D{
@@ -249,7 +249,7 @@ species trees{
 		}
 	}		
 	
-		//doesn't yet inhibit growth of tree
+	//doesn't yet inhibit growth of tree
 	action treeGrowthIncrement{
 		trees closest_tree <-(my_plot.plot_trees closest_to self); 
 		float prev_dbh <- dbh;
@@ -283,28 +283,14 @@ species trees{
 	//true = dead
 	bool checkMortality{
 		float p_dead <- 0.0;
-		switch type{
-			match EXOTIC {
-				float e <- exp(-2.917 - 1.897 * exotic_shade_tolerance[state] - 0.079 * dbh);
-				p_dead <- (e/(e+1));
-				return flip(p_dead);
-			}
-			match NATIVE{	//annual mortality
-				if(current_month = 0){
-					float d <- self.getMiddleDBH();
-					write "Middle DBH: "+d+" give state: "+state;
-					float x_0 <- -4.0527+(1/d);
-					float x_1 <- -0.1582*d;
-					float x_2 <- 0.0011*(d^2);
-					float x_3 <- 0.0951*self.my_plot.stand_basal_area;
-					float e <- -(x_0 + x_1 + x_2 + x_3);
-					p_dead <- ((1+exp(e))^-1);
-					write "NATIVE mortality proba: "+p_dead;
-					return flip(p_dead);	
-				}
-				return false;
-			}
+		float e <- exp(-2.917 - 1.897 * (shade_tolerant?1:0) - 0.079 * dbh);
+		p_dead <- (e/(e+1));
+		bool is_dead <- flip(p_dead);
+		if(!is_dead){
+			write "Tree is dead";	
 		}
+		return is_dead;
+
 		
 		//add additional 50% of survival if inside nursery
 //		if(is_dead and my_plot.is_nursery){
