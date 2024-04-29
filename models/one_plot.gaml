@@ -19,8 +19,10 @@ global{
 	int POLE <- 2;
 	int ADULT <- 3;
 	
-	float growth_rate_exotic <- 0.10417;
-	float growth_rate_native <- 0.09917;	
+	//mean annual increments for diameter
+	float growth_rate_exotic <- 1.25;//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
+	float growth_rate_native <- 0.72;	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
+	list<float> exotic_shade_tolerance <- [0.0, 0.33, 0.66, 1.0];
 	
 	file trees_shapefile <- shape_file("../includes/TREES_1PLOT.shp");	//mixed species
 	file plot_shapefile <- shape_file("../includes/ITP_GRID_1PLOT.shp");
@@ -55,6 +57,8 @@ global{
 			th <- float(read("Book2_TH"));		
 			r <- float(read("Book2_R"));		
 			type <- (string(read("Book2_Clas")) = "Native")? NATIVE:EXOTIC;	
+			th <- calculateHeight(dbh, type);
+			do setState();
 			
 			if(mh > th){
 				float temp_ <- mh;
@@ -102,7 +106,7 @@ global{
 				create trees number: 1 returns: new_trees{
 					dbh <- n_sapling_ave_DBH;
 					type <- NATIVE;
-					age <- dbh/growth_rate_exotic; 
+					age <-dbh/growth_rate_native; 
 					location <- sq.location;
 					th <- calculateHeight(dbh, type);
 					my_plot <- myself;	//assigns the plot where the tree is located
@@ -133,9 +137,18 @@ species plot{
 	int id;
 	geometry available_space <- shape;
 	climate closest_clim;
+	int is_dry; 
+	float stand_basal_area <- plot_trees sum_of (each.basal_area) update: plot_trees sum_of (each.basal_area);
 	
 	aspect default{
 		draw shape color: rgb(153,136,0);
+	}
+	
+	reflex checkIsDry{
+		float precip_value <- closest_clim.precipitation[current_month];
+		float etp_value <- closest_clim.etp[current_month];
+			
+		is_dry <- (precip_value <etp_value)?-1:1;
 	}
 }
 
@@ -165,79 +178,74 @@ species trees{
 	float neighborh_effect <- 1.0; 
 	float diameter_increment <- 0.0; 
 	
-	float cr <- (type=0)?(1/4):(1/3);	//by default 
+	float cr <- 1/5;	//by default 
 	float crown_diameter <- (cr*dbh) update: (cr*dbh);	//crown diameter
-	float basal_area <- 0.0 update: ((dbh/2.54)^2) * 0.005454;	//calculate basal area before calculating dbh increment; in m2
+	float basal_area <- ((dbh/2.54)^2) * 0.005454 update: ((dbh/2.54)^2) * 0.005454;	//calculate basal area before calculating dbh increment; in m2
 	
+	//STATUS: CHECKED
 	aspect geom3D{
 		if(crown_diameter != 0){
 			//this is the crown
-			if(type = 0){
-				draw sphere(self.crown_diameter#ft) color: #darkgreen at: {location.x,location.y,th#ft};
+			// /2 since parameter asks for radius
+			if(type = NATIVE){
+				draw sphere((self.crown_diameter/2)#m) color: #darkgreen at: {location.x,location.y,th#m};
 			}else{
-				draw sphere(self.crown_diameter#ft) color: #lightgreen at: {location.x,location.y,th#ft};
+				draw sphere((self.crown_diameter/2)#m) color: #violet at: {location.x,location.y,th#m};
 			}
-			//this is the stem
 			
+			//this is the stem
 			switch state{
 				match SEEDLING{
-					draw circle(dbh#cm) at: {location.x,location.y} color: #yellow depth: th#ft;		
+					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #yellow depth: th#m;		
 				}
 				match SAPLING{
-					draw circle(dbh#cm) at: {location.x,location.y} color: #green depth: th#ft;
+					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #green depth: th#m;
 				}
 				match POLE{
-					draw circle(dbh#cm) at: {location.x,location.y} color: #blue depth: th#ft;
+					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #blue depth: th#m;
 				}
 				match ADULT{
-					draw circle(dbh#cm) at: {location.x,location.y} color: #red depth: th#ft;
+					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #red depth: th#m;
 				}
 			}
 			
 		}	
 	}
 	
+	//STATUS: CHECKED
 	float calculateHeight(float temp_dbh, int t_type){
 		float predicted_height; 
 		switch t_type{
 			match EXOTIC {
-				//in meters
-				predicted_height <- (1.3 + (12.3999 * (1 - exp(-0.105*temp_dbh)))^1.79);	///Downloads/BKrisnawati1110.pdf 
+				predicted_height <- (1.3 + (12.39916 * (1 - exp(-0.105*dbh)))^1.79);	//https://www.cifor-icraf.org/publications/pdf_files/Books/BKrisnawati1110.pdf 
 			}
 			match NATIVE {
-				predicted_height <- (1.3 + (temp_dbh / (1.7116 + (0.3415 * temp_dbh)))^3);	//https://d-nb.info/1002231884/34		
+				predicted_height <- 1.3+(dbh/(1.5629+0.3461*dbh))^3;	//https://d-nb.info/1002231884/34		
 			}
 		}
 		
-		return predicted_height *3.28084;	//convert to feet	
+		return predicted_height;	//in meters	
 	}
 
 	//growth of tree
 	//assume: growth coefficient doesn't apply on plots for ITP 
 	//note: monthly increment 
 	//returns diameter_increment
-	float computeDiameterIncrement(float neighbor_impact){
+	float computeDiameterIncrement{
 		if(type = EXOTIC){ //mahogany 
-			write "closest clim is: "+my_plot.closest_clim+" to: "+self.name;
-			float precip_value <- my_plot.closest_clim.precipitation[current_month];
-			float etp_value <- my_plot.closest_clim.etp[current_month];
-			
-			int is_dry_season <- (precip_value <etp_value)?-1:1;
-				
 			switch(dbh){
 				match_between [0, 19.99] {
-					return (((1.01+(0.10*is_dry_season))/12) *neighbor_impact);
+					return (((1.01+(0.10*my_plot.is_dry))/12));
 				}
-				match_between [20, 29.99] {return (((0.86+(0.17*is_dry_season))/12) *neighbor_impact);}
-				match_between [30, 39.99] {return (((0.90+(0.10*is_dry_season))/12) *neighbor_impact);}
-				match_between [40, 49.99] {return (((0.75+(0.14*is_dry_season))/12) *neighbor_impact);}
-				match_between [50, 59.99] {return (((1.0+(0.06*is_dry_season))/12) *neighbor_impact);}
-				match_between [60, 69.99] {return (((1.16+(0.06*is_dry_season))/12) *neighbor_impact);}
-				default {return (((1.38+(0.26*is_dry_season))/12) *neighbor_impact);}	//>70
+				match_between [20, 29.99] {return ((0.86+(0.17*my_plot.is_dry))/12);}
+				match_between [30, 39.99] {return ((0.90+(0.10*my_plot.is_dry))/12);}
+				match_between [40, 49.99] {return ((0.75+(0.14*my_plot.is_dry))/12);}
+				match_between [50, 59.99] {return ((1.0+(0.06*my_plot.is_dry))/12);}
+				match_between [60, 69.99] {return ((1.16+(0.06*my_plot.is_dry))/12);}
+				default {return ((1.38+(0.26*my_plot.is_dry))/12);}	//>70
 			}
-		}else if(type = NATIVE){	//palosapis
-			float increment <- (((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*basal_area))/12); 
-			return ((((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*basal_area))/12)*neighbor_impact); 
+		}else if(type = NATIVE){	//dipterocarp, after: anisoptera costata
+			return (((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*basal_area))/12); 
 		}
 	}		
 	
@@ -247,8 +255,9 @@ species trees{
 		float prev_dbh <- dbh;
 		float prev_th <- th;
 		
-		diameter_increment <- computeDiameterIncrement(neighborh_effect);
+		diameter_increment <- computeDiameterIncrement();//*neighborh_effect;
 		dbh <- dbh + diameter_increment;	 
+		do setState();
 		th <- calculateHeight(dbh, type);
 	}
 	
@@ -258,15 +267,61 @@ species trees{
 		age <- age + (1/12);
 	}
 	
+	//Returns middleDBH, used by checkMortality() for Native/Dipterocarps
+	float getMiddleDBH{
+		switch state{
+			match SEEDLING{
+				return (max_dbh_per_class[type][SEEDLING]/2);
+			}
+			default{	//the middle dbh between current and the former state max_dbh
+				return ((max_dbh_per_class[type][state]+max_dbh_per_class[type][state-1])/2);
+			}
+		}
+	}
+	
+	//tree mortality
+	//true = dead
+	bool checkMortality{
+		float p_dead <- 0.0;
+		switch type{
+			match EXOTIC {
+				float e <- exp(-2.917 - 1.897 * exotic_shade_tolerance[state] - 0.079 * dbh);
+				p_dead <- (e/(e+1));
+				return flip(p_dead);
+			}
+			match NATIVE{	//annual mortality
+				if(current_month = 0){
+					float d <- self.getMiddleDBH();
+					write "Middle DBH: "+d+" give state: "+state;
+					float x_0 <- -4.0527+(1/d);
+					float x_1 <- -0.1582*d;
+					float x_2 <- 0.0011*(d^2);
+					float x_3 <- 0.0951*self.my_plot.stand_basal_area;
+					float e <- -(x_0 + x_1 + x_2 + x_3);
+					p_dead <- ((1+exp(e))^-1);
+					write "NATIVE mortality proba: "+p_dead;
+					return flip(p_dead);	
+				}
+				return false;
+			}
+		}
+		
+		//add additional 50% of survival if inside nursery
+//		if(is_dead and my_plot.is_nursery){
+//			return flip(0.5);
+//		}
+		
+	}
+	
 	//based on Vanclay(1994) schematic representation of growth model
 	reflex growthModel{
 		bool is_dead <- false;
 //		if((my_plot.is_nursery and age>3) or (!my_plot.is_nursery)){	//determine mortality
-//			if(checkMortality()){
-//				remove self from: my_plot.plot_trees;
-//				is_dead <- true;
-//				do die;	
-//			}
+			if(checkMortality()){
+				remove self from: my_plot.plot_trees;
+				is_dead <- true;
+				do die;	
+			}
 //		}
 		if(!is_dead){	//tree recruits, tree grows, tree ages
 			//do treeRecruitment();
@@ -275,7 +330,7 @@ species trees{
 		}
 	}
 	
-	reflex updateTreeClass{
+	action setState{
 		if(dbh < max_dbh_per_class[type][0]){
 			state <- SEEDLING;
 		}else if(dbh<max_dbh_per_class[type][1]){
