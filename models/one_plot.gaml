@@ -23,8 +23,8 @@ global{
 	float growth_rate_exotic <- 1.25;//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	float growth_rate_native <- 0.72;	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	
-	file trees_shapefile <- shape_file("../includes/TREES_1PLOT_NATIVE.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_GRID_1PLOT_NATIVE.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_1PLOT.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_GRID_1PLOT.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	map<point, climate> cell_climate;
@@ -156,42 +156,34 @@ species plot{
 		is_dry <- (precip_value <etp_value)?-1:1;
 	}
 	
+	//STATUS: CHECKED
 	reflex native_determineNumberOfRecruits when: (fruiting_months_N contains current_month){
 		//compute total number of recruits
 		//divide total number of recruits by # of adult trees
 		//turn the adult trees into mature trees and assign fruit in each
 		//has_fruit_growing = 0 ensures that the tree hasn't just bore fruit, trees that bore fruit must wait at least 1 year before they can bear fruit again
 		list<trees> adult_trees <- reverse((plot_trees select (each.state = ADULT and each.age >= 15 and each.type=NATIVE and each.has_fruit_growing = 0)) sort_by (each.dbh));	//get all adult trees in the plot
-		if(length(adult_trees) > 1){	//if count > 1, compute total number of recruits
-			write "Count of adult native trees: "+length(adult_trees)+"; total native: "+native_count;
+		if(length(adult_trees) > 0){	//if count > 1, compute total number of recruits
 			int length_adult_trees <- length(adult_trees);
-			float total_no_of_native_recruits_in_plot <- 4.202 + (0.017*native_count) + (-0.126*stand_basal_area);
-			write "sba: "+(stand_basal_area);
-			write "native: "+(native_count);
-			write "total recruits: "+total_no_of_native_recruits_in_plot;
+			int total_no_of_native_recruits_in_plot <- int(4.202 + (0.017*native_count) + (-0.126*stand_basal_area));
 			if(total_no_of_native_recruits_in_plot > 0){
-				write "Native: number of recuits: "+total_no_of_native_recruits_in_plot+" for "+length_adult_trees;
+				write "Native: number of recruits: "+total_no_of_native_recruits_in_plot+" for "+length_adult_trees;
 				int recruits_per_adult_trees <- int(total_no_of_native_recruits_in_plot/length_adult_trees)+1;
 				loop at over: adult_trees{
-						//Case: when the remaining recruits is less than # of adult trees 
-						if(recruits_per_adult_trees > length_adult_trees){
-							at.number_of_fruits <- length_adult_trees;
-							at.is_mother_tree <- true;
-							break;
-						}else{
-							at.number_of_fruits <- recruits_per_adult_trees;
-							at.is_mother_tree <- true;
-							length_adult_trees <- length_adult_trees - recruits_per_adult_trees;
-						}
+					if(total_no_of_native_recruits_in_plot < 1){	//no more recruits
+						break;	
+					}else if(recruits_per_adult_trees > total_no_of_native_recruits_in_plot){	//Case: when the remaining recruits is > total_no_of_native_recruits_in_plot
+						at.number_of_fruits <- total_no_of_native_recruits_in_plot;
+						at.is_mother_tree <- true;
+						write "Tree: "+at.name+" with "+at.number_of_fruits+" fruits";
+						break;
+					}else{
+						at.number_of_fruits <- recruits_per_adult_trees;
+						at.is_mother_tree <- true;
+						total_no_of_native_recruits_in_plot <- total_no_of_native_recruits_in_plot - recruits_per_adult_trees;
+						write "Tree: "+at.name+" with "+at.number_of_fruits+" fruits";
 					}
-					
-					if(total_no_of_native_recruits_in_plot > length_adult_trees){
-						
-						ask adult_trees{
-							number_of_fruits <- recruits_per_adult_trees;
-							is_mother_tree <- true;
-						}	
-					}
+				}
 			}else{
 				write "NO native Recruits";
 			}
