@@ -163,12 +163,11 @@ species plot{
 		//divide total number of recruits by # of adult trees
 		//turn the adult trees into mature trees and assign fruit in each
 		//has_fruit_growing = 0 ensures that the tree hasn't just bore fruit, trees that bore fruit must wait at least 1 year before they can bear fruit again
-		list<trees> adult_trees <- reverse((plot_trees select (each.state = ADULT and each.age >= 15 and each.type=NATIVE and each.has_fruit_growing = 0)) sort_by (each.dbh));	//get all adult trees in the plot
+		list<trees> adult_trees <- reverse((plot_trees select (each.state = ADULT and each.age >= 15 and each.type=NATIVE and each.counter_to_next_recruitment = 0)) sort_by (each.dbh));	//get all adult trees in the plot
 		if(length(adult_trees) > 0){	//if count > 1, compute total number of recruits
 			int length_adult_trees <- length(adult_trees);
 			int total_no_of_native_recruits_in_plot <- int(4.202 + (0.017*native_count) + (-0.126*stand_basal_area));
 			if(total_no_of_native_recruits_in_plot > 0){
-				write "Native: number of recruits: "+total_no_of_native_recruits_in_plot+" for "+length_adult_trees;
 				int recruits_per_adult_trees <- int(total_no_of_native_recruits_in_plot/length_adult_trees)+1;
 				loop at over: adult_trees{
 					if(total_no_of_native_recruits_in_plot < 1){	//no more recruits
@@ -176,20 +175,14 @@ species plot{
 					}else if(recruits_per_adult_trees > total_no_of_native_recruits_in_plot){	//Case: when the remaining recruits is > total_no_of_native_recruits_in_plot
 						at.number_of_recruits <- total_no_of_native_recruits_in_plot;
 						at.is_mother_tree <- true;
-						write "Tree: "+at.name+" with "+at.number_of_recruits+" fruits";
 						break;
 					}else{
 						at.number_of_recruits <- recruits_per_adult_trees;
 						at.is_mother_tree <- true;
 						total_no_of_native_recruits_in_plot <- total_no_of_native_recruits_in_plot - recruits_per_adult_trees;
-						write "Tree: "+at.name+" with "+at.number_of_recruits+" fruits";
 					}
 				}
-			}else{
-				write "NO native Recruits";
 			}
-		}else{
-			write "No native adult fruiting tree";
 		}
 	}
 }
@@ -358,7 +351,6 @@ species trees{
 	//put the recruit on the same plot as with the mother tree
 	action recruitTree(int total_recruits, geometry t_space){
 		//create new trees	
-		write "recruiting "+total_recruits;
 		loop i from: 0 to: total_recruits {
 			//setting location of the new tree 
 			//make sure that there is sufficient space before putting the tree in the new location
@@ -371,13 +363,13 @@ species trees{
 				age <-1.0; 
 				location <- new_location;
 				th <- calculateHeight(dbh, type);
-				my_plot <- myself.my_plot;	//assigns the plot where the tree is located
+				my_plot <- plot closest_to self;	//assigns the plot where the tree is located
 				shade_tolerant <- myself.shade_tolerant;
 				is_new_tree <- true;
 				state <- SEEDLING;
+				t_space <- t_space - circle((dbh/2)#cm);	//remove from available spaces the space occupied by new tree
+				add self to: my_plot.plot_trees;	
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	add new tree to parcel's list of trees
-			add n_tree[0] to: my_plot.plot_trees;
-			write "added 1 tree";
 		}
 	}
 	
@@ -399,6 +391,7 @@ species trees{
 				//number of recruits is calculated per plot and recruits are assigned to tree
 				if(number_of_recruits > 0 and is_mother_tree and fruiting_months_N contains current_month){	//fruit ready to be picked during the fruiting_months_N		
 					do recruitTree(number_of_recruits, getTreeSpaceForRecruitment());	
+					write "Native: number of recruits: "+number_of_recruits+" for "+self.name;
 					is_mother_tree <- false;
 					number_of_recruits <- 0;
 					counter_to_next_recruitment <- 12;
