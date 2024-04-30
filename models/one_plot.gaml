@@ -23,8 +23,8 @@ global{
 	float growth_rate_exotic <- 1.25;//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	float growth_rate_native <- 0.72;	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	
-	file trees_shapefile <- shape_file("../includes/TREES_1PLOT.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_GRID_1PLOT.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_1PLOT_NATIVE.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_GRID_1PLOT_NATIVE.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	map<point, climate> cell_climate;
@@ -157,6 +157,7 @@ species plot{
 	}
 	
 	//STATUS: CHECKED
+	//per plot
 	reflex native_determineNumberOfRecruits when: (fruiting_months_N contains current_month){
 		//compute total number of recruits
 		//divide total number of recruits by # of adult trees
@@ -173,15 +174,15 @@ species plot{
 					if(total_no_of_native_recruits_in_plot < 1){	//no more recruits
 						break;	
 					}else if(recruits_per_adult_trees > total_no_of_native_recruits_in_plot){	//Case: when the remaining recruits is > total_no_of_native_recruits_in_plot
-						at.number_of_fruits <- total_no_of_native_recruits_in_plot;
+						at.number_of_recruits <- total_no_of_native_recruits_in_plot;
 						at.is_mother_tree <- true;
-						write "Tree: "+at.name+" with "+at.number_of_fruits+" fruits";
+						write "Tree: "+at.name+" with "+at.number_of_recruits+" fruits";
 						break;
 					}else{
-						at.number_of_fruits <- recruits_per_adult_trees;
+						at.number_of_recruits <- recruits_per_adult_trees;
 						at.is_mother_tree <- true;
 						total_no_of_native_recruits_in_plot <- total_no_of_native_recruits_in_plot - recruits_per_adult_trees;
-						write "Tree: "+at.name+" with "+at.number_of_fruits+" fruits";
+						write "Tree: "+at.name+" with "+at.number_of_recruits+" fruits";
 					}
 				}
 			}else{
@@ -190,21 +191,6 @@ species plot{
 		}else{
 			write "No native adult fruiting tree";
 		}
-	}
-	
-	
-	//removes spaces occupied by trees
-	//temp_shape can be the shape of a parcel
-	//trees_inside can be the parcel_trees
-	geometry removeTreeOccupiedSpace(geometry temp_shape, list<trees> trees_inside){
-		//remove from occupied spaces
-		loop pt over: trees_inside{
-			if(dead(pt)){ continue; }
-			//geometry occupied_space <- circle(pt.dbh, pt.location);
-			temp_shape <- temp_shape - circle(pt.dbh, pt.location);//occupied_space; dbh+ room for growth
-		}
-		
-		return temp_shape;
 	}
 }
 
@@ -238,12 +224,14 @@ species trees{
 	float crown_diameter <- (cr*dbh) update: (cr*dbh);	//crown diameter
 	float basal_area <- #pi * dbh/40000 update: #pi * dbh/40000;	//http://ifmlab.for.unb.ca/People/Kershaw/Courses/For1001/Erdle_Version/TAE-BasalArea&Volume.pdf in m2
 	
-	int number_of_fruits <- 0;
+	int counter_to_next_recruitment <- 0;	//ensures that tree only recruits once a year
+	int number_of_recruits <- 0;
 	bool is_mother_tree <- false;
+	
+	int number_of_fruits <- 0;
 	int has_fruit_growing <- 0;	//timer once there are fruits, from 12 - 0, where fruits now has grown into 1-year old seedlings
 	bool has_flower <- false;
 	bool is_new_tree <- false;
-	int count_fruits; 
 	
 	//STATUS: CHECKED
 	aspect geom3D{
@@ -368,89 +356,80 @@ species trees{
 	}
 	
 	//put the recruit on the same plot as with the mother tree
-	action recruitTree(int total_no_seeds, geometry t_space){
+	action recruitTree(int total_recruits, geometry t_space){
 		//create new trees	
-		list<trees> new_trees;
-		loop i from: 0 to: total_no_seeds-1 {
-			float new_dbh <- 0.7951687878;
+		write "recruiting "+total_recruits;
+		loop i from: 0 to: total_recruits {
 			//setting location of the new tree 
 			//make sure that there is sufficient space before putting the tree in the new location
 			point new_location <- any_location_in(t_space);
 			if(new_location = nil){break;}	//don't add seeds if there are no space
 
-			trees instance;
-			create trees{			
-				age <- 1.0;
-				type <- myself.type;	//mahogany
-				shade_tolerant <- false;
-				dbh <- new_dbh;
-				location <- new_location+myself.location.z;	//place tree on an unoccupied portion of the parcel
-				my_plot <- (plot closest_to(self));
-				shape <- circle(dbh) translated_to location;
-				add self to: my_plot.plot_trees;	//similar scenario different approach for adding specie to a list attribute of another specie
+			create trees number: 1 returns: n_tree{
+				dbh <- (myself.type=NATIVE)?growth_rate_native:growth_rate_exotic;
+				type <- myself.type;
+				age <-1.0; 
+				location <- new_location;
+				th <- calculateHeight(dbh, type);
+				my_plot <- myself.my_plot;	//assigns the plot where the tree is located
+				shade_tolerant <- myself.shade_tolerant;
 				is_new_tree <- true;
-				instance <- self;
 				state <- SEEDLING;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	add new tree to parcel's list of trees
-			
-			trees closest_tree <- instance.my_plot.plot_trees closest_to instance;
-			if(closest_tree != nil and circle(closest_tree.dbh+5, closest_tree.location) overlaps circle(instance.dbh+5, instance.location)){	//check if the instance overlaps another tree
-				ask instance{
-					remove self from: my_plot.plot_trees;
-					do die;
-				}
-			}else{
-				add instance to: new_trees;		//add new tree to list of new trees
-				t_space <- t_space - circle(instance.dbh, new_location); 	//remove the tree's occupied space from the available space 
-			}
+			add n_tree[0] to: my_plot.plot_trees;
+			write "added 1 tree";
 		}
-		count_fruits <- length(new_trees);
 	}
-		
+	
+	//return unoccupied places within 20m from the mother tree
 	geometry getTreeSpaceForRecruitment{
-		point mother_location <- point(self.location.x, self.location.y);
-		geometry t_space <- my_plot.neighborhood_shape inter (circle(self.dbh+20, mother_location) - circle(self.dbh, mother_location));
-		return my_plot.removeTreeOccupiedSpace(t_space, trees inside t_space);
+		geometry recruitment_space <- circle((dbh/2)#cm + 20#m);	//recruitment space
+		
+		
+		list<trees> trees_inside <- trees inside recruitment_space;
+		ask trees_inside{
+			recruitment_space <- recruitment_space - circle((dbh/2)#cm);	//remove the space occupied by tree
+		} 
+		return recruitment_space inter my_plot.shape;
 	}
 		
 	action treeRecruitment{
 		switch type{
 			match NATIVE {
-				if(number_of_fruits > 0 and is_mother_tree and fruiting_months_N contains current_month){	//fruit ready to be picked during the fruiting_months_N		
-					do recruitTree(number_of_fruits, getTreeSpaceForRecruitment());	
+				//number of recruits is calculated per plot and recruits are assigned to tree
+				if(number_of_recruits > 0 and is_mother_tree and fruiting_months_N contains current_month){	//fruit ready to be picked during the fruiting_months_N		
+					do recruitTree(number_of_recruits, getTreeSpaceForRecruitment());	
 					is_mother_tree <- false;
-					number_of_fruits <- 0;
-					has_fruit_growing <- 12;
-				}else if(has_fruit_growing > 0){
-					has_fruit_growing <- has_fruit_growing - 1;
-					is_mother_tree <- true;
+					number_of_recruits <- 0;
+					counter_to_next_recruitment <- 12;
+				}else if(counter_to_next_recruitment > 0){
+					counter_to_next_recruitment <- counter_to_next_recruitment - 1;
 				}
 			}
-			match EXOTIC{
-				if(number_of_fruits >0 and has_fruit_growing=0){	//fruits have matured
-					int total_no_1yearold <- int(number_of_fruits *42.4 *0.085);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 
-					do recruitTree(total_no_1yearold, getTreeSpaceForRecruitment());	
-					has_fruit_growing <- 0;
-					number_of_fruits <- 0;
-					is_mother_tree <- false;
-				}else if(has_fruit_growing > 0){	//flower is growing
-					has_fruit_growing <- has_fruit_growing-1;
-				}else if(has_flower and fruiting_months_E contains current_month){	//flower has bud, # of flowers is determined
-					number_of_fruits <- getNumberOfFruitsE();
-					has_fruit_growing <- 11;
-					has_flower <- false;	
-				}else if((age>=12 and state=ADULT) and !has_flower and (flowering_months_E contains current_month)){	//adult tree, no flower, but flowering season
-					has_flower <- isFlowering();	//compute the probability of flowering
-					is_mother_tree <- (has_flower)?true:false;	//turn the tree into a mother tree
-				}
-			}
+//			match EXOTIC{
+//				if(number_of_fruits >0 and has_fruit_growing=0){	//fruits have matured
+//					int total_no_1yearold <- int(number_of_fruits *42.4 *0.085);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 
+//					do recruitTree(total_no_1yearold, getTreeSpaceForRecruitment());	
+//					has_fruit_growing <- 0;
+//					number_of_fruits <- 0;
+//					is_mother_tree <- false;
+//				}else if(has_fruit_growing > 0){	//flower is growing
+//					has_fruit_growing <- has_fruit_growing-1;
+//				}else if(has_flower and fruiting_months_E contains current_month){	//flower has bud, # of flowers is determined
+//					number_of_fruits <- getNumberOfFruitsE();
+//					has_fruit_growing <- 11;
+//					has_flower <- false;	
+//				}else if((age>=12 and state=ADULT) and !has_flower and (flowering_months_E contains current_month)){	//adult tree, no flower, but flowering season
+//					has_flower <- isFlowering();	//compute the probability of flowering
+//					is_mother_tree <- (has_flower)?true:false;	//turn the tree into a mother tree
+//				}
+//			}
 		}
 	}
 	
 	//based on Vanclay(1994) schematic representation of growth model
 	reflex growthModel{
 		if(checkMortality()){
-//			write "Tree dead";
 			remove self from: my_plot.plot_trees;
 			do die;	
 		}
@@ -459,6 +438,7 @@ species trees{
 			do treeGrowthIncrement();
 			do stepAge();
 		}
+
 	}
 	
 	action setState{
