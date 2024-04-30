@@ -23,8 +23,8 @@ global{
 	float growth_rate_exotic <- 1.25;//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	float growth_rate_native <- 0.72;	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	
-	file trees_shapefile <- shape_file("../includes/TREES_1PLOT_NATIVE.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_GRID_1PLOT_NATIVE.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_RND_LARGER.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_GRID_LARGER.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	map<point, climate> cell_climate;
@@ -40,7 +40,7 @@ global{
 	list<int> flowering_months_E <- [2,3,4,5];
 	list<int> fruiting_months_E <- [11, 0, 1, 2];
 	
-	geometry shape <- envelope(Precip_TAverage);
+	geometry shape <- envelope(plot_shapefile);
 	list<geometry> clean_lines;
 
 	init{
@@ -361,7 +361,7 @@ species trees{
 			recruitment_space <- recruitment_space - circle((dbh/2)#cm);	//remove the space occupied by tree
 		} 
 		
-		return recruitment_space inter my_plot.shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
+		return recruitment_space inter world.shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
 	}
 	
 	//recruitment of tree
