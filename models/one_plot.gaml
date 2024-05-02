@@ -23,8 +23,8 @@ global{
 	float growth_rate_exotic <- 1.25;//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	float growth_rate_native <- 0.72;	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	
-	file trees_shapefile <- shape_file("../includes/TREES_RND_LARGER.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_GRID_LARGER.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_1PLOT.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_GRID_1PLOT.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	map<point, climate> cell_climate;
@@ -40,7 +40,7 @@ global{
 	list<int> flowering_months_E <- [2,3,4,5];
 	list<int> fruiting_months_E <- [11, 0, 1, 2];
 	
-	geometry shape <- envelope(plot_shapefile);
+	geometry shape <- envelope(Precip_TAverage);
 	list<geometry> clean_lines;
 
 	init{
@@ -81,8 +81,9 @@ global{
 		
 		create plot from: plot_shapefile{
 			plot_trees <- trees inside self;
-			loop p over: plot_trees{
-				p.my_plot <- self;
+			ask plot_trees{
+				my_plot <- myself;
+				my_neighbors <- my_plot.plot_trees select (each.state = ADULT and (each distance_to self) <= 20#m);
 			}
 
 			id <- int(read("id"));
@@ -227,6 +228,8 @@ species trees{
 	bool has_flower <- false;
 	bool is_new_tree <- false;
 	
+	list<trees> my_neighbors; 	
+	
 	//STATUS: CHECKED
 	aspect geom3D{
 		if(crown_diameter != 0){
@@ -297,14 +300,14 @@ species trees{
 	
 	//doesn't yet inhibit growth of tree
 	action treeGrowthIncrement{
-		trees closest_tree <-(my_plot.plot_trees closest_to self); 
 		float prev_dbh <- dbh;
 		float prev_th <- th;
+		float ni <- 1-neighborhoodInteraction();
 		
-		diameter_increment <- computeDiameterIncrement();//*neighborh_effect;
+		diameter_increment <- computeDiameterIncrement()*neighborh_effect;
 		dbh <- dbh + diameter_increment;	 
-		do setState();
 		th <- calculateHeight(dbh, type);
+		do setState();
 	}
 	
 	//tree age
@@ -361,7 +364,7 @@ species trees{
 			recruitment_space <- recruitment_space - circle((dbh/2)#cm);	//remove the space occupied by tree
 		} 
 		
-		return recruitment_space inter world.shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
+		return recruitment_space inter my_plot.shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
 	}
 	
 	//recruitment of tree
@@ -432,6 +435,9 @@ species trees{
 	reflex growthModel{
 		if(checkMortality()){
 			remove self from: my_plot.plot_trees;
+			if(state = ADULT){
+				do updateNeighborhood(true);	//given its neighborhood, add itself on their neighborhood
+			}
 			do die;	
 		}
 		else{	//tree recruits, tree grows, tree ages
@@ -442,17 +448,49 @@ species trees{
 
 	}
 	
+	//ni goes from [0,1], with 1 being a very strong influence
+	float neighborhoodInteraction{
+		float ni <- 0.0;
+		ask my_neighbors{
+			float dis <- self distance_to myself;
+			if(dis > 0.0){
+				ni <- ni + ((basal_area * ((myself.type = type)?1:0.5))/dis);	
+			}
+		}
+		
+		//write "NI: "+ni+" average: "+ni/length(my_neighbors);
+		if(ni > 1.0){	 
+			ni <- 1.0;
+		}
+		return ni;
+	}	
+	
+	//Called when either: (1) a tree has just recently became adult; or (2) an adult tree has died
+	action updateNeighborhood(bool is_remove){
+		ask my_neighbors{
+			if(!is_remove){
+				add myself to: my_neighbors;	
+			}else{
+				remove myself from: my_neighbors;
+			}
+		}	
+	}
+	
 	action setState{
-		if(dbh < max_dbh_per_class[type][0]){
-			state <- SEEDLING;
-		}else if(dbh<max_dbh_per_class[type][1]){
-			state <- SAPLING;
-		}else if(dbh<max_dbh_per_class[type][2]){
-			state <- POLE;
-		}else{
+		if(dbh >= max_dbh_per_class[type][POLE]){
+			if(state != ADULT){
+				do updateNeighborhood(false);	//given its neighborhood, add itself on their neighborhood
+			}
 			state <- ADULT;
+		}else if(dbh < max_dbh_per_class[type][POLE] and dbh >= max_dbh_per_class[type][SAPLING]){
+			state <- POLE;
+		}else if(dbh < max_dbh_per_class[type][SAPLING] and dbh >= max_dbh_per_class[type][SEEDLING]){
+			state <- SAPLING;
+		}else if(dbh > 0){
+			state <- SEEDLING;
 		}
 	}
+
 }
 
 species climate{
