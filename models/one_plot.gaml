@@ -23,10 +23,31 @@ global{
 	float growth_rate_exotic <- 1.25;//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	float growth_rate_native <- 0.72;	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	
-	file trees_shapefile <- shape_file("../includes/TREES_1PLOT.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_GRID_1PLOT.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_4GRID.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_4GRID.shp");
+	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
+	file Soil_Group <- file("../includes/soil_group_pH.shp");
+	file water_file <- file("../images/water_level.tif");
+	
+	field water_content <- field(water_file);
+	graph road_network;
+	graph river_network;
+	
+	list<point> points <- water_content points_in shape; //elev
+	map<point, list<point>> neighbors <- points as_map (each::(water_content neighbors_of each));
+	map<point, bool> done <- points as_map (each::false);
+	map<point, float> h <- points as_map (each::water_content[each]);
+	float input_water;
+	
+	list<float> min_water <- [1500.0, 1400.0];						//best grow, annual, monthly will be taken in consideration during the growth effect
+	list<float> max_water <- [3500.0, 6000.0];						//best grow, annual
+	list<float> min_pH <- [5.0, 6.0];								//temp value - best grow
+	list<float> max_pH <- [6.7, 8.5];								//temp value - best grow
+	list<float> min_temp <- [20.0, 11.0];							//temp value - best grow
+	list<float> max_temp <- [34.0, 39.0];							//true value - best grow
+	
 	map<point, climate> cell_climate;
 	int current_month <- 0 update:(cycle mod NB_TS);
 	
@@ -40,7 +61,10 @@ global{
 	list<int> flowering_months_E <- [2,3,4,5];
 	list<int> fruiting_months_E <- [11, 0, 1, 2];
 	
-	geometry shape <- envelope(Precip_TAverage);
+	list<point> drain_cells <- [];
+	
+	geometry shape <- envelope(Soil_Group);
+	geometry plot_shape <- envelope(plot_shapefile);
 	list<geometry> clean_lines;
 
 	init{
@@ -53,6 +77,25 @@ global{
 			total_precipitation <- sum(precipitation);	
 		}
 		write "Done reading climate...";
+		create soil from: Soil_Group with: [id::int(get("VALUE")), soil_pH::float(get("Average_pH"))];
+		//clean_network(road_shapefile.contents,tolerance,split_lines,reduce_to_main_connected_components
+		clean_lines <- clean_network(road_shapefile.contents,50.0,true,true);
+		create road from: clean_lines;
+		road_network <- as_edge_graph(road);	//create road from the clean lines
+		
+		//Identify drain cells
+		loop pp over: points where (water_content[each]>400){	//look inside the area of concern, less than 400 means not part of concern
+			list<point> edge_points <- neighbors[pp] where (water_content[each] = 400);
+			if(length(edge_points) > 0){
+				drain_cells <+ pp;
+			}	
+		}
+		drain_cells <- remove_duplicates(drain_cells);
+		float min_height <- drain_cells min_of (water_content[each]);
+		drain_cells <- drain_cells where (water_content[each] < min_height+20);
+		write "Done reading soil...";
+		
+		write "Done reading soil...";
 		create trees from: trees_shapefile{
 			dbh <- float(read("Book2_DBH"));
 			mh <- float(read("Book2_MH"));		
@@ -81,6 +124,7 @@ global{
 		
 		create plot from: plot_shapefile{
 			plot_trees <- trees inside self;
+			write "PLOT: "+name+" length: "+length(plot_trees);
 			ask plot_trees{
 				my_plot <- myself;
 				my_neighbors <- my_plot.plot_trees select (each.state = ADULT and (each distance_to self) <= 20#m);
@@ -136,6 +180,24 @@ global{
 //		return main_space - t_shape;	//remove all occupied space;		
 //	}
 	
+}
+
+species soil{
+	float S; //potential maximum soil moisture 
+	int curve_number; 
+	int id;
+	float soil_pH;
+	
+	geometry display_shape <- shape + 50.0;
+	aspect default{
+		//draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
+		draw display_shape color: #brown depth: 3.0;// at: {location.x,location.y,location.z} 200
+	}
+	
+	init{
+		curve_number <- (id = 3)? 70: 77;	//see https://engineering.purdue.edu/mapserve/LTHIA7/documentation/scs.htm
+		S <- (1000/curve_number) - 10;
+	}
 }
 
 species plot{
@@ -304,7 +366,7 @@ species trees{
 		float prev_th <- th;
 		float ni <- 1-neighborhoodInteraction();
 		
-		diameter_increment <- computeDiameterIncrement()*neighborh_effect;
+		diameter_increment <- computeDiameterIncrement()*ni;
 		dbh <- dbh + diameter_increment;	 
 		th <- calculateHeight(dbh, type);
 		do setState();
@@ -364,7 +426,7 @@ species trees{
 			recruitment_space <- recruitment_space - circle((dbh/2)#cm);	//remove the space occupied by tree
 		} 
 		
-		return recruitment_space inter my_plot.shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
+		return recruitment_space inter plot_shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
 	}
 	
 	//recruitment of tree
@@ -504,6 +566,15 @@ species climate{
 	aspect default{
 		//draw display_shape color: #red depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+200]};//200
 		draw display_shape color: #yellow depth: 3.0;// at: {location.x,location.y,location.z} 200
+	}
+}
+
+//Species to represent the roads
+species road {
+	geometry display_shape <- shape + 5.0;
+	aspect default {
+		//draw display_shape color: #black depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+250]};//250
+		draw display_shape color: #black;// depth: 3.0 at: {location.x,location.y,location.z};//200
 	}
 }
 
