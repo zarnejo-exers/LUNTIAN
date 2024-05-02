@@ -23,17 +23,21 @@ global{
 	float growth_rate_exotic <- 1.25;//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	float growth_rate_native <- 0.72;	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	
-	file trees_shapefile <- shape_file("../includes/TREES_4GRID.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_4GRID.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
 	file Soil_Group <- file("../includes/soil_group_pH.shp");
 	file water_file <- file("../images/water_level.tif");
+	file elev_file <- file("../images/ITP_Reprojected_Filled.tif"); //resolution 30m-by-30m
 	
+	field elev <- field(elev_file);	
 	field water_content <- field(water_file);
 	graph road_network;
 	graph river_network;
+	field remaining_precip <- field(water_content.columns, water_content.rows, 0.0);	// RP in mm
+	field inflow <- field(water_content.columns, water_content.rows, 0.0);	// RP
 	
 	list<point> points <- water_content points_in shape; //elev
 	map<point, list<point>> neighbors <- points as_map (each::(water_content neighbors_of each));
@@ -63,7 +67,7 @@ global{
 	
 	list<point> drain_cells <- [];
 	
-	geometry shape <- envelope(Soil_Group);
+	geometry shape <- envelope(plot_shapefile);	//Soil_Group
 	geometry plot_shape <- envelope(plot_shapefile);
 	list<geometry> clean_lines;
 
@@ -74,7 +78,8 @@ global{
 			precipitation <- [float(get("1_Prec")),float(get("2_Prec")),float(get("3_Prec")),float(get("4_Prec")),float(get("5_Prec")),float(get("6_Prec")),float(get("7_Prec")),float(get("8_Prec")),float(get("9_Prec")),float(get("10_Prec")),float(get("11_Prec")),float(get("12_Prec"))];
 			etp <- [float(get("1_ETP")),float(get("2_ETP")),float(get("3_ETP")),float(get("4_ETP")),float(get("5_ETP")),float(get("6_ETP")),float(get("7_ETP")),float(get("8_ETP")),float(get("9_ETP")),float(get("10_ETP")),float(get("11_ETP")),float(get("12_ETP"))];
 		
-			total_precipitation <- sum(precipitation);	
+			total_precipitation <- sum(precipitation);
+			write "climate: "+name+" t_precip: "+total_precipitation;	
 		}
 		write "Done reading climate...";
 		create soil from: Soil_Group with: [id::int(get("VALUE")), soil_pH::float(get("Average_pH"))];
@@ -124,7 +129,6 @@ global{
 		
 		create plot from: plot_shapefile{
 			plot_trees <- trees inside self;
-			write "PLOT: "+name+" length: "+length(plot_trees);
 			ask plot_trees{
 				my_plot <- myself;
 				my_neighbors <- my_plot.plot_trees select (each.state = ADULT and (each distance_to self) <= 20#m);
@@ -133,6 +137,7 @@ global{
 			id <- int(read("id"));
 			closest_clim <- climate closest_to self;
 			stand_basal_area <- plot_trees sum_of (each.basal_area);
+			write "PLOT: "+name+" length: "+length(plot_trees)+" climate: "+closest_clim.name;
 			
 		}
 		
@@ -179,7 +184,63 @@ global{
 //			
 //		return main_space - t_shape;	//remove all occupied space;		
 //	}
+		//base on the current month, add precipitation
+	reflex addingPrecipitation{
+		//Determine initial amount of water
+		loop pp over: points where (water_content[each] > 400){
+			climate closest_clim <- climate closest_to pp;	//closest climate descriptor to the point
+			float precip_value <- closest_clim.precipitation[current_month];
+			float etp_value <- closest_clim.etp[current_month];
+			
+			remaining_precip[pp] <- (precip_value - etp_value > 0)? precip_value - etp_value : 0;
+		}
+	}
 	
+	//sort pixel based on elevation
+	//from highest elevation pixel down
+	//	add inflow to remaining_precip
+	//	determine if there will be a runoff: RP > Ia
+	//		yes: compute for Q, where Q = (RP-Ia)^2 / ((RP-Ia+S) 
+	//  subtract runoff from remaining_precip, Ia = RP - Q w
+	//  distribute runoff to lower elevation neighbors (add to neighbor's inflow)
+	reflex waterFlow{
+		done[] <- false;
+		inflow[] <- 0.0;
+		list<point> water <- points where (water_content[each] > 400) sort_by (water_content[each]);
+		loop p over: points - water {
+			done[p] <- true;
+		}
+		loop p over: water {
+			soil closest_soil <- soil closest_to p;	//closest soil descriptor to the point
+			remaining_precip[p] <- remaining_precip[p] + inflow[p];	//add inflow
+			inflow[p] <- 0.0;	//set inflow back to 0
+			
+			//determine if there will be a runoff
+			if(remaining_precip[p] > water_content[p]){	//there will be runoff
+				//write "Water runoff";
+				//compute for Q, where Q = (RP-Ia)^2 / ((RP-Ia+S)
+				float Q <- ((remaining_precip[p] - water_content[p])^2)/(remaining_precip[p] - water_content[p]+closest_soil.S);
+				
+				//subtract runoff from remaining_precip
+				water_content[p] <- (remaining_precip[p] - Q);	//in mm
+				
+				//distribute runoff to lower elevation neighbors (add to neighbor's inflow)
+				float height <- elev[p];
+				list<point> downflow_neighbors <- neighbors[p] where (!done[each] and height > elev[each]);
+				int neighbor_count <- length(downflow_neighbors); 
+				loop pp over: downflow_neighbors{
+					inflow[pp] <- inflow[pp] + (Q/neighbor_count);
+				}
+			}
+			done[p] <- true;
+		}
+	}
+	
+	reflex drainCells{
+		loop pp over: drain_cells{
+			water_content[pp] <- 0;
+		}
+	}			
 }
 
 species soil{
@@ -208,6 +269,14 @@ species plot{
 	float stand_basal_area <- plot_trees sum_of (each.basal_area) update: plot_trees sum_of (each.basal_area);
 	int native_count <- plot_trees count (each.type = NATIVE) update: plot_trees count (each.type = NATIVE);
 	geometry neighborhood_shape <- nil;
+	float my_pH <- (soil closest_to location).soil_pH;
+	climate my_climate <- climate closest_to location;
+	
+	float curr_precip <- my_climate.precipitation[current_month] update: my_climate.precipitation[current_month];
+	float curr_temp <- my_climate.temperature[current_month] update: my_climate.temperature[current_month];
+	
+	float growth_coeff_N;
+	float growth_coeff_E; 
 	
 	aspect default{
 		draw shape color: rgb(153,136,0);
@@ -249,6 +318,39 @@ species plot{
 			}
 		}
 	}
+	
+		//the best range
+	//TO Update: use specific max and min per focused species
+	float reduceGrowth(float curr, float min, float max){
+		float ave <- (max + min)/2;
+		float coeff;
+		
+		if(curr <= ave){
+			coeff <- ((curr/(ave-min))+(min/(min - ave)));
+		}else{
+			coeff <- -((curr/(max-ave))+(max/(max-ave)));
+		}
+		
+		if(coeff< 0.8){coeff <- 0.8;}
+		if(coeff>1.0){coeff <- 1.0;}	//for the meantime if the coeff is very small or curr is greater than the max  value, do nothing
+		return coeff;
+	}	
+	
+	float computeCoeff(float c_water, float p_precip, int type){
+		float g_coeff <- 1.0;
+		g_coeff <- g_coeff * reduceGrowth(curr_temp, min_temp[type], max_temp[type]);	//coefficient given temperature
+		g_coeff <- g_coeff * reduceGrowth(my_pH, min_pH[NATIVE], max_pH[NATIVE]);			//coefficient given soil pH
+		g_coeff <- g_coeff * reduceGrowth(c_water, min_water[NATIVE]*p_precip, max_water[NATIVE]*p_precip);//coefficient given water (considering only the percentage of precipitation given current month over the total annual precipitation)
+		return g_coeff;
+	}
+	
+	reflex growthCoeff{
+		float curr_water <- water_content[location];
+		float percent_precip <- curr_precip/my_climate.total_precipitation;
+		
+		growth_coeff_N <- computeCoeff(curr_water, percent_precip, NATIVE);
+		growth_coeff_E <- computeCoeff(curr_water, percent_precip, EXOTIC);
+	}	
 }
 
 species river{
@@ -290,6 +392,7 @@ species trees{
 	bool has_flower <- false;
 	bool is_new_tree <- false;
 	
+	
 	list<trees> my_neighbors; 	
 	
 	//STATUS: CHECKED
@@ -298,24 +401,24 @@ species trees{
 			//this is the crown
 			// /2 since parameter asks for radius
 			if(type = NATIVE){
-				draw sphere((self.crown_diameter/2)#m) color: #darkgreen at: {location.x,location.y,th#m};
+				draw sphere((self.crown_diameter/2)#m) color: #darkgreen at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
 			}else{
-				draw sphere((self.crown_diameter/2)#m) color: #violet at: {location.x,location.y,th#m};
+				draw sphere((self.crown_diameter/2)#m) color: #violet at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
 			}
 			
 			//this is the stem
 			switch state{
 				match SEEDLING{
-					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #yellow depth: th#m;		
+					draw circle((dbh/2)#cm) at: {location.x,location.y, elev[point(location.x, location.y)]+400} color: #yellow depth: th#m;		
 				}
 				match SAPLING{
-					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #green depth: th#m;
+					draw circle((dbh/2)#cm) at: {location.x,location.y, elev[point(location.x, location.y)]+400} color: #green depth: th#m;
 				}
 				match POLE{
-					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #blue depth: th#m;
+					draw circle((dbh/2)#cm) at: {location.x,location.y, elev[point(location.x, location.y)]+400} color: #blue depth: th#m;
 				}
 				match ADULT{
-					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #red depth: th#m;
+					draw circle((dbh/2)#cm) at: {location.x,location.y, elev[point(location.x, location.y)]+400} color: #red depth: th#m;
 				}
 			}
 			
@@ -365,9 +468,13 @@ species trees{
 		float prev_dbh <- dbh;
 		float prev_th <- th;
 		float ni <- 1-neighborhoodInteraction();
-		
-		diameter_increment <- computeDiameterIncrement()*ni;
+		float gcoeff <- (type = NATIVE)?my_plot.growth_coeff_N:my_plot.growth_coeff_E;
+
+		diameter_increment <- computeDiameterIncrement()*ni*gcoeff;
 		dbh <- dbh + diameter_increment;	 
+		if(dbh > max_dbh_per_class[type][ADULT]){
+			dbh <- max_dbh_per_class[type][ADULT];
+		}
 		th <- calculateHeight(dbh, type);
 		do setState();
 	}
@@ -585,6 +692,8 @@ experiment oneplot type: gui{
 			species plot; 
 			species trees aspect: geom3D;
 			species river;
+			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
+			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
 		}
 		
 		display chart6 type: java2D{	
