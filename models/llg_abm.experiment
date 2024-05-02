@@ -11,26 +11,15 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 	parameter "Growth rate (E)" category: "Exotic Setup" var:growth_rate_exotic;
 	parameter "Growth rate (N)" category: "Native Setup" var:growth_rate_native;
 	
-	output {
-		layout #split;
-		display ITP type: opengl camera:#isometric{
+	output{
+		display llg_abm type: opengl camera:#isometric{
+			species climate;
 			species plot; 
-			species soil aspect: default;
-			species climate aspect: default;
-			species river aspect: default;	
-			species road aspect: default;					 
 			species trees aspect: geom3D;
-			
+			species river;
+			species road;
 			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
 			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
-			
-			graphics "connected components" {
-				loop i from: 0 to: length(connected_components) - 1 {
-					loop j from: 0 to: length(connected_components[i]) - 1 {
-						draw cross(25) color: colors[i] at: connected_components[i][j];	
-					}
-				}
-			}
 		}
 		
 		display chart6 type: java2D{	
@@ -52,5 +41,8 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 				data "Exotic: Adult" value: length(trees where (each.type = EXOTIC and each.state = ADULT)) color: #yellowgreen;
 			}
 		}
+		
+		monitor "Total Native trees" value: trees count (each.type = NATIVE);
+		monitor "Total Exotic trees" value: trees count (each.type = EXOTIC);
 	}
 }

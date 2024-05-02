@@ -57,7 +57,7 @@ species comm_member control: fsm{
 		plot chosen_plot;
 		
 		list<plot> plot_with_trees <- entrance_plot where (length(each.plot_trees) > 0);
-		int plot_pos <- rnd(length(plot_with_trees));
+		int plot_pos <- rnd(length(plot_with_trees)-1);
 		chosen_plot <- entrance_plot[plot_pos];
 		
 		return chosen_plot;

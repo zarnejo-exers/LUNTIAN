@@ -22,8 +22,8 @@ species market{
 	float getTotalBDFT(list<trees> tth){
 		float total_bdft <- 0.0;
 		
-		loop i over: tth{
-			total_bdft <- total_bdft + (i.calculateVolume(i.dbh, i.type) / 12);	
+		ask tth{
+			total_bdft <- total_bdft + (calculateVolume(dbh, type) / 12);	
 		}
 		return total_bdft;
 	}	

@@ -23,8 +23,8 @@ global{
 	float growth_rate_exotic <- 1.25;//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	float growth_rate_native <- 0.72;	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	
-	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_4GRID.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_4GRID.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
@@ -67,9 +67,11 @@ global{
 	
 	list<point> drain_cells <- [];
 	
-	geometry shape <- envelope(plot_shapefile);	//Soil_Group
+	geometry shape <- envelope(Soil_Group);	//Soil_Group
 	geometry plot_shape <- envelope(plot_shapefile);
 	list<geometry> clean_lines;
+	list<list<point>> connected_components ;
+	list<rgb> colors;
 
 	init{
 		write "Begin initialization";
@@ -78,8 +80,7 @@ global{
 			precipitation <- [float(get("1_Prec")),float(get("2_Prec")),float(get("3_Prec")),float(get("4_Prec")),float(get("5_Prec")),float(get("6_Prec")),float(get("7_Prec")),float(get("8_Prec")),float(get("9_Prec")),float(get("10_Prec")),float(get("11_Prec")),float(get("12_Prec"))];
 			etp <- [float(get("1_ETP")),float(get("2_ETP")),float(get("3_ETP")),float(get("4_ETP")),float(get("5_ETP")),float(get("6_ETP")),float(get("7_ETP")),float(get("8_ETP")),float(get("9_ETP")),float(get("10_ETP")),float(get("11_ETP")),float(get("12_ETP"))];
 		
-			total_precipitation <- sum(precipitation);
-			write "climate: "+name+" t_precip: "+total_precipitation;	
+			total_precipitation <- sum(precipitation);	
 		}
 		write "Done reading climate...";
 		create soil from: Soil_Group with: [id::int(get("VALUE")), soil_pH::float(get("Average_pH"))];
@@ -127,6 +128,14 @@ global{
 		}
 		write "Done reading trees...";
 		
+		clean_lines <- clean_network(river_shapefile.contents,3.0,true,false);
+		create river from: clean_lines {
+			node_id <- int(read("NODE_A")); 
+			drain_node <- int(read("NODE_B")); 
+			strahler <- int(read("ORDER_CELL"));
+			basin <- int(read("BASIN"));
+		}
+		
 		create plot from: plot_shapefile{
 			plot_trees <- trees inside self;
 			ask plot_trees{
@@ -137,17 +146,21 @@ global{
 			id <- int(read("id"));
 			closest_clim <- climate closest_to self;
 			stand_basal_area <- plot_trees sum_of (each.basal_area);
-			write "PLOT: "+name+" length: "+length(plot_trees)+" climate: "+closest_clim.name;
 			
+			list<river> c_river <- river at_distance(100#m);
+			if(length(c_river) > 0){
+				is_near_water <- true;
+			}
+			
+			if(length(road crossing self)>0){
+				has_road <- true;
+			}
 		}
-		
-		clean_lines <- clean_network(river_shapefile.contents,3.0,true,false);
-		create river from: clean_lines {
-			node_id <- int(read("NODE_A")); 
-			drain_node <- int(read("NODE_B")); 
-			strahler <- int(read("ORDER_CELL"));
-			basin <- int(read("BASIN"));
-		}
+		river_network <- as_edge_graph(river);
+		//computed the connected components of the graph (for visualization purpose)
+		connected_components <- list<list<point>>(connected_components_of(river_network));
+		loop times: length(connected_components) {colors << rnd_color(255);}
+		write "End initialization";
 	}
 	
 //	reflex replant{
@@ -184,6 +197,11 @@ global{
 //			
 //		return main_space - t_shape;	//remove all occupied space;		
 //	}
+	
+	//returns the entrance plots
+	list<plot> getEntrancePlot{
+		return reverse(sort_by(plot where (!each.has_road and each.plot_trees != nil), each.location.y))[0::200];	//entrance_plot is the first 100 lowest point
+	}
 		//base on the current month, add precipitation
 	reflex addingPrecipitation{
 		//Determine initial amount of water
@@ -240,7 +258,7 @@ global{
 		loop pp over: drain_cells{
 			water_content[pp] <- 0;
 		}
-	}			
+	}
 }
 
 species soil{
@@ -278,8 +296,25 @@ species plot{
 	float growth_coeff_N;
 	float growth_coeff_E; 
 	
+	int rotation_years <- 0; 	//only set once an investor decided to invest on a plot
+	bool is_near_water <- false;
+	bool is_nursery <- false;
+	bool has_road <- false;
+	bool is_invested <- false;
+	bool is_candidate_nursery <- false; //true if there exist a mother tree in one of its trees;
+	float projected_profit;
+	float investment_cost;
+	bool is_itp <- false;
+	bool is_policed <- false;
+	int nursery_type <- -1;
+	bool is_investable <- false;
+	
 	aspect default{
 		draw shape color: rgb(153,136,0);
+	}
+	
+	int getSaplingsCountS(int t_type){
+		return length(plot_trees where (each.type = t_type and each.state = SAPLING));
 	}
 	
 	reflex checkIsDry{
@@ -438,6 +473,11 @@ species trees{
 		}
 		
 		return predicted_height;	//in meters	
+	}
+	
+	//in cubic meters
+	float calculateVolume(float temp_dbh, int t_type){
+		return -0.08069 + 0.31144 * ((temp_dbh*0.01)^2) * calculateHeight(temp_dbh, t_type);	//Nguyen, T. T. (2009). Modelling Growth and Yield of Dipterocarp Forests in Central Highlands of Vietnam [Ph.D. Dissertation]. Technische Universität München.	
 	}
 
 	//STATUS: CHECKED, but needs neighbor effect
@@ -692,6 +732,7 @@ experiment oneplot type: gui{
 			species plot; 
 			species trees aspect: geom3D;
 			species river;
+			species road;
 			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
 			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
 		}

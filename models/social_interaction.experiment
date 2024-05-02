@@ -38,7 +38,7 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		layout #split;
 	
 		display interaction{
-			species plot aspect: si;
+			species plot;
 			species investor visible: false;
 			species labour aspect: si;
 			species comm_member visible: false;
