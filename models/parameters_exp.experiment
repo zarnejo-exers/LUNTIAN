@@ -9,7 +9,7 @@
 experiment parametersexp model: "university_si.gaml" type: batch keep_seed:true until:( cycle > 600) {
     parameter "nursery count" var: nursery_count min: 0 max: 5; 
     parameter "laborer count" var: laborer_count min: 0 max: 15; 
-    parameter "community members" var: member_count min: 0 max: 15; 
+//    parameter "community members" var: member_count min: 0 max: 15; 
     parameter "count of special police" var: police_count min: 0 max: 5;
     parameter "planting spaces" var: planting_space min: 1.0 max: 5.0;
      

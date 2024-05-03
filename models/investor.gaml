@@ -53,22 +53,26 @@ species investor control: fsm{
 	action decideInvestment{	////reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
 		plot investable_plot; 
 		int s_type;	//supported ITP type
-		
-		int needed_native; 
+		int needed_native;
+		bool can_invest; 
+		 
 		ask university_si{
-			investable_plot <- getInvestablePlot();		//get the first plot with highest SBA;
-			write "Getting Details of Investment";
-			needed_native <- getInvestmentDetailsOfPlot(investable_plot);
+			can_invest <- investment_open;
+			if(investment_open){
+				investable_plot <- getInvestablePlot();		//get the first plot with highest SBA;
+				write "Getting Details of Investment";
+				needed_native <- getInvestmentDetailsOfPlot(investable_plot);				
+			}
 		}
-		write "Investor: "+name+" is investing on plot: "+investable_plot.name+" with sba: "+investable_plot.stand_basal_area;
-		if(investable_plot != nil){
+		if(investable_plot != nil and can_invest){
 			//decide investment based on risk type
+			write "Investor: "+name+" is investing on plot: "+investable_plot.name+" with sba: "+investable_plot.stand_basal_area;
 			bool decision <- decideOnRisk(investable_plot, rt);
 			if(decision){
 				write "Must plant: "+needed_native+" investment_cost: "+investable_plot.investment_cost;
 				ask university_si{
 					do investOnPlot(myself, investable_plot);
-					do hirePlanter(investable_plot, needed_native);
+//					do hirePlanter(investable_plot, needed_native);
 					total_management_cost <- total_management_cost + ((NATIVE_price_per_SAPLING) * needed_native);
 					total_ITP_earning <- total_ITP_earning + investable_plot.investment_cost; 	//give the investment to the university
 				}			
@@ -85,7 +89,7 @@ species investor control: fsm{
 				write "Risk not satisfied!";
 			}	
 		}else{
-			write "No ready plot";
+			write "Cannot Invest";
 		}
 	}
 	
@@ -124,11 +128,7 @@ species investor control: fsm{
 	}
 	
 	state potential_active initial: true{ 
-	 	if(assignedNurseries){
-	 		write "Deciding investment... ";
-	 		do decideInvestment;	
-	 	}
-	 
+	 	do decideInvestment;	
 	    transition to: investing when: (my_plot != nil);
 	} 
 	

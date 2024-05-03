@@ -13,8 +13,8 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	parameter "Total count of investors" category: "Investors" var: investor_count min: 0 step: 1;
 	parameter "Size of investable plot" category: "Investors" var: plot_size min: 1 step: 1;
 	
-	parameter "Total count of community members" category: "Community Members" var: member_count min: 0 step: 1;
-	parameter "Waiting allowance" category: "Community Members" var: waiting_allowance min: 0 step: 1;
+//	parameter "Total count of community members" category: "Community Members" var: member_count min: 0 step: 1;
+//	parameter "Waiting allowance" category: "Community Members" var: waiting_allowance min: 0 step: 1;
 	
 	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
 	
@@ -41,33 +41,33 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 			species plot;
 			species investor visible: false;
 			species labour aspect: si;
-			species comm_member visible: false;
+//			species comm_member visible: false;
 			species special_police aspect: si;
 		}
 		
-		display chart1 type: java2D{	
-			chart "Total harvested trees" type: series
-			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				ask university_si{
-					data name value: tht;	
-				}
-            	loop i over: comm_member{
-            		data i.name value: h_monitor[i];
-            	}
-			}
-		}
-
-		display chart2 type: java2D{	
-			chart "Community member according to state" type: series
-			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				list<string> states <- ["potential_partner", "labour_partner", "independent_harvesting", "independent_passive"];
-				loop i over: states{
-            		data i value: count(comm_member, each.state = i);
-            	}
-			}
-		}
+//		display chart1 type: java2D{	
+//			chart "Total harvested trees" type: series
+//			{
+//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+//				ask university_si{
+//					data name value: tht;	
+//				}
+//            	loop i over: comm_member{
+//            		data i.name value: h_monitor[i];
+//            	}
+//			}
+//		}
+//
+//		display chart2 type: java2D{	
+//			chart "Community member according to state" type: series
+//			{
+//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+//				list<string> states <- ["potential_partner", "labour_partner", "independent_harvesting", "independent_passive"];
+//				loop i over: states{
+//            		data i value: count(comm_member, each.state = i);
+//            	}
+//			}
+//		}
 		
 		display chart4 type: java2D{	
 			chart "Investor total earnings" type: series
@@ -80,38 +80,38 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 			}
 		}
 		
-		display chart5 type: java2D{	
-			chart "Community member total earnings" type: series
-			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				loop i over: comm_member{
-            		data i.name value: i.total_earning;
-            	}
-			}
-		}
-		
-		display chart6 type: java2D{	
-			chart "Own laborer total earning" type: series
-			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				list<labour> own_laborer <- labour where (each.com_identity=nil); 
-				loop i over: own_laborer{
-            		data i.name value: i.total_earning;
-            	}
-			}
-		}	
-		
-		display chart7 type: java2D{	
-			chart "Own laborer according to state" type: series
-			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				list<string> states <- ["independent", "assigned_itp_harvester", "assigned_planter", "assigned_nursery", "manage_nursery", "vacant"];
-				list<labour> own_laborer <- labour where (each.com_identity=nil);
-				loop i over: states{
-            		data i value: count(own_laborer, each.state = i);
-            	}
-			}
-		}
+//		display chart5 type: java2D{	
+//			chart "Community member total earnings" type: series
+//			{
+//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+//				loop i over: comm_member{
+//            		data i.name value: i.total_earning;
+//            	}
+//			}
+//		}
+//		
+//		display chart6 type: java2D{	
+//			chart "Own laborer total earning" type: series
+//			{
+//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+//				list<labour> own_laborer <- labour where (each.com_identity=nil); 
+//				loop i over: own_laborer{
+//            		data i.name value: i.total_earning;
+//            	}
+//			}
+//		}	
+//		
+//		display chart7 type: java2D{	
+//			chart "Own laborer according to state" type: series
+//			{
+//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+//				list<string> states <- ["independent", "assigned_itp_harvester", "assigned_planter", "assigned_nursery", "manage_nursery", "vacant"];
+//				list<labour> own_laborer <- labour where (each.com_identity=nil);
+//				loop i over: states{
+//            		data i value: count(own_laborer, each.state = i);
+//            	}
+//			}
+//		}
 		
 		monitor "Total University Earning" value: total_ITP_earning;
 		monitor "Total Management Cost" value: total_management_cost;

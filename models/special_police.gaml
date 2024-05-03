@@ -53,19 +53,19 @@ species special_police{
 		return plot - guarded_plots;
 	} 
 	
-	reflex guardPlotNeighborhood when: is_servicing{
-		loop on over: observed_neighborhood{
-			on.is_policed <- true;
-			ask on.my_laborers{
-				if(self = nil){
-					remove self from: on.my_laborers;	
-				}else if(com_identity!=nil and com_identity.state="independent_harvesting" and !com_identity.is_caught){
-					write "Special police "+name+" caught member "+com_identity.name;
-					com_identity.is_caught <- true;
-					myself.total_comm_members_reprimanded <- myself.total_comm_members_reprimanded + 1; 
-				}
-			}
-		}
-	} 
+//	reflex guardPlotNeighborhood when: is_servicing{
+//		loop on over: observed_neighborhood{
+//			on.is_policed <- true;
+//			ask on.my_laborers{
+//				if(self = nil){
+//					remove self from: on.my_laborers;	
+//				}else if(com_identity!=nil and com_identity.state="independent_harvesting" and !com_identity.is_caught){
+//					write "Special police "+name+" caught member "+com_identity.name;
+//					com_identity.is_caught <- true;
+//					myself.total_comm_members_reprimanded <- myself.total_comm_members_reprimanded + 1; 
+//				}
+//			}
+//		}
+//	} 
 	
 }

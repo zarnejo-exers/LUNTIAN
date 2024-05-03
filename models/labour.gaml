@@ -16,7 +16,7 @@ species labour control: fsm{
 	int COMM_LABOUR <- 1;
 	int labor_type; 	//important when hiring community labor 
 	
-	list<plot> my_plots <- [];
+	plot my_plot;
 	plot plot_to_harvest;	//for ITP harvesting laborer
 	plot plot_to_plant; 	//for ITP planting laborer
 	list<trees> harvested_trees;
@@ -36,7 +36,7 @@ species labour control: fsm{
 	
 	int count_bought_nsaplings; 
 	
-	comm_member com_identity <- nil;
+//	comm_member com_identity <- nil;
 	list<trees> all_seedlings_gathered <- [];  
 	list<plot> visited_plot <- [];
 	
@@ -62,20 +62,6 @@ species labour control: fsm{
 	//when tree dies, it is removed from the plot but the laborer isn't aware yet that it has died	
 	reflex removeDeadTrees{
 		my_trees <- my_trees where !dead(each);
-	}
-	
-	//put the laborer at the the center of one of its assigned plots
-	action assignLocation{
-		if(length(my_plots) = 0){
-			return;
-		}
-		
-		if(length(my_plots where each.has_road) > 0){	//one of the plot has a road, put the laborer on one of the plots with a road
-			current_plot <- one_of(my_plots where each.has_road);
-		}else{	//put the laborer randomly
-			current_plot <- one_of(my_plots);
-		}
-		self.location <- current_plot.location;
 	}
 	
 	//laborer gets as much tree as it can get 
@@ -114,17 +100,15 @@ species labour control: fsm{
 	
 	//gather all seedlings from the current plot
 	list<trees> gatherSeedlings(plot curr_plot){
-		list<trees> c_trees <- curr_plot.plot_trees where !dead(each);
-		list<trees> all_seedlings <- c_trees where (each.state = SEEDLING);
+		list<trees> all_seedlings <- curr_plot.plot_trees where (each.state = SEEDLING);
 		list<plot> coverage <- closest_to(plot, curr_plot, 8);	//a single nursery laborer can scan 9 neighborhoods in 1 month
 		
 		loop c_plot over: coverage{
-			c_trees <- c_plot.plot_trees where !dead(each);
 			if(length(all_seedlings) > carrying_capacity){
 				all_seedlings <- all_seedlings[0::carrying_capacity];
 				break;
 			}else{
-				all_seedlings <- all_seedlings + (c_trees where (each.state = SEEDLING));
+				all_seedlings <- all_seedlings + (curr_plot.plot_trees where (each.state = SEEDLING));
 			}
 		}
 		
@@ -301,8 +285,8 @@ species labour control: fsm{
 	state vacant initial: true{	
 		transition to: assigned_nursery when: nursery_labour_type != -1;
 		transition to: manage_nursery when: (is_nursery_labour and nursery_labour_type = -1);
-		transition to: assigned_itp_harvester when: (is_harvest_labour and plot_to_harvest != nil);
-		transition to: assigned_planter when: is_planting_labour;
+//		transition to: assigned_itp_harvester when: (is_harvest_labour and plot_to_harvest != nil);
+//		transition to: assigned_planter when: is_planting_labour;
 	}
 	
 	state manage_nursery{
@@ -327,65 +311,66 @@ species labour control: fsm{
 			 		
 		transition to: vacant when: !((fruiting_months_N + fruiting_months_E) contains current_month){	//stop gathering of seedlings once fruiting month has ended
 			write "---Putting all gathered seedlings to plot---";
-			if(length(all_seedlings_gathered) > 0){
-				plot n_plot <- nil;
-				ask university_si{
-					n_plot <- one_of(my_nurseries where (each.nursery_type = myself.nursery_labour_type));	
-				}
-				if(n_plot != nil){	//if n_plot = nil, the nursery laborer just manages the nursery and doesn't have anything to replant
-					do plantInPlot(all_seedlings_gathered, n_plot, nil);	//put to nursery all the gathered seedlings
-					all_seedlings_gathered <- [];
-					visited_plot <- [];
-					nursery_labour_type <- -1;	
-				}
-				
-			}else{
-				write "Nursery laborers wasn't able to gather seeds";
-			}
+			//TODO: CHECK THIS!
+//			if(length(all_seedlings_gathered) > 0){
+//				plot n_plot <- nil;
+//				ask university_si{
+//					n_plot <- one_of(my_nurseries where (each.nursery_type = myself.nursery_labour_type));	
+//				}
+//				if(n_plot != nil){	//if n_plot = nil, the nursery laborer just manages the nursery and doesn't have anything to replant
+//					do plantInPlot(all_seedlings_gathered, n_plot, nil);	//put to nursery all the gathered seedlings
+//					all_seedlings_gathered <- [];
+//					visited_plot <- [];
+//					nursery_labour_type <- -1;	
+//				}
+//				
+//			}else{
+//				write "Nursery laborers wasn't able to gather seeds";
+//			}
 			is_nursery_labour <- false;
 		}
 	}
 	
-	//hired only once
-	state assigned_planter{
-		//go to nurseries and get trees as much as it can carry => carrying_capacity
-		write "Count of bought saplings: "+count_bought_nsaplings;
-		if(count_bought_nsaplings > 0){	//count_bought_nsaplings is the number of saplings bought by the university that is allotted to the planter for replanting
-			do plantBoughtSaplings();
-		}else{	//if there's no allotted saplings, get from the nursery # of saplings = laborer capacity
-			do getFromNursery();
-		}
-		
-		transition to: vacant when: !is_planting_labour{
-			count_bought_nsaplings <- 0;
-			plot_to_plant <- nil; 
-		}
-	    
-	    exit{
-	    	p_t_type <- -1;
-	    }
-	}
-	
-	state assigned_itp_harvester{
-		do cutTrees(harvested_trees);
-		
-		transition to: vacant when: plot_to_harvest = nil;
-	    
-	    exit{
-	    	h_t_type <- -1;
-	    }
-	}
-	
-	state independent{	//if instance of independent community member 
-		if(plot_to_harvest != nil){
-			do harvestPlot;
-			ask com_identity{
-				do completeHarvest(myself.harvested_trees);
-			}
-			do cutTrees(harvested_trees);
-		}
-		
-		transition to: assigned_itp_harvester when: is_harvest_labour;
-		transition to: assigned_planter when: is_planting_labour;
-	}
+//	//hired only once
+//	state assigned_planter{
+//		//go to nurseries and get trees as much as it can carry => carrying_capacity
+//		write "Count of bought saplings: "+count_bought_nsaplings;
+//		if(count_bought_nsaplings > 0){	//count_bought_nsaplings is the number of saplings bought by the university that is allotted to the planter for replanting
+//			do plantBoughtSaplings();
+//		}else{	//if there's no allotted saplings, get from the nursery # of saplings = laborer capacity
+//			do getFromNursery();
+//		}
+//		
+//		transition to: vacant when: !is_planting_labour{
+//			count_bought_nsaplings <- 0;
+//			plot_to_plant <- nil; 
+//		}
+//	    
+//	    exit{
+//	    	p_t_type <- -1;
+//	    }
+//	}
+//	
+//	state assigned_itp_harvester{
+//		do cutTrees(harvested_trees);
+//		
+//		transition to: vacant when: plot_to_harvest = nil;
+//	    
+//	    exit{
+//	    	h_t_type <- -1;
+//	    }
+//	}
+//	
+//	state independent{	//if instance of independent community member 
+//		if(plot_to_harvest != nil){
+//			do harvestPlot;
+//			ask com_identity{
+//				do completeHarvest(myself.harvested_trees);
+//			}
+//			do cutTrees(harvested_trees);
+//		}
+//		
+//		transition to: assigned_itp_harvester when: is_harvest_labour;
+//		transition to: assigned_planter when: is_planting_labour;
+//	}
 }

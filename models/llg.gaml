@@ -18,8 +18,8 @@ global {
 	int POLE <- 2;
 	int ADULT <- 3;
 	
-	file trees_shapefile <- shape_file("../includes/TREES_4GRID.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_4GRID.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
@@ -72,7 +72,7 @@ global {
 	
 	list<point> drain_cells <- [];
 	
-	geometry shape <- envelope(Soil_Group);	//Soil_Group
+	geometry shape <- envelope(Soil_Group);	//Soil_Group or plot_shapefile
 	geometry plot_shape <- envelope(plot_shapefile);
 	list<geometry> clean_lines;
 	list<list<point>> connected_components ;
@@ -154,8 +154,10 @@ global {
 			closest_clim <- climate closest_to self;
 			stand_basal_area <- plot_trees sum_of (each.basal_area);
 			
-			list<river> c_river <- river at_distance(100#m);
-			if(length(c_river) > 0){
+			river closest_river <- river closest_to self;
+			distance_to_river <- closest_river distance_to self;
+			
+			if(distance_to_river <= 100#m){
 				is_near_water <- true;
 			}
 			
@@ -544,6 +546,7 @@ species plot{
 	geometry neighborhood_shape <- nil;
 	float my_pH <- (soil closest_to location).soil_pH;
 	climate my_climate <- climate closest_to location;
+	float distance_to_river;
 	
 	float curr_precip <- my_climate.precipitation[current_month] update: my_climate.precipitation[current_month];
 	float curr_temp <- my_climate.temperature[current_month] update: my_climate.temperature[current_month];
@@ -562,7 +565,8 @@ species plot{
 	bool is_itp <- false;
 	bool is_policed <- false;
 	int nursery_type <- -1;
-	bool is_investable <- false;	
+	bool is_investable <- false;
+
 	
 	list<labour> my_laborers <- [];
 	int tree_count <- 0 update: length(plot_trees);
@@ -603,29 +607,15 @@ species plot{
 		}
 	}
 	
-	
 	aspect default{
 		draw shape color: rgb(153,136,0);
 	}
 	
 	//if there exist a mother tree in one of the trees inside the plot, it becomes a candidate nursery
-	reflex checkifCandidateNursery{	// should be reflex
+	//put 
+	reflex checkifCandidateNursery when: has_road{	// should be reflex
 		int mother_count <- length(plot_trees where each.is_mother_tree);
 		is_candidate_nursery <- (mother_count > 0)?true:false;
-	}
-	
-	//removes spaces occupied by trees
-	//temp_shape can be the shape of a parcel
-	//trees_inside can be the parcel_trees
-	geometry removeTreeOccupiedSpace(geometry temp_shape, list<trees> trees_inside){
-		//remove from occupied spaces
-		loop pt over: trees_inside{
-			if(dead(pt)){ continue; }
-			//geometry occupied_space <- circle(pt.dbh, pt.location);
-			temp_shape <- temp_shape - circle(pt.dbh, pt.location);//occupied_space; dbh+ room for growth
-		}
-		
-		return temp_shape;
 	}
 	
 	reflex checkIsDry{

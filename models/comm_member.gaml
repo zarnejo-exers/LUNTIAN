@@ -64,23 +64,23 @@ species comm_member control: fsm{
 	}
 	
 	//get a plot where to harvest
-	action findPlot{
-		list<comm_member> not_cooperating_members <- [];
-		if(instance_labour.plot_to_harvest != nil){	//laborer has been harvesting 
-			//get an adjacent plot
-			list<plot> closest_plot <-  plot closest_to(instance_labour.plot_to_harvest, 10);	//get the 10 closest plot to current plot
-			instance_labour.plot_to_harvest <- first(sort_by(closest_plot, length(each.plot_trees)));						//return the plot with the most number of trees
-		}else{
-			not_cooperating_members <- comm_member where (each.state = "independent_harvesting" and each.instance_labour != nil and (each.instance_labour.plot_to_harvest != nil));
-			ask instance_labour{
-				if(length(not_cooperating_members) > 0){	//there's another independent_harvesting community member
-					do setPlotToHarvest(one_of(not_cooperating_members).instance_labour.plot_to_harvest);	//choose who to follow randomly and return one of the plots where it is harvesting
-				}else{	//this is the first independent_harvesting community member
-					do setPlotToHarvest(myself.getFringePlot());
-				}	
-			}
-		}
-	}
+//	action findPlot{
+//		list<comm_member> not_cooperating_members <- [];
+//		if(instance_labour.plot_to_harvest != nil){	//laborer has been harvesting 
+//			//get an adjacent plot
+//			list<plot> closest_plot <-  plot closest_to(instance_labour.plot_to_harvest, 10);	//get the 10 closest plot to current plot
+//			instance_labour.plot_to_harvest <- first(sort_by(closest_plot, length(each.plot_trees)));						//return the plot with the most number of trees
+//		}else{
+//			not_cooperating_members <- comm_member where (each.state = "independent_harvesting" and each.instance_labour != nil and (each.instance_labour.plot_to_harvest != nil));
+//			ask instance_labour{
+//				if(length(not_cooperating_members) > 0){	//there's another independent_harvesting community member
+//					do setPlotToHarvest(one_of(not_cooperating_members).instance_labour.plot_to_harvest);	//choose who to follow randomly and return one of the plots where it is harvesting
+//				}else{	//this is the first independent_harvesting community member
+//					do setPlotToHarvest(myself.getFringePlot());
+//				}	
+//			}
+//		}
+//	}
 	
 	//uses the same metrics as with the university in terms of determining the cost per harvested tree
 	float computeEarning(list<trees> harvested_trees){
@@ -169,9 +169,8 @@ species comm_member control: fsm{
 	    	total_earning <- total_earning + current_earning;
 	    	current_earning <- 0.0;
 	    	
-	    	loop mp over: instance_labour.my_plots{
-	    		remove instance_labour from: mp.my_laborers;	
-	    	}
+	    	remove instance_labour from: instance_labour.my_plot.my_laborers;
+	    	
 	    	ask instance_labour{
 	    		do die;
 	    	}
@@ -184,12 +183,12 @@ species comm_member control: fsm{
 	state independent_harvesting { 
 	    enter {//create an instance of a labour for the harvester
 		    create labour{
-				com_identity <- myself;
+//				com_identity <- myself;
 				myself.instance_labour <- self;
 				nursery_labour_type <- -1;
 				is_harvest_labour <- nil;
 				is_planting_labour <- nil;
-				my_plots <- nil;
+				my_plot <- nil;
 				state <- "independent";
 			}
 		} 
@@ -202,7 +201,7 @@ species comm_member control: fsm{
 	    } 
 	    
 	    loop i from: 0 to: 2{	//will look for plot three times then stop
-			do findPlot();	//find the plot where to harvest
+//			do findPlot();	//find the plot where to harvest
 			if(instance_labour.plot_to_harvest != nil){
 				break;
 			}	
@@ -222,9 +221,7 @@ species comm_member control: fsm{
 	    
 	    exit {
 	    	if(instance_labour != nil){
-	    		loop mp over: instance_labour.my_plots{
-	    			remove instance_labour from: mp.my_laborers;	
-	    		}
+	    		remove instance_labour from: instance_labour.my_plot.my_laborers;
 	    		remove instance_labour from: instance_labour.plot_to_harvest.my_laborers;
 	    		ask instance_labour{ do die; }
 	    		instance_labour <- nil;
