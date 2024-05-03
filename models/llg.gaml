@@ -372,7 +372,7 @@ species trees{
 			//make sure that there is sufficient space before putting the tree in the new location
 			point new_location <- any_location_in(t_space);
 			if(new_location = nil){
-				write "CANNOT add recruit. NO MORE SPACE!";
+				//write "CANNOT add recruit. NO MORE SPACE!";
 				break;
 			}	//don't add seeds if there are no space
 
@@ -458,10 +458,14 @@ species trees{
 					//compute for fgap
 					geometry recruitment_space <- circle((dbh/2)#cm + 20#m);	//recruitment space
 					geometry actual_space_available <- getTreeSpaceForRecruitment();
-					float fgap <- 1- (actual_space_available.area / recruitment_space.area);
 					
-					int total_no_1yearold <- int(number_of_fruits *42.4 *0.085*fgap*0.618);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 
-					do recruitTree(total_no_1yearold, actual_space_available);	
+					if(actual_space_available != nil){
+						float fgap <- 1- (actual_space_available.area / recruitment_space.area);
+					
+						int total_no_1yearold <- int(number_of_fruits *42.4 *0.085*fgap*0.618);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 
+						do recruitTree(total_no_1yearold, actual_space_available);	
+					}
+						
 					number_of_fruits <- 0;
 					is_mother_tree <- false;
 				}

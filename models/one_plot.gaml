@@ -23,8 +23,8 @@ global{
 	float growth_rate_exotic <- 1.25;//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	float growth_rate_native <- 0.72;	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	
-	file trees_shapefile <- shape_file("../includes/TREES_4GRID.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_4GRID.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
@@ -67,7 +67,7 @@ global{
 	
 	list<point> drain_cells <- [];
 	
-	geometry shape <- envelope(Soil_Group);	//Soil_Group
+	geometry shape <- envelope(plot_shapefile);	//Soil_Group
 	geometry plot_shape <- envelope(plot_shapefile);
 	list<geometry> clean_lines;
 	list<list<point>> connected_components ;
@@ -543,7 +543,7 @@ species trees{
 			//make sure that there is sufficient space before putting the tree in the new location
 			point new_location <- any_location_in(t_space);
 			if(new_location = nil){
-				write "CANNOT add recruit. NO MORE SPACE!";
+//				write "CANNOT add recruit. NO MORE SPACE!";
 				break;
 			}	//don't add seeds if there are no space
 
@@ -629,10 +629,12 @@ species trees{
 					//compute for fgap
 					geometry recruitment_space <- circle((dbh/2)#cm + 20#m);	//recruitment space
 					geometry actual_space_available <- getTreeSpaceForRecruitment();
-					float fgap <- 1- (actual_space_available.area / recruitment_space.area);
+					if(actual_space_available != nil){
+						float fgap <- 1- (actual_space_available.area / recruitment_space.area);
 					
-					int total_no_1yearold <- int(number_of_fruits *42.4 *0.085*fgap*0.618);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 
-					do recruitTree(total_no_1yearold, actual_space_available);	
+						int total_no_1yearold <- int(number_of_fruits *42.4 *0.085*fgap*0.618);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 
+						do recruitTree(total_no_1yearold, actual_space_available);	
+					}
 					number_of_fruits <- 0;
 					is_mother_tree <- false;
 				}
@@ -730,11 +732,11 @@ experiment oneplot type: gui{
 		display op type: opengl camera:#isometric{
 			species climate;
 			species plot; 
-			species trees aspect: geom3D;
+//			species trees aspect: geom3D;
 			species river;
 			species road;
-			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
-			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
+//			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
+//			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
 		}
 		
 		display chart6 type: java2D{	
