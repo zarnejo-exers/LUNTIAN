@@ -476,7 +476,7 @@ species trees{
 	}
 	
 	//based on Vanclay(1994) schematic representation of growth model
-	reflex growthModel when: location != nil{	//trees with location = nil are currently in the "bags" of laborers, meaning, gathered as seedling 
+	reflex growthModel when: location != point(0,0,0){	//trees with location = nil are currently in the "bags" of laborers, meaning, gathered as seedling 
 		if(checkMortality()){
 			remove self from: my_plot.plot_trees;
 			if(state = ADULT){

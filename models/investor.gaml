@@ -127,34 +127,34 @@ species investor control: fsm{
 		}
 	}
 	
-	state potential_active initial: true{ 
-	 	do decideInvestment;	
-	    transition to: investing when: (my_plot != nil);
-	} 
-	
-	state investing { 
-	 	do updateRotationYears;
-	 	
-	    transition to: potential_active when: (!waiting and (recent_profit >= promised_profit));
-	    transition to: potential_passive when: (!waiting and (recent_profit < promised_profit));
-	 
-	    exit {
-	    	my_plot.is_invested <- false;
-	        my_plot <- nil;
-	    	total_investment <- total_investment + investment;
-	    	recent_profit <- 0.0;
-	    	harvest_monitor <- 0;
-	    	investment <- 0.0;
-	    } 
-	}
-	
-	state potential_passive { 
-	    string risk <- risk_types.keys[rt];
-		if(risk = "Neutral"){
-			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
-		}
-		bool to_transition <- flip(risk_types[risk]);
-	    
-	    transition to: potential_active when: (to_transition);
-	}
+//	state potential_active initial: true{ 
+//	 	do decideInvestment;	
+//	    transition to: investing when: (my_plot != nil);
+//	} 
+//	
+//	state investing { 
+//	 	do updateRotationYears;
+//	 	
+//	    transition to: potential_active when: (!waiting and (recent_profit >= promised_profit));
+//	    transition to: potential_passive when: (!waiting and (recent_profit < promised_profit));
+//	 
+//	    exit {
+//	    	my_plot.is_invested <- false;
+//	        my_plot <- nil;
+//	    	total_investment <- total_investment + investment;
+//	    	recent_profit <- 0.0;
+//	    	harvest_monitor <- 0;
+//	    	investment <- 0.0;
+//	    } 
+//	}
+//	
+//	state potential_passive { 
+//	    string risk <- risk_types.keys[rt];
+//		if(risk = "Neutral"){
+//			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
+//		}
+//		bool to_transition <- flip(risk_types[risk]);
+//	    
+//	    transition to: potential_active when: (to_transition);
+//	}
 }

@@ -163,7 +163,7 @@ species university_si{
 		ask free_laborer{
 			is_nursery_labour <- true;
 			current_plot <- n_plot;
-			my_plot <- n_plot;	//assigned plot
+			my_assigned_plot <- n_plot;	//assigned plot
 			location <- n_plot.location;
 			add self to: n_plot.my_laborers;
 			add self to: myself.n_laborers;
@@ -478,62 +478,62 @@ species university_si{
 	// after investment, must buy #native_count of saplings and replant it in the_plot to fill the plot
 	// TODO: 
 	//	incur additional cost 
-	bool hirePlanter(plot the_plot, int native_count){
-		int planting_capacity <- native_count;
-		if(native_count = 0){	//no needed native saplings
-			list<plot> nurseries <- plot where each.is_nursery;	//get the number of trees in the nurseries
-			
-			ask nurseries{
-				planting_capacity <- planting_capacity + getSaplingsCountS(NATIVE) + getSaplingsCountS(EXOTIC);
-			}
-		}
-		
-		int needed_planters <- int(planting_capacity / LABOUR_PCAPACITY)+1;	//each laborer have planting capacity
-		
-		list<labour> avail_planters <- getLaborers(needed_planters, false);	//if there's no laborer avail, get all assigned_planter
-		
-		if(length(avail_planters) = 0){
-			avail_planters <- getLaborers(needed_planters, true);
-		}
-		
-		//write "Total hired planters: "+length(avail_planters)+" for plot: "+the_plot.name;
-		loop p over: avail_planters{
-			p.man_months <- [PLANTING_LABOUR, 1, 0];
-			p.is_planting_labour <- true;
-			p.plot_to_plant <- the_plot;
-			add p to: the_plot.my_laborers;
-			p.state <- "assigned_planter";
-			if(native_count > LABOUR_PCAPACITY){
-				p.count_bought_nsaplings <- LABOUR_PCAPACITY;
-				native_count <- native_count - LABOUR_PCAPACITY;	
-			}else{
-				p.count_bought_nsaplings <- native_count;
-			}
-		}
-		
-		//COST: 
-		//3. pay hired harvesters 1month worth of wage
-		loop laborers over: avail_planters{
-			do payLaborer(laborers);
-			laborers.is_planting_labour <- false;
-		}
-		
-		return true;
-	}
+//	bool hirePlanter(plot the_plot, int native_count){
+//		int planting_capacity <- native_count;
+//		if(native_count = 0){	//no needed native saplings
+//			list<plot> nurseries <- plot where each.is_nursery;	//get the number of trees in the nurseries
+//			
+//			ask nurseries{
+//				planting_capacity <- planting_capacity + getSaplingsCountS(NATIVE) + getSaplingsCountS(EXOTIC);
+//			}
+//		}
+//		
+//		int needed_planters <- int(planting_capacity / LABOUR_PCAPACITY)+1;	//each laborer have planting capacity
+//		
+//		list<labour> avail_planters <- getLaborers(needed_planters, false);	//if there's no laborer avail, get all assigned_planter
+//		
+//		if(length(avail_planters) = 0){
+//			avail_planters <- getLaborers(needed_planters, true);
+//		}
+//		
+//		//write "Total hired planters: "+length(avail_planters)+" for plot: "+the_plot.name;
+//		loop p over: avail_planters{
+//			p.man_months <- [PLANTING_LABOUR, 1, 0];
+//			p.is_planting_labour <- true;
+//			p.plot_to_plant <- the_plot;
+//			add p to: the_plot.my_laborers;
+//			p.state <- "assigned_planter";
+//			if(native_count > LABOUR_PCAPACITY){
+//				p.count_bought_nsaplings <- LABOUR_PCAPACITY;
+//				native_count <- native_count - LABOUR_PCAPACITY;	
+//			}else{
+//				p.count_bought_nsaplings <- native_count;
+//			}
+//		}
+//		
+//		//COST: 
+//		//3. pay hired harvesters 1month worth of wage
+//		loop laborers over: avail_planters{
+//			do payLaborer(laborers);
+//			laborers.is_planting_labour <- false;
+//		}
+//		
+//		return true;
+//	}
 	
-	reflex monitorSBAforANR{
-		//get plots less than SBA = 35
-		list<plot> plot_for_ANR <- sort_by((plot where (each.stand_basal_area < 35)), each.stand_basal_area);	//35 = threshold for sustainable stand basal area
-		
-		write "Performing ANR on plots";
-		loop pfa over: plot_for_ANR{
-			if(!hirePlanter(pfa, 0)){
-				break;
-			}
-			ANR_instance <- ANR_instance + 1;
-		}
-		write "end of ANR";
-	}
+//	reflex monitorSBAforANR{
+//		//get plots less than SBA = 35
+//		list<plot> plot_for_ANR <- sort_by((plot where (each.stand_basal_area < 35)), each.stand_basal_area);	//35 = threshold for sustainable stand basal area
+//		
+//		write "Performing ANR on plots";
+//		loop pfa over: plot_for_ANR{
+//			if(!hirePlanter(pfa, 0)){
+//				break;
+//			}
+//			ANR_instance <- ANR_instance + 1;
+//		}
+//		write "end of ANR";
+//	}
 	
 //	reflex checkForITPHarvesting{
 //		list<plot> pt <- plot where (each.stand_basal_area > 60);
