@@ -133,9 +133,9 @@ species university_si{
 	float current_labor_cost <- 0.0;
 	float current_harvest_cost <- 0.0;
 	
-	int has_hired <- -1;
 	bool investment_open <- length(my_nurseries) >= nursery_count/2 update: length(my_nurseries) >= nursery_count/2;
 	list<plot> my_nurseries;	//list of nurseries managed by university
+	list<labour> n_laborers <- [];
 	
 	//candidate nursery are those plots with road 
 	//nursery plots are chosen based on the distance from river
@@ -156,63 +156,20 @@ species university_si{
 		}
 	}
 	
+	//once hired, nursery laborer either attends to the plot (manage_nursery) or goes out to gather seedlings (assigned_nursery)
 	action hireNurseryLaborer(plot n_plot){
 		labour free_laborer <- (sort_by((labour where (each.state = "vacant")), each.total_earning))[0];
 			
 		ask free_laborer{
 			is_nursery_labour <- true;
-			nursery_labour_type <- -1;
 			current_plot <- n_plot;
-			state <- "manage_nursery";
+			my_plot <- n_plot;	//assigned plot
+			location <- n_plot.location;
 			add self to: n_plot.my_laborers;
+			add self to: myself.n_laborers;
 		}
 	}
-	
-	//hire 5 laborers 
-	//TODO: check this!
-//	reflex hireNurseryLaborers{
-//		if((fruiting_months_N + fruiting_months_E) contains current_month){
-//			if(has_hired = -1){
-//				bool is_with_mother_trees; 
-//			
-//				ask university_si{
-//					is_with_mother_trees <- length(my_nurseries)>0; 
-//				}
-//				
-//				if(is_with_mother_trees){
-//					list<labour> nursery_laborers <- (sort_by(labour where (each.state = "vacant"), each.total_earning))[0::5];	//if there are laborers that the university manages
-//					
-//					//depending on the fruiting month, set the laborer to gather only that kind of fruit
-//					ask nursery_laborers{
-//						if(fruiting_months_N contains current_month){	//hire native tree fruit gatherer
-//							nursery_labour_type <- NATIVE;
-//							myself.has_hired <- NATIVE; 
-//						}else{	//hire exotic tree fruit gatherer
-//							nursery_labour_type <- EXOTIC;
-//							myself.has_hired <- EXOTIC;
-//						}	
-//						is_nursery_labour <- true;			
-//						current_plot <- one_of(plot);	//put laborer on a random location
-//						state <- "assigned_nursery";
-//					}
-//				}		
-//			}else{
-//				list<labour> hired_nursery_laborers <- labour where (each.nursery_labour_type = NATIVE or each.nursery_labour_type = EXOTIC);
-//				loop n_laborers over: hired_nursery_laborers{
-//					do payLaborer(n_laborers);
-//				}
-//				
-//			}
-//			
-//		}else if(has_hired != -1){ //not anymore fruiting season, and has hired someone from the previous fruiting season
-//			has_hired <- -1;
-//			
-//			loop m over: my_nurseries{
-//				do hireNurseryLaborer(m);	
-//			}
-//		}
-//	}	
-	
+		
 	/*
 	 * Determine amount of investment needed per hectare
 		Given the current number of trees in the plot, 

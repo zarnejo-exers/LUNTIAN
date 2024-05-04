@@ -22,7 +22,7 @@ species labour control: fsm{
 	list<trees> harvested_trees;
 	
 	plot current_plot;
-	list<trees> my_trees <- [];		//list of wildlings that the laborer currently carries
+	list<trees> my_trees <- [];		//list of wildlings/seedlings that the laborer currently carries
 	list<int> man_months <- [0,0,0];	//assigned, serviced, lapsed 
 	int carrying_capacity <- LABOUR_PCAPACITY;	//total number of wildlings that a laborer can carry to the nursery and to the ITP
 	
@@ -32,13 +32,13 @@ species labour control: fsm{
 	int p_t_type;	//planting tree type
 	int h_t_type;	//harvesting tree type
 	
-	int nursery_labour_type <- -1;	//-1 if not labour type, either NATIVE or EXOTIC
+	//int nursery_labour_type <- -1;	//-1 if not labour type, either NATIVE or EXOTIC
 	
 	int count_bought_nsaplings; 
 	
 //	comm_member com_identity <- nil;
 	list<trees> all_seedlings_gathered <- [];  
-	list<plot> visited_plot <- [];
+	list<plot> to_visit_plot <- [];
 	
 	float total_earning <- 0.0;		//total earning for the entire simulation
 	
@@ -96,30 +96,6 @@ species labour control: fsm{
 		location <- current_plot.location;
 		
 		return nil;	 
-	}
-	
-	//gather all seedlings from the current plot
-	list<trees> gatherSeedlings(plot curr_plot){
-		list<trees> all_seedlings <- curr_plot.plot_trees where (each.state = SEEDLING);
-		list<plot> coverage <- closest_to(plot, curr_plot, 8);	//a single nursery laborer can scan 9 neighborhoods in 1 month
-		
-		loop c_plot over: coverage{
-			if(length(all_seedlings) > carrying_capacity){
-				all_seedlings <- all_seedlings[0::carrying_capacity];
-				break;
-			}else{
-				all_seedlings <- all_seedlings + (curr_plot.plot_trees where (each.state = SEEDLING));
-			}
-		}
-		
-		//remove the seedlings from the plot
-		ask all_seedlings{
-			remove self from: self.my_plot.plot_trees;
-			add self to: myself.my_trees;	//my_trees is the bag of the laborer to hold the trees it had gathered
-			location <- nil;
-		}
-		
-		return all_seedlings;
 	}
 
 	//if source_plot = nil, then it is not a nursery plot
@@ -282,9 +258,31 @@ species labour control: fsm{
 		write "BoughtSaplings: "+bought_saplings+" - Count of trees after: "+length(plot_to_plant);
 	}
 	
+	
+	//gather all seedlings from the current plot
+	//randomly choose from its neighbor where it will gather seedlings 
+	list<trees> gatherSeedlings(plot c_plot){
+		location <- c_plot.location;
+		
+		list<trees> all_seedlings <- c_plot.plot_trees where (each.state = SEEDLING);
+		//get only what it can carry
+		if(length(all_seedlings) > carrying_capacity){
+			all_seedlings <- all_seedlings[0::carrying_capacity];
+		}
+		
+		//remove the seedlings from the plot
+		ask all_seedlings{
+			remove self from: my_plot.plot_trees;	//remove it from where it is currently planted
+			add self to: myself.my_trees;	//my_trees is the bag of the laborer to hold the trees it had gathered
+			location <- nil;	//no location, meaning the tree is currenltly held by laborer
+		}
+		
+		return all_seedlings;
+	}
+
+	
 	state vacant initial: true{	
-		transition to: assigned_nursery when: nursery_labour_type != -1;
-		transition to: manage_nursery when: (is_nursery_labour and nursery_labour_type = -1);
+		transition to: manage_nursery when: is_nursery_labour;
 //		transition to: assigned_itp_harvester when: (is_harvest_labour and plot_to_harvest != nil);
 //		transition to: assigned_planter when: is_planting_labour;
 	}
@@ -294,24 +292,46 @@ species labour control: fsm{
 		ask university_si{
 			do payLaborer(myself);
 		}
+		write "managing nursery";
 		
-		transition to: vacant when: (fruiting_months_N + fruiting_months_E) contains current_month{
-			is_nursery_labour <- false;
+		transition to: assigned_nursery when: ((fruiting_months_N + fruiting_months_E) contains current_month){//fruiting season, go out to gather
+			add all: (plot where !each.is_nursery) to: to_visit_plot;	
+			ask to_visit_plot{
+				write "name: "+name;
+				write "is nursery: "+is_nursery;
+			}
 		}
 	}
 	
+	//gathers seedlings for nursery
 	state assigned_nursery {
-		list<trees> seedlings_in_plot <- gatherSeedlings(current_plot); 
-		ask seedlings_in_plot{
-			add self to: myself.all_seedlings_gathered;
-		} 
-		add current_plot to: visited_plot;
-		current_plot <- (plot-visited_plot) closest_to current_plot;
 		//get another location
-			 		
-		transition to: vacant when: !((fruiting_months_N + fruiting_months_E) contains current_month){	//stop gathering of seedlings once fruiting month has ended
-			write "---Putting all gathered seedlings to plot---";
+		write "\ngathering seed for nursery. laborer: "+name;
+		write "(before) to visit plot: "+to_visit_plot;
+		list<plot> coverage <- closest_to(to_visit_plot, current_plot, 8);	//get the neighboring plots
+		write "current_plot: "+current_plot.name;
+		
+		if(coverage != []){
+			ask coverage{
+				write "Coverage: "+name;
+			} 
+			current_plot <- one_of(coverage);	//get a random location
+			write "Chosen plot: "+current_plot.name;
+			list<trees> seedlings_in_plot <- gatherSeedlings(current_plot);
+			write "Seedlings before: "+length(all_seedlings_gathered); 
+			all_seedlings_gathered <<+ seedlings_in_plot;
+			write "Seedlings after: "+length(all_seedlings_gathered);
+			
+			remove current_plot from: to_visit_plot;	
+		}else{
+			write "have harvested all possible places. nowhere to harvest";
+		}
+		write "(after) to visit plot: "+to_visit_plot;
+		transition to: manage_nursery when: !((fruiting_months_N + fruiting_months_E) contains current_month){	//!fruiting season, return to nursery
+			
 			//TODO: CHECK THIS!
+			//plant first before returning to nursery
+//			write "---Putting all gathered seedlings to plot---";
 //			if(length(all_seedlings_gathered) > 0){
 //				plot n_plot <- nil;
 //				ask university_si{
@@ -327,7 +347,7 @@ species labour control: fsm{
 //			}else{
 //				write "Nursery laborers wasn't able to gather seeds";
 //			}
-			is_nursery_labour <- false;
+//			is_nursery_labour <- false;
 		}
 	}
 	
