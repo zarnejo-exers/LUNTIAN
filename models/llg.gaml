@@ -18,10 +18,10 @@ global {
 	int POLE <- 2;
 	int ADULT <- 3;
 	
-	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
-//	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//mixed species
-//	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
+//	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
+//	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
@@ -74,8 +74,7 @@ global {
 	
 	list<point> drain_cells <- [];
 	
-	geometry shape <- envelope(Soil_Group);	//Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
-//	geometry plot_shape <- envelope(plot_shapefile);
+	geometry shape <- envelope(plot_shapefile);	//Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
 	list<geometry> clean_lines;
 	list<list<point>> connected_components ;
 	list<rgb> colors;
@@ -259,7 +258,7 @@ species trees{
 	int has_fruit_growing <- 0;	//timer once there are fruits, from 12 - 0, where fruits now has grown into 1-year old seedlings
 	bool has_flower <- false;
 	bool is_new_tree <- false;
-	
+	bool is_marked <- false;
 	
 	list<trees> my_neighbors; 	
 	
@@ -268,7 +267,9 @@ species trees{
 		if(crown_diameter != 0){
 			//this is the crown
 			// /2 since parameter asks for radius
-			if(type = NATIVE){
+			if(is_marked){
+				draw sphere((self.crown_diameter/2)#m) color: #black at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
+			}else if(type = NATIVE){
 				draw sphere((self.crown_diameter/2)#m) color: #darkgreen at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
 			}else{
 				draw sphere((self.crown_diameter/2)#m) color: #violet at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};

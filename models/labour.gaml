@@ -17,14 +17,12 @@ species labour control: fsm{
 	int labor_type; 	//important when hiring community labor 
 	
 	plot my_assigned_plot;
-	plot plot_to_harvest;	//for ITP harvesting laborer
-	plot plot_to_plant; 	//for ITP planting laborer
-	list<trees> harvested_trees;
+	list<trees> marked_trees;	//filled 
 	
 	plot current_plot;
 	list<trees> my_trees <- [];		//list of wildlings/seedlings that the laborer currently carries
 	list<int> man_months <- [0,0,0];	//assigned, serviced, lapsed 
-	int carrying_capacity <- LABOUR_PCAPACITY;	//total number of wildlings that a laborer can carry to the nursery and to the ITP
+	int carrying_capacity <- LABOUR_TCAPACITY;	//total number of wildlings that a laborer can carry to the nursery and to the ITP
 	
 	bool is_harvest_labour <- false;
 	bool is_planting_labour <- false;
@@ -140,15 +138,14 @@ species labour control: fsm{
 		return main_space - t_shape;	//remove all occupied space;		
 	}
 
-//	action cutTrees(list<trees> t){
-//		ask t{
-//			remove self from: myself.harvested_trees;
-//			remove self from: my_plot.plot_trees;
-//			remove myself from: my_plot.my_laborers;
-//			do die;
-//		}
-//		plot_to_harvest <- nil;
-//	}
+	action cutMarkedTrees{
+		ask marked_trees{
+			remove self from: my_plot.plot_trees;
+			remove myself from: my_plot.my_laborers;
+			do die;
+		}
+		remove all: marked_trees from: marked_trees;
+	}
 	
 //	//find a nursery with seedling and return the plot
 //	plot goToNursery{
@@ -285,8 +282,9 @@ species labour control: fsm{
 
 	
 	state vacant initial: true{	
+		location <- point(0,0,0);
 		transition to: manage_nursery when: is_nursery_labour;
-//		transition to: assigned_itp_harvester when: (is_harvest_labour and plot_to_harvest != nil);
+		transition to: assigned_itp_harvester when: (is_harvest_labour and my_assigned_plot != nil);	//my_assigned_plot is an ITP plot
 //		transition to: assigned_planter when: is_planting_labour;
 	}
 	
@@ -358,15 +356,25 @@ species labour control: fsm{
 //	    }
 //	}
 //	
-//	state assigned_itp_harvester{
-//		do cutTrees(harvested_trees);
-//		
-//		transition to: vacant when: plot_to_harvest = nil;
-//	    
-//	    exit{
-//	    	h_t_type <- -1;
-//	    }
-//	}
+	//stays in this state for 1 step only
+	state assigned_itp_harvester{
+		write "\n[before] Marked TREES: "+length(marked_trees);
+		do cutMarkedTrees();
+		write "[after] Marked TREES: "+length(marked_trees);
+		
+		//COST: 
+		//3. pay hired harvesters 1month worth of wage
+		ask university_si{
+			do payLaborer(myself);
+		}
+		
+		transition to: vacant{
+			remove self from: my_assigned_plot.my_laborers;
+			my_assigned_plot <- nil;
+			current_plot <- nil;
+			is_harvest_labour <- false;	
+		}
+	}
 //	
 //	state independent{	//if instance of independent community member 
 //		if(plot_to_harvest != nil){
