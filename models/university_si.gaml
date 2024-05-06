@@ -136,7 +136,7 @@ species university_si{
 	bool investment_open <- length(my_nurseries) >= nursery_count/2 update: length(my_nurseries) >= nursery_count/2;
 	list<plot> my_nurseries;	//list of nurseries managed by university
 	list<labour> n_laborers <- [];
-	list<plot> harvestable_plot <- plot where (each.stand_basal_area > 60) update: plot where (each.stand_basal_area > 60);
+	list<plot> harvestable_plot <- plot where (each.stand_basal_area > 12) update: plot where (each.stand_basal_area > 12);
 	
 	//candidate nursery are those plots with road 
 	//nursery plots are chosen based on the distance from river
@@ -380,17 +380,19 @@ species university_si{
 
 	//harvests upto capacity
 	//only returns what can be harvested in the plot
-//	list<trees> getTreesToHarvestSH(plot pth){
-//		list<trees> p <- pth.plot_trees where !dead(each);
-//		
-//		list<trees> tree60to70 <- p where (each.dbh >= 60 and each.dbh < 70);
-//		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
-//		list<trees> tree70to80 <- p where (each.dbh >= 70 and each.dbh < 80);
-//		tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
-//		list<trees> tree80up <- p where (each.dbh >= 80);
-//
-//		return tree60to70 + tree70to80 + tree80up;
-//	}
+	list<trees> getTreesToHarvestSH(plot pth){
+		list<trees> trees_above_th <- pth.plot_trees where (each.dbh >= 60);
+		
+		list<trees> tree60to70 <- trees_above_th where (each.dbh >= 60 and each.dbh < 70);	//25% of trees with dbh[60,70)
+		trees_above_th <- trees_above_th - tree60to70;
+		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
+		
+		list<trees> tree70to80 <- trees_above_th where (each.dbh >= 70 and each.dbh < 80);	//75% of trees with dbh[70, 80)
+		trees_above_th <- trees_above_th - tree70to80;
+		tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
+		
+		return tree60to70 + tree70to80 + trees_above_th;
+	}
 	
 	list<labour> getLaborers(int needed_laborers, bool is_also_planters){ 
 		list<labour> available_laborers <- labour where ((each.labor_type = each.OWN_LABOUR and each.state="vacant") or (is_also_planters and each.state="assigned_planter"));	//get own laborers that are not nursery|planting labours
@@ -545,15 +547,13 @@ species university_si{
 	reflex checkForITPHarvesting{
 		write "University harvesting";
 		write "total_ITP_earning before: "+total_ITP_earning;
-		ask harvestable_plot{
-//			write "Harvesting in plot: "+p.name+" sba: "+p.stand_basal_area;
-//			ask university_si{
-//    			list<trees> trees_to_harvest_n <- (getTreesToHarvestSH(p)) where (each.type = NATIVE);
-//    			do harvestEarning(nil, timberHarvesting(false, p, trees_to_harvest_n), NATIVE, false);
-//    			list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(p)) where (each.type = EXOTIC);
-//				do harvestEarning(nil, timberHarvesting(false, p, trees_to_harvest_e), EXOTIC, false);
-//				do hirePlanter(p, 0);
-//    		}
+		loop h_plot over: harvestable_plot{
+			write "Harvesting in plot: "+h_plot.name+" sba: "+h_plot.stand_basal_area;
+    		list<trees> trees_to_harvest <- (getTreesToHarvestSH(h_plot));
+//    		do harvestEarning(nil, timberHarvesting(false, p, trees_to_harvest_n), NATIVE, false);
+//    		list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(p)) where (each.type = EXOTIC);
+//			do harvestEarning(nil, timberHarvesting(false, p, trees_to_harvest_e), EXOTIC, false);
+//			do hirePlanter(p, 0);
 		}
 		write "total_ITP_earning after: "+total_ITP_earning;
 	}
