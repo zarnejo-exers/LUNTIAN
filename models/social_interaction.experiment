@@ -68,17 +68,17 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 //            	}
 //			}
 //		}
-		
-		display chart4 type: java2D{	
-			chart "Investor total earnings" type: series
-			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				list<string> risks <-["Averse", "Loving", "Neutral"];
-				loop i over: investor{
-            		data i.name+"("+risks[i.rt]+")" value: i.total_profit;
-            	}
-			}
-		}
+//		
+//		display chart4 type: java2D{	
+//			chart "Investor total earnings" type: series
+//			{
+//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+//				list<string> risks <-["Averse", "Loving", "Neutral"];
+//				loop i over: investor{
+//            		data i.name+"("+risks[i.rt]+")" value: i.total_profit;
+//            	}
+//			}
+//		}
 		
 //		display chart5 type: java2D{	
 //			chart "Community member total earnings" type: series
@@ -90,28 +90,33 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 //			}
 //		}
 //		
-//		display chart6 type: java2D{	
-//			chart "Own laborer total earning" type: series
-//			{
-//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+		display chart6 type: java2D{	
+			chart "Own laborer total earning" type: series
+			{
+				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
 //				list<labour> own_laborer <- labour where (each.com_identity=nil); 
 //				loop i over: own_laborer{
 //            		data i.name value: i.total_earning;
 //            	}
-//			}
-//		}	
-//		
-//		display chart7 type: java2D{	
-//			chart "Own laborer according to state" type: series
-//			{
-//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-//				list<string> states <- ["independent", "assigned_itp_harvester", "assigned_planter", "assigned_nursery", "manage_nursery", "vacant"];
+
+//				data (labour select each.name) value: (labour select each.total_earning);
+				loop l over: labour {
+					data l.name value: l.total_earning;
+				}
+			}
+		}	
+		
+		display chart7 type: java2D{	
+			chart "Own laborer according to state" type: series
+			{
+				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+				list<string> states <- ["independent", "assigned_itp_harvester", "assigned_planter", "assigned_nursery", "manage_nursery", "vacant"];
 //				list<labour> own_laborer <- labour where (each.com_identity=nil);
-//				loop i over: states{
-//            		data i value: count(own_laborer, each.state = i);
-//            	}
-//			}
-//		}
+				loop i over: states{
+            		data i value: count(labour, each.state = i);
+            	}
+			}
+		}
 		
 		monitor "Total University Earning" value: total_ITP_earning;
 		monitor "Total Management Cost" value: total_management_cost;

@@ -18,8 +18,10 @@ global {
 	int POLE <- 2;
 	int ADULT <- 3;
 	
-	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
+//	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
+//	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
@@ -72,8 +74,8 @@ global {
 	
 	list<point> drain_cells <- [];
 	
-	geometry shape <- envelope(Soil_Group);	//Soil_Group or plot_shapefile
-	geometry plot_shape <- envelope(plot_shapefile);
+	geometry shape <- envelope(plot_shapefile);	//Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
+//	geometry plot_shape <- envelope(plot_shapefile);
 	list<geometry> clean_lines;
 	list<list<point>> connected_components ;
 	list<rgb> colors;
@@ -116,7 +118,7 @@ global {
 			r <- float(read("Book2_R"));		
 			type <- (string(read("Book2_Clas")) = "Native")? NATIVE:EXOTIC;	
 			th <- calculateHeight(dbh, type);
-			basal_area <- ((dbh/2.54)^2) * 0.005454;
+			basal_area <- #pi * (dbh^2)/40000;
 			do setState();
 			
 			if(mh > th){
@@ -247,7 +249,7 @@ species trees{
 	
 	float cr <- 1/5;	//by default 
 	float crown_diameter <- (cr*dbh) update: (cr*dbh);	//crown diameter
-	float basal_area <- #pi * dbh/40000 update: #pi * dbh/40000;	//http://ifmlab.for.unb.ca/People/Kershaw/Courses/For1001/Erdle_Version/TAE-BasalArea&Volume.pdf in m2
+	float basal_area <- #pi * (dbh^2)/40000 update: #pi * (dbh^2)/40000;	//http://ifmlab.for.unb.ca/People/Kershaw/Courses/For1001/Erdle_Version/TAE-BasalArea&Volume.pdf in m2
 	
 	int counter_to_next_recruitment <- 0;	//ensures that tree only recruits once a year
 	int number_of_recruits <- 0;
@@ -374,11 +376,10 @@ species trees{
 			//make sure that there is sufficient space before putting the tree in the new location
 			point new_location <- any_location_in(t_space);
 			if(new_location = nil){
-				//write "CANNOT add recruit. NO MORE SPACE!";
 				break;
 			}	//don't add seeds if there are no space
 
-			create trees number: 1 returns: n_tree{
+			create trees{
 				dbh <- (type=NATIVE)?growth_rate_native:growth_rate_exotic;
 				type <- myself.type;
 				age <-1.0; 
@@ -397,14 +398,11 @@ species trees{
 	//return unoccupied places within 20m from the mother tree
 	geometry getTreeSpaceForRecruitment{
 		geometry recruitment_space <- circle((dbh/2)#cm + 20#m);	//recruitment space
-		
-		
 		list<trees> trees_inside <- trees inside recruitment_space;
 		ask trees_inside{
 			recruitment_space <- recruitment_space - circle((dbh/2)#cm);	//remove the space occupied by tree
 		} 
-		
-		return recruitment_space inter plot_shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
+		return recruitment_space inter world.shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
 	}
 	
 	//recruitment of tree
@@ -569,7 +567,7 @@ species plot{
 
 	
 	list<labour> my_laborers <- [];
-	int tree_count <- 0 update: length(plot_trees);
+	int tree_count <- length(plot_trees) update: length(plot_trees);
 	soil my_soil <- soil closest_to location;	
 	
 	int getSaplingsCountS(int t_type){
@@ -608,7 +606,11 @@ species plot{
 	}
 	
 	aspect default{
-		draw shape color: rgb(153,136,0);
+		if(is_nursery){
+			draw shape color: #green;
+		}else{
+			draw shape color: rgb(153,136,0);
+		}
 	}
 	
 	//if there exist a mother tree in one of the trees inside the plot, it becomes a candidate nursery

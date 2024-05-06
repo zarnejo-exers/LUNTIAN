@@ -136,6 +136,7 @@ species university_si{
 	bool investment_open <- length(my_nurseries) >= nursery_count/2 update: length(my_nurseries) >= nursery_count/2;
 	list<plot> my_nurseries;	//list of nurseries managed by university
 	list<labour> n_laborers <- [];
+	list<plot> harvestable_plot <- plot where (each.stand_basal_area > 60) update: plot where (each.stand_basal_area > 60);
 	
 	//candidate nursery are those plots with road 
 	//nursery plots are chosen based on the distance from river
@@ -185,21 +186,27 @@ species university_si{
 		
 		float cost <- 0.0; 
 		//serviced * labor_cost
-		if(cl.is_harvest_labour){
-			cost <- HARVESTING_LCOST;
-		}else if(cl.is_planting_labour){
-			cost <- PLANTING_LCOST;
-		}else{
+//		if(cl.is_harvest_labour){
+//			cost <- HARVESTING_LCOST;
+//		}else if(cl.is_planting_labour){
+//			cost <- PLANTING_LCOST;
+//		}else{
+//			cost <- NURSERY_LCOST;
+//		}
+		
+		if(cl.is_nursery_labour){
 			cost <- NURSERY_LCOST;
 		}
 		
 //		if(cl.com_identity != nil){
 //			cl.com_identity.current_earning <- cl.com_identity.current_earning + cost;
 //		}else{
-			cl.total_earning <- cl.total_earning + cost;
+//			cl.total_earning <- cl.total_earning + cost;
 //		}
+	
+		write "Before earning: "+cl.total_earning;
+		cl.total_earning <- cl.total_earning + cost;
 		current_labor_cost <- current_labor_cost + cost;
-		
 	}
 	
 	float getPlantingCost(int t_type){
@@ -535,11 +542,10 @@ species university_si{
 //		write "end of ANR";
 //	}
 	
-//	reflex checkForITPHarvesting{
-//		list<plot> pt <- plot where (each.stand_basal_area > 60);
-//		write "University harvesting";
-//		write "total_ITP_earning before: "+total_ITP_earning;
-//		loop p over: pt{
+	reflex checkForITPHarvesting{
+		write "University harvesting";
+		write "total_ITP_earning before: "+total_ITP_earning;
+		ask harvestable_plot{
 //			write "Harvesting in plot: "+p.name+" sba: "+p.stand_basal_area;
 //			ask university_si{
 //    			list<trees> trees_to_harvest_n <- (getTreesToHarvestSH(p)) where (each.type = NATIVE);
@@ -548,9 +554,9 @@ species university_si{
 //				do harvestEarning(nil, timberHarvesting(false, p, trees_to_harvest_e), EXOTIC, false);
 //				do hirePlanter(p, 0);
 //    		}
-//		}
-//		write "total_ITP_earning after: "+total_ITP_earning;
-//	}
+		}
+		write "total_ITP_earning after: "+total_ITP_earning;
+	}
 	
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
 	reflex computeTotalCost {

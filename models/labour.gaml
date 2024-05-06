@@ -107,7 +107,6 @@ species labour control: fsm{
 		list<geometry> available_square <- (to_squares(available_space, needed_space#m) where (each.area >= (needed_space^2)#m));
 			
 		//no need to fix neighborhood since replanting and nursery mgmt doesn't concern adult trees
-		write "[before] count of trees in plot: "+length(pt_plant.plot_trees);
 		loop tnp over: trees_to_plant{
 			if(available_square != []){
 				geometry sq <- available_square[0];
@@ -125,8 +124,6 @@ species labour control: fsm{
 				break;		
 			}				
 		}
-		write "planted trees: "+length(planted_trees);
-		write "[before] count of trees in plot: "+length(pt_plant.plot_trees);
 		
 		return planted_trees;
 	}
@@ -314,10 +311,12 @@ species labour control: fsm{
 			current_plot <- one_of(coverage);	//get a random location
 			list<trees> seedlings_in_plot <- gatherSeedlings(current_plot);
 			all_seedlings_gathered <<+ seedlings_in_plot;
-			
 			remove current_plot from: to_visit_plot;	
 		}else{
 			write "have harvested all possible places. nowhere to harvest";
+		}
+		ask university_si{
+			do payLaborer(myself);
 		}
 
 		transition to: manage_nursery when: !((fruiting_months_N + fruiting_months_E) contains current_month)
@@ -328,10 +327,11 @@ species labour control: fsm{
 			if(length(all_seedlings_gathered) > 0){
 				location <- my_assigned_plot.location;	//put laborer back to the nursery
 				current_plot <- my_assigned_plot;
-				write "(before)Laborer: "+name+" my trees: "+length(my_trees);
 				list<trees> planted_trees <- plantInPlot(all_seedlings_gathered, my_assigned_plot, nil);	//put to nursery all the gathered seedlings
-				write "(after)Laborer: "+name+" my trees: "+length(my_trees);
 				remove all: planted_trees from: all_seedlings_gathered;
+				ask university_si{
+					do payLaborer(myself);
+				}
 			}else{
 				write "Laborers: "+name+" wasn't able to gather seeds";
 			}
