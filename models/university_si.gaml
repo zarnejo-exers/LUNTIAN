@@ -135,6 +135,7 @@ species university_si{
 	
 	bool investment_open <- length(my_nurseries) >= nursery_count/2 update: length(my_nurseries) >= nursery_count/2;
 	list<plot> my_nurseries;	//list of nurseries managed by university
+	list<trees> my_saplings <- [] update: (my_saplings where !dead(each)); //contains all saplings in the nusery, remove all the dead saplings
 	list<labour> n_laborers <- [];
 	list<plot> harvestable_plot <- plot where (each.stand_basal_area > 12 and !each.is_nursery) update: plot where (each.stand_basal_area > 12);
 	
@@ -153,6 +154,8 @@ species university_si{
 			n.nursery_type <- NATIVE;
 			add n to: my_nurseries;
 			do hireNurseryLaborer(n);
+			write "Saplings in nursery: "+length(n.plot_trees where (each.state = SAPLING));
+			add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
 			write "I AM nursery: "+n.name;
 		}
 	}
@@ -232,26 +235,26 @@ species university_si{
 
 	//returns true if successful, else false
 	//idea: investor decides given the following information, # of species per each plot, future value, investment value, investment payout
-	action investOnPlot(investor investing_investor, plot chosen_plot){
-		//confirm investment 
-		chosen_plot.is_nursery <- false;
-		investing_investor.my_plot <- chosen_plot;
-		investing_investor.investment <- chosen_plot.investment_cost;
-		
-		//assign laborer and get available seeds from the nursery 		 
-		do setRotationYears(chosen_plot);		//set rotation years to plot
-		add chosen_plot.rotation_years to: investing_investor.investment_rotation_years;
-		chosen_plot.is_itp <- true;
-		
-		//1. get all the trees that will be harvested via selective harvesting
-//		list<trees> trees_to_harvest_n <- (getTreesToHarvestSH(chosen_plot)) where (each.type = NATIVE);
-//		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_n), NATIVE, false);
-//		list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(chosen_plot)) where (each.type = EXOTIC);
-//		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_e), EXOTIC, false);
-//		do hirePlanter(chosen_plot, 0);	
-		investing_investor.waiting <- true;
-		write("!!!Investment commenced!!!");
-	}
+//	action investOnPlot(investor investing_investor, plot chosen_plot){
+//		//confirm investment 
+//		chosen_plot.is_nursery <- false;
+//		investing_investor.my_plot <- chosen_plot;
+//		investing_investor.investment <- chosen_plot.investment_cost;
+//		
+//		//assign laborer and get available seeds from the nursery 		 
+//		do setRotationYears(chosen_plot);		//set rotation years to plot
+//		add chosen_plot.rotation_years to: investing_investor.investment_rotation_years;
+//		chosen_plot.is_itp <- true;
+//		
+//		//1. get all the trees that will be harvested via selective harvesting
+////		list<trees> trees_to_harvest_n <- (getTreesToHarvestSH(chosen_plot)) where (each.type = NATIVE);
+////		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_n), NATIVE, false);
+////		list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(chosen_plot)) where (each.type = EXOTIC);
+////		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_e), EXOTIC, false);
+////		do hirePlanter(chosen_plot, 0);	
+//		investing_investor.waiting <- true;
+//		write("!!!Investment commenced!!!");
+//	}
 	
 	//called at the beginnning of the investment 
 	//sets projected_profit (c_plot.projected_profit) = future_profit of all trees in the plot assuming 0% mortality
@@ -365,39 +368,6 @@ species university_si{
 		//TODO: 5. add forest tax per tree harvested
 		
 		return harvested_bdft;
-	}
-	
-	//returns the hired harvesters that completed the harvesting
-	//marked the trees and harvests
-	float sendHarvesters(list<labour> hh, plot pth, list<trees> trees_to_harvest){
-		float total_bdft;
-		ask market{
-			total_bdft <- getTotalBDFT(trees_to_harvest);	
-		}
-		
-		remove trees_to_harvest from: pth.plot_trees;
-		
-		//the laborer marks the tree
-		loop while:(length(trees_to_harvest) > 0 and length(hh) > 0){
-			labour labour_instance <- first(hh);
-			list<trees> to_harvest <- trees_to_harvest[0::((length(trees_to_harvest)>=LABOUR_TCAPACITY)?LABOUR_TCAPACITY:length(trees_to_harvest))];
-			ask to_harvest{
-				is_marked <- true;
-			}
-			//put the labour_instance on the plot where the trees to be harvested are
-			ask labour_instance{
-				is_harvest_labour <- true;
-				current_plot <- pth;
-				my_assigned_plot <- pth;
-				add self to: my_assigned_plot.my_laborers;
-				add all: to_harvest to: marked_trees;
-				state <- "assigned_itp_harvester";	
-			}
-			remove labour_instance from: hh;
-			remove all: to_harvest from: trees_to_harvest;
-		}
-		
-		return total_bdft;
 	}	
 
 	//harvests upto capacity
@@ -420,7 +390,7 @@ species university_si{
 		list<labour> available_laborers <- labour where ((each.labor_type = each.OWN_LABOUR and each.state="vacant") or (is_also_planters and each.state="assigned_planter"));	//get own laborers that are not nursery|planting labours
 		int still_needed_harvesters <- needed_laborers - length(available_laborers);
 		
-		write "Needed laborers: "+needed_laborers+" still needed: "+still_needed_harvesters;
+		write "Available laborers: "+length(available_laborers)+" still needed: "+still_needed_harvesters;
 	
 		list<labour> hired_laborers <- available_laborers sort_by each.total_earning;
 		
@@ -479,45 +449,68 @@ species university_si{
 		
 		return saplings;
 	}
+
+	//the centre of the square is by default the location of the current agent in which has been called this operator.
+	list<geometry> removeOccSpace(geometry main_space, list<trees> to_remove_space, bool is_nursery, int n_space){
+		geometry t_shape <- nil; 
+		int needed_space <- (is_nursery)?1:5;
+			
+		ask to_remove_space{
+			t_shape <- t_shape + square(needed_space#m);
+		}
+			
+		geometry remaining_space <- main_space - t_shape;	//remove all occupied space;
+		return (to_squares(remaining_space, n_space#m) where (each.area >= (n_space^2)#m));	//n_space, assumed space needed by the trees that will be planted		
+	}	
+	
+	//buys native saplings
+	list<trees> buySaplings(int saplings_to_be_bought){
+		//no location, my_plot yet
+		create trees number: saplings_to_be_bought returns: bought_saplings{
+			dbh <- n_sapling_ave_DBH;
+			type <- NATIVE;
+			age <- dbh/growth_rate_native;
+			is_new_tree <- true; 
+			shade_tolerant <- true;
+			state <- SAPLING;
+			location <- point(0,0,0);
+			th <- calculateHeight(dbh, type);
+			basal_area <- #pi * (dbh^2)/40000;
+		}
+		return bought_saplings;
+	}
 	
 	//Prioritize replanting native trees
 	//native count is the number of native saplings bought by the university to fill the plot with trees
 	//native_count > 0
-	// after investment, must buy #native_count of saplings and replant it in the_plot to fill the plot
-	// TODO: 
-	//	incur additional cost 
-//	bool hirePlanter(plot the_plot, int native_count){
-//		int planting_capacity <- native_count;
-//		if(native_count = 0){	//no needed native saplings
-//			list<plot> nurseries <- plot where each.is_nursery;	//get the number of trees in the nurseries
-//			
-//			ask nurseries{
-//				planting_capacity <- planting_capacity + getSaplingsCountS(NATIVE) + getSaplingsCountS(EXOTIC);
-//			}
-//		}
-//		
-//		int needed_planters <- int(planting_capacity / LABOUR_PCAPACITY)+1;	//each laborer have planting capacity
-//		
-//		list<labour> avail_planters <- getLaborers(needed_planters, false);	//if there's no laborer avail, get all assigned_planter
-//		
-//		if(length(avail_planters) = 0){
-//			avail_planters <- getLaborers(needed_planters, true);
-//		}
-//		
-//		//write "Total hired planters: "+length(avail_planters)+" for plot: "+the_plot.name;
-//		loop p over: avail_planters{
-//			p.man_months <- [PLANTING_LABOUR, 1, 0];
-//			p.is_planting_labour <- true;
-//			p.plot_to_plant <- the_plot;
-//			add p to: the_plot.my_laborers;
-//			p.state <- "assigned_planter";
-//			if(native_count > LABOUR_PCAPACITY){
-//				p.count_bought_nsaplings <- LABOUR_PCAPACITY;
-//				native_count <- native_count - LABOUR_PCAPACITY;	
-//			}else{
-//				p.count_bought_nsaplings <- native_count;
-//			}
-//		}
+	// after investment, must fill up the plot to capacity given the saplings in the nursery and buying #native_count of saplings if there are more spaces
+	// TODO: incur additional cost 
+	bool replantPlot(plot the_plot){
+		//Step 1: Given the total saplings contained in the nursery -> my_saplings
+		//Step 2: Get the capacity of the plot (for replanting)
+		list<geometry> available_spaces <- removeOccSpace(the_plot.shape, the_plot.plot_trees, false, 3);
+		int plot_capacity <- length(available_spaces); 	
+		write "Available spaces: "+plot_capacity;
+		
+		//Step 3: hire planters based on planting_capacity/LABOUR_TCAPACITY
+		int needed_planters <- int(ceil(plot_capacity/LABOUR_TCAPACITY));
+		write "Needed planters: "+needed_planters;
+		list<labour> available_planters <- getLaborers(needed_planters, true);
+		write "Total hired planters: "+length(available_planters);
+		
+		int available_saplings <- length(my_saplings);
+		write "Available saplings: "+available_saplings;
+		
+		//get how many saplings should be bought given available laborers and available space
+		int saplings_to_be_bought <- 0;
+		if(length(available_planters)*LABOUR_TCAPACITY > available_saplings){
+			saplings_to_be_bought <- (length(available_planters)*LABOUR_TCAPACITY) - available_saplings;
+		}
+		write "Saplings to be bought: "+saplings_to_be_bought;
+		list<trees> bought_saplings <- buySaplings(saplings_to_be_bought);
+		write "Length of bought saplings: "+length(bought_saplings);
+	
+		do sendPlanters(available_planters, the_plot, my_saplings + bought_saplings);
 //		
 //		//COST: 
 //		//3. pay hired harvesters 1month worth of wage
@@ -526,9 +519,56 @@ species university_si{
 //			laborers.is_planting_labour <- false;
 //		}
 //		
-//		return true;
-//	}
+		return true;
+	}
 	
+	action sendPlanters(list<labour> planters, plot ptp, list<trees> trees_to_be_planted){
+		int count_of_trees <- length(trees_to_be_planted);
+		//assign plant to planter		
+		loop p over: planters{
+			p.is_planting_labour <- true;
+			p.my_assigned_plot <- ptp;
+			add p to: ptp.my_laborers;
+			list<trees> assigned_trees <- trees_to_be_planted[0::((count_of_trees<LABOUR_TCAPACITY)?count_of_trees:LABOUR_TCAPACITY)]; 
+			add all: assigned_trees to: p.my_trees;
+			remove all: assigned_trees from: trees_to_be_planted;
+			count_of_trees <- length(trees_to_be_planted);
+		}
+	}
+
+	//returns the hired harvesters that completed the harvesting
+	//marked the trees and harvests
+	float sendHarvesters(list<labour> hh, plot pth, list<trees> trees_to_harvest){
+		float total_bdft;
+		ask market{
+			total_bdft <- getTotalBDFT(trees_to_harvest);	
+		}
+		
+		remove trees_to_harvest from: pth.plot_trees;
+		
+		//the laborer marks the tree
+		loop while:(length(trees_to_harvest) > 0 and length(hh) > 0){
+			labour labour_instance <- first(hh);
+			list<trees> to_harvest <- trees_to_harvest[0::((length(trees_to_harvest)>=LABOUR_TCAPACITY)?LABOUR_TCAPACITY:length(trees_to_harvest))];
+			ask to_harvest{
+				is_marked <- true;
+			}
+			//put the labour_instance on the plot where the trees to be harvested are
+			ask labour_instance{
+				is_harvest_labour <- true;
+				current_plot <- pth;
+				my_assigned_plot <- pth;
+				add self to: my_assigned_plot.my_laborers;
+				add all: to_harvest to: marked_trees;
+				state <- "assigned_itp_harvester";	
+			}
+			remove labour_instance from: hh;
+			remove all: to_harvest from: trees_to_harvest;
+		}
+		
+		return total_bdft;
+	}
+		
 //	reflex monitorSBAforANR{
 //		//get plots less than SBA = 35
 //		list<plot> plot_for_ANR <- sort_by((plot where (each.stand_basal_area < 35)), each.stand_basal_area);	//35 = threshold for sustainable stand basal area
@@ -543,7 +583,7 @@ species university_si{
 //		write "end of ANR";
 //	}
 	
-	reflex checkForITPHarvesting{
+	reflex checkForITPHarvesting when: length(my_nurseries) > (nursery_count/2){	//will harvest only when I already have at least half of wanted nursery
 		write "University harvesting";
 		write "total_ITP_earning before: "+total_ITP_earning;
 		loop h_plot over: harvestable_plot{
@@ -560,7 +600,7 @@ species university_si{
     			write "Harvesting "+length(exotic_trees)+" exotic trees";
     			do harvestEarning(nil, timberHarvesting(h_plot, exotic_trees), EXOTIC, false);	
     		}	
-//			do hirePlanter(p, 0);
+			do replantPlot(h_plot);
 		}
 		write "total_ITP_earning after: "+total_ITP_earning;
 	}

@@ -29,11 +29,7 @@ species labour control: fsm{
 	bool is_nursery_labour <- false;
 	int p_t_type;	//planting tree type
 	int h_t_type;	//harvesting tree type
-	
-	//int nursery_labour_type <- -1;	//-1 if not labour type, either NATIVE or EXOTIC
-	
-	int count_bought_nsaplings; 
-	
+ 	
 //	comm_member com_identity <- nil;
 	list<trees> all_seedlings_gathered <- [];  
 	list<plot> to_visit_plot <- [];
@@ -99,11 +95,12 @@ species labour control: fsm{
 	//if source_plot = nil, then it is not a nursery plot
 	list<trees> plantInPlot(list<trees> trees_to_plant, plot pt_plant, plot source_plot){
 		list<trees> planted_trees <- [];
-		int needed_space <- (source_plot!=nil)?1:3; 
+		int needed_space <- (source_plot!=nil)?1:3; //3 is for 3x3m space allocated for ITP replantings, 1 is for recruitment since the plants are randomly positioned
+		list<geometry> available_square <- [];
+		ask university_si{
+			 available_square <- removeOccSpace(pt_plant.shape, pt_plant.plot_trees, (source_plot!=nil)?true:false, needed_space);	
+		}
 		
-		geometry available_space <- removeOccSpace(pt_plant.shape, pt_plant.plot_trees, (source_plot!=nil)?true:false);
-		list<geometry> available_square <- (to_squares(available_space, needed_space#m) where (each.area >= (needed_space^2)#m));
-			
 		//no need to fix neighborhood since replanting and nursery mgmt doesn't concern adult trees
 		loop tnp over: trees_to_plant{
 			if(available_square != []){
@@ -124,18 +121,6 @@ species labour control: fsm{
 		}
 		
 		return planted_trees;
-	}
-	
-	//the centre of the square is by default the location of the current agent in which has been called this operator.
-	geometry removeOccSpace(geometry main_space, list<trees> to_remove_space, bool is_nursery){
-		geometry t_shape <- nil; 
-		int needed_space <- (is_nursery)?1:5;
-			
-		ask to_remove_space{
-			t_shape <- t_shape + square(needed_space#m);
-		}
-			
-		return main_space - t_shape;	//remove all occupied space;		
 	}
 
 	action cutMarkedTrees{
@@ -242,22 +227,6 @@ species labour control: fsm{
 //			}
 //		}		
 //	}
-//	
-//	//	create #native_count new saplings
-//	//	plant this new saplings on the_plot
-//	action plantBoughtSaplings{
-//		write "Count of bought saplings: "+count_bought_nsaplings;
-//		create trees number: count_bought_nsaplings returns: bought_saplings{
-//			dbh <- n_sapling_ave_DBH;
-//			type <- NATIVE;
-//			age <- dbh/growth_rate_exotic; 
-//		}
-//		
-//		write "BoughtSaplings: "+bought_saplings+" - Count of trees before: "+length(plot_to_plant);
-//		do plantInPlot(bought_saplings, plot_to_plant, nil);
-//		write "BoughtSaplings: "+bought_saplings+" - Count of trees after: "+length(plot_to_plant);
-//	}
-//	
 	
 	//gather all seedlings from the current plot
 	//randomly choose from its neighbor where it will gather seedlings 
@@ -358,9 +327,7 @@ species labour control: fsm{
 //	
 	//stays in this state for 1 step only
 	state assigned_itp_harvester{
-		write "\n[before] Marked TREES: "+length(marked_trees);
 		do cutMarkedTrees();
-		write "[after] Marked TREES: "+length(marked_trees);
 		
 		//COST: 
 		//3. pay hired harvesters 1month worth of wage

@@ -51,46 +51,46 @@ species investor control: fsm{
 	//once investment has been successfully completed; university starts the planting and assigns rotation years per plot.
 	// get firstbjarvestable plot
 	action decideInvestment{	////reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
-		plot investable_plot; 
-		int s_type;	//supported ITP type
-		int needed_native;
-		bool can_invest; 
-		 
-		ask university_si{
-			can_invest <- investment_open;
-			if(investment_open){
-				investable_plot <- getInvestablePlot();		//get the first plot with highest SBA;
-				write "Getting Details of Investment";
-				needed_native <- getInvestmentDetailsOfPlot(investable_plot);				
-			}
-		}
-		if(investable_plot != nil and can_invest){
-			//decide investment based on risk type
-			write "Investor: "+name+" is investing on plot: "+investable_plot.name+" with sba: "+investable_plot.stand_basal_area;
-			bool decision <- decideOnRisk(investable_plot, rt);
-			if(decision){
-				write "Must plant: "+needed_native+" investment_cost: "+investable_plot.investment_cost;
-				ask university_si{
-					do investOnPlot(myself, investable_plot);
-//					do hirePlanter(investable_plot, needed_native);
-					total_management_cost <- total_management_cost + ((NATIVE_price_per_SAPLING) * needed_native);
-					total_ITP_earning <- total_ITP_earning + investable_plot.investment_cost; 	//give the investment to the university
-				}			
-				harvest_monitor <- 0;
-				investable_plot.is_investable <- false;
-				investable_plot.is_invested <- true;
-				investment <- investable_plot.investment_cost;
-				promised_profit <- investable_plot.projected_profit;
-				my_plot <- investable_plot;
-				write "Investment granted -- cost: "+investment+" promised profit: "+promised_profit;
-				investment_count <- investment_count + 1;
-				total_investment_count <- total_investment_count + 1;
-			}else{
-				write "Risk not satisfied!";
-			}	
-		}else{
-			write "Cannot Invest";
-		}
+//		plot investable_plot; 
+//		int s_type;	//supported ITP type
+//		int needed_native;
+//		bool can_invest; 
+//		 
+//		ask university_si{
+//			can_invest <- investment_open;
+//			if(investment_open){
+//				investable_plot <- getInvestablePlot();		//get the first plot with highest SBA;
+//				write "Getting Details of Investment";
+//				needed_native <- getInvestmentDetailsOfPlot(investable_plot);				
+//			}
+//		}
+//		if(investable_plot != nil and can_invest){
+//			//decide investment based on risk type
+//			write "Investor: "+name+" is investing on plot: "+investable_plot.name+" with sba: "+investable_plot.stand_basal_area;
+//			bool decision <- decideOnRisk(investable_plot, rt);
+//			if(decision){
+//				write "Must plant: "+needed_native+" investment_cost: "+investable_plot.investment_cost;
+//				ask university_si{
+//					do investOnPlot(myself, investable_plot);
+////					do hirePlanter(investable_plot, needed_native);
+//					total_management_cost <- total_management_cost + ((NATIVE_price_per_SAPLING) * needed_native);
+//					total_ITP_earning <- total_ITP_earning + investable_plot.investment_cost; 	//give the investment to the university
+//				}			
+//				harvest_monitor <- 0;
+//				investable_plot.is_investable <- false;
+//				investable_plot.is_invested <- true;
+//				investment <- investable_plot.investment_cost;
+//				promised_profit <- investable_plot.projected_profit;
+//				my_plot <- investable_plot;
+//				write "Investment granted -- cost: "+investment+" promised profit: "+promised_profit;
+//				investment_count <- investment_count + 1;
+//				total_investment_count <- total_investment_count + 1;
+//			}else{
+//				write "Risk not satisfied!";
+//			}	
+//		}else{
+//			write "Cannot Invest";
+//		}
 	}
 	
 	bool decideOnRisk(plot i_plot, int risk_type){

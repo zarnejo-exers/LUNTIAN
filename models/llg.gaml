@@ -74,7 +74,7 @@ global {
 	
 	list<point> drain_cells <- [];
 	
-	geometry shape <- envelope(plot_shapefile);	//Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
+	geometry shape <- envelope(plot_shapefile);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
 	list<geometry> clean_lines;
 	list<list<point>> connected_components ;
 	list<rgb> colors;
@@ -385,11 +385,12 @@ species trees{
 				type <- myself.type;
 				age <-1.0; 
 				location <- new_location;
-				th <- calculateHeight(dbh, type);
 				my_plot <- plot closest_to self;	//assigns the plot where the tree is located
 				shade_tolerant <- myself.shade_tolerant;
 				is_new_tree <- true;
 				t_space <- t_space - circle((dbh/2)#cm);	//remove from available spaces the space occupied by new tree
+				th <- calculateHeight(dbh, type);
+				basal_area <- #pi * (dbh^2)/40000;
 				add self to: my_plot.plot_trees;
 				do setState();	
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	add new tree to parcel's list of trees
@@ -528,6 +529,11 @@ species trees{
 		}else if(dbh < max_dbh_per_class[type][POLE] and dbh >= max_dbh_per_class[type][SAPLING]){
 			state <- POLE;
 		}else if(dbh < max_dbh_per_class[type][SAPLING] and dbh >= max_dbh_per_class[type][SEEDLING]){
+			if(my_plot != nil and my_plot.is_nursery and state != SAPLING){
+				ask university_si{
+					add myself to: my_saplings;
+				}
+			}
 			state <- SAPLING;
 		}else if(dbh > 0){
 			state <- SEEDLING;
@@ -570,10 +576,6 @@ species plot{
 	list<labour> my_laborers <- [];
 	int tree_count <- length(plot_trees) update: length(plot_trees);
 	soil my_soil <- soil closest_to location;	
-	
-	int getSaplingsCountS(int t_type){
-		return length(plot_trees where (each.type = t_type and each.state = SAPLING));
-	}
 	
 	
 	//STATUS: CHECKED
