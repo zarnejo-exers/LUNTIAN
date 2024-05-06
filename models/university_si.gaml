@@ -192,13 +192,9 @@ species university_si{
 		if(cl.is_harvest_labour){
 			cost <- HARVESTING_LCOST;
 		}
-//		else if(cl.is_planting_labour){
-//			cost <- PLANTING_LCOST;
-//		}else{
-//			cost <- NURSERY_LCOST;
-//		}
-		
-		else if(cl.is_nursery_labour){
+		else if(cl.is_planting_labour){
+			cost <- PLANTING_LCOST;
+		}else if(cl.is_nursery_labour){
 			cost <- NURSERY_LCOST;
 		}
 		
@@ -451,9 +447,9 @@ species university_si{
 	}
 
 	//the centre of the square is by default the location of the current agent in which has been called this operator.
-	list<geometry> removeOccSpace(geometry main_space, list<trees> to_remove_space, bool is_nursery, int n_space){
+	list<geometry> getSquareSpaces(geometry main_space, list<trees> to_remove_space, bool is_itp, int n_space){
 		geometry t_shape <- nil; 
-		int needed_space <- (is_nursery)?1:5;
+		int needed_space <- (is_itp)?5:1;
 			
 		ask to_remove_space{
 			t_shape <- t_shape + square(needed_space#m);
@@ -473,9 +469,10 @@ species university_si{
 			is_new_tree <- true; 
 			shade_tolerant <- true;
 			state <- SAPLING;
-			location <- point(0,0,0);
 			th <- calculateHeight(dbh, type);
 			basal_area <- #pi * (dbh^2)/40000;
+			my_plot <- nil;
+			location <- point(0,0,0);
 		}
 		return bought_saplings;
 	}
@@ -485,10 +482,10 @@ species university_si{
 	//native_count > 0
 	// after investment, must fill up the plot to capacity given the saplings in the nursery and buying #native_count of saplings if there are more spaces
 	// TODO: incur additional cost 
-	bool replantPlot(plot the_plot){
+	action replantPlot(plot the_plot){
 		//Step 1: Given the total saplings contained in the nursery -> my_saplings
 		//Step 2: Get the capacity of the plot (for replanting)
-		list<geometry> available_spaces <- removeOccSpace(the_plot.shape, the_plot.plot_trees, false, 3);
+		list<geometry> available_spaces <- getSquareSpaces(the_plot.shape, the_plot.plot_trees, true, 3);
 		int plot_capacity <- length(available_spaces); 	
 		write "Available spaces: "+plot_capacity;
 		
@@ -502,36 +499,41 @@ species university_si{
 		write "Available saplings: "+available_saplings;
 		
 		//get how many saplings should be bought given available laborers and available space
+		list<trees> saplings_to_be_planted <- [];
 		int saplings_to_be_bought <- 0;
-		if(length(available_planters)*LABOUR_TCAPACITY > available_saplings){
+		int planting_capacity <- length(available_planters)*LABOUR_TCAPACITY;
+		if(planting_capacity > available_saplings){
 			saplings_to_be_bought <- (length(available_planters)*LABOUR_TCAPACITY) - available_saplings;
+			remove all: my_saplings from: my_saplings;
+		}else{
+			add all: my_saplings[0::planting_capacity] to: saplings_to_be_planted;
+			remove all: my_saplings[0::planting_capacity] from: my_saplings; 
 		}
+		
 		write "Saplings to be bought: "+saplings_to_be_bought;
 		list<trees> bought_saplings <- buySaplings(saplings_to_be_bought);
 		write "Length of bought saplings: "+length(bought_saplings);
 	
-		do sendPlanters(available_planters, the_plot, my_saplings + bought_saplings);
-//		
-//		//COST: 
-//		//3. pay hired harvesters 1month worth of wage
-//		loop laborers over: avail_planters{
-//			do payLaborer(laborers);
-//			laborers.is_planting_labour <- false;
-//		}
-//		
-		return true;
+		do sendPlanters(available_planters, the_plot, saplings_to_be_planted + bought_saplings, available_spaces);
 	}
 	
-	action sendPlanters(list<labour> planters, plot ptp, list<trees> trees_to_be_planted){
+	action sendPlanters(list<labour> planters, plot ptp, list<trees> trees_to_be_planted, list<geometry> available_spaces){
 		int count_of_trees <- length(trees_to_be_planted);
 		//assign plant to planter		
 		loop p over: planters{
 			p.is_planting_labour <- true;
 			p.my_assigned_plot <- ptp;
+			p.current_plot <- ptp;
 			add p to: ptp.my_laborers;
-			list<trees> assigned_trees <- trees_to_be_planted[0::((count_of_trees<LABOUR_TCAPACITY)?count_of_trees:LABOUR_TCAPACITY)]; 
+			
+			list<trees> assigned_trees <- trees_to_be_planted[0::((count_of_trees<LABOUR_TCAPACITY)?count_of_trees:LABOUR_TCAPACITY)];
+			
+			add all: available_spaces[0::length(assigned_trees)] to: p.planting_spaces;
+			remove all: p.planting_spaces from: available_spaces; 
+			
 			add all: assigned_trees to: p.my_trees;
 			remove all: assigned_trees from: trees_to_be_planted;
+			
 			count_of_trees <- length(trees_to_be_planted);
 		}
 	}
