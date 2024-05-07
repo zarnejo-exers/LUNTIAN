@@ -94,8 +94,11 @@ global {
 		create soil from: Soil_Group with: [id::int(get("VALUE")), soil_pH::float(get("Average_pH"))];
 		//clean_network(road_shapefile.contents,tolerance,split_lines,reduce_to_main_connected_components
 		clean_lines <- clean_network(road_shapefile.contents,50.0,true,true);
-		create road from: clean_lines;
+		create road from: clean_lines{
+			shape <- shape + 15#m;
+		}
 		road_network <- as_edge_graph(road);	//create road from the clean lines
+		write "Done reading road...";
 		
 		//Identify drain cells
 		loop pp over: points where (water_content[each]>400){	//look inside the area of concern, less than 400 means not part of concern
@@ -109,7 +112,7 @@ global {
 		drain_cells <- drain_cells where (water_content[each] < min_height+20);
 		write "Done reading soil...";
 		
-		write "Done reading soil...";
+		
 		create trees from: trees_shapefile{
 			dbh <- float(read("Book2_DBH"));
 			mh <- float(read("Book2_MH"));		
@@ -145,7 +148,17 @@ global {
 		}
 		
 		create plot from: plot_shapefile{
-			plot_trees <- trees inside self;
+			//remove sections that are part of road
+			plot_trees <- trees inside self.shape;
+			
+			list<road> road_crossing <- road intersecting self;
+			if(length(road_crossing)>0){
+				has_road <- true;
+				ask road_crossing{
+					do removeRoadSection(myself);
+				}
+			}
+		
 			ask plot_trees{
 				my_plot <- myself;
 				my_neighbors <- my_plot.plot_trees select (each.state = ADULT and (each distance_to self) <= 20#m);
@@ -161,11 +174,10 @@ global {
 			if(distance_to_river <= 100#m){
 				is_near_water <- true;
 			}
-			
-			if(length(road crossing self)>0){
-				has_road <- true;
-			}
 		}
+		
+		
+		
 		river_network <- as_edge_graph(river);
 		//computed the connected components of the graph (for visualization purpose)
 		connected_components <- list<list<point>>(connected_components_of(river_network));
@@ -292,6 +304,37 @@ species trees{
 			}
 			
 		}	
+	}
+	
+	aspect default{
+		if(crown_diameter != 0){
+			//this is the crown
+			// /2 since parameter asks for radius
+			if(is_marked){
+				draw sphere((self.crown_diameter/2)#m) color: #black at: {location.x,location.y,th#m};
+			}else if(type = NATIVE){
+				draw sphere((self.crown_diameter/2)#m) color: #darkgreen at: {location.x,location.y,th#m};
+			}else{
+				draw sphere((self.crown_diameter/2)#m) color: #violet at: {location.x,location.y,th#m};
+			}
+			
+			//this is the stem
+			switch state{
+				match SEEDLING{
+					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #yellow depth: th#m;		
+				}
+				match SAPLING{
+					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #green depth: th#m;
+				}
+				match POLE{
+					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #blue depth: th#m;
+				}
+				match ADULT{
+					draw circle((dbh/2)#cm) at: {location.x,location.y} color: #red depth: th#m;
+				}
+			}
+			
+		}		
 	}
 	
 	//STATUS: CHECKED
@@ -577,6 +620,7 @@ species plot{
 	soil my_soil <- soil closest_to location;	
 	
 	bool is_ANR <- false;
+	bool is_harvested <- false;
 		
 	//STATUS: CHECKED
 	//per plot
@@ -613,7 +657,8 @@ species plot{
 			draw shape color: #green;
 		}else if(is_ANR){
 			draw shape color: #aquamarine;
-			is_ANR <- false;
+		}else if(is_harvested){
+			draw shape color: #violet;
 		}else{
 			draw shape color: rgb(153,136,0);
 		}
@@ -700,16 +745,29 @@ species climate{
 }
 
 //Species to represent the roads
+//standard tree clearance width for the construction of a forest road is 15 metres. 
 species road {
-	geometry display_shape <- shape + 5.0;
 	aspect default {
 		//draw display_shape color: #black depth: 3.0 at: {location.x,location.y,terrain[point(location.x, location.y)+250]};//250
-		draw display_shape color: #black;// depth: 3.0 at: {location.x,location.y,location.z};//200
+		draw shape color: #black;// depth: 3.0 at: {location.x,location.y,location.z};//200
+	}
+	
+	action removeRoadSection(plot plot_with_road){
+		//remove all: (trees inside r.shape) from: plot_trees; 
+		list<trees> trees_on_road <- plot_with_road.plot_trees inside shape;
+		
+		//remove trees on road
+		ask trees_on_road{
+			remove self from: plot_with_road.plot_trees;
+			do die;
+		}
+		
+		plot_with_road.shape <- plot_with_road.shape - shape;	//remove road section from plot
+		
 	}
 }
 
 species river{
-	geometry display_shape <- shape + 5.0;
 	int node_id; 
 	int drain_node;
 	int strahler;
@@ -717,6 +775,6 @@ species river{
 	
 	aspect default {
 		//draw display_shape color: #blue depth: 3 at: {location.x,location.y,terrain[point(location.x, location.y)]+250};//250
-		draw display_shape color: #blue;// at: {location.x,location.y,location.z};//200
+		draw shape color: #blue;// at: {location.x,location.y,location.z};//200
 	}
 }

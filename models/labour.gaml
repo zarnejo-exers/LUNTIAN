@@ -244,6 +244,9 @@ species labour control: fsm{
 		}
 		
 		transition to: vacant{
+			if(my_assigned_plot.is_ANR){
+				my_assigned_plot.is_ANR <- false;
+			}
 			remove self from: my_assigned_plot.my_laborers;
 			my_assigned_plot <- nil;
 			current_plot <- nil;
@@ -262,6 +265,9 @@ species labour control: fsm{
 		}
 		
 		transition to: vacant{
+			if(my_assigned_plot.is_harvested){
+				my_assigned_plot.is_harvested <- false;
+			}
 			remove self from: my_assigned_plot.my_laborers;
 			my_assigned_plot <- nil;
 			current_plot <- nil;

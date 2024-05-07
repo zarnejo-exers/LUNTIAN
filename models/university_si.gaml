@@ -556,6 +556,8 @@ species university_si{
 		
 		remove trees_to_harvest from: pth.plot_trees;
 		
+		pth.is_harvested <- true;
+		
 		//the laborer marks the tree
 		loop while:(length(trees_to_harvest) > 0 and length(hh) > 0){
 			labour labour_instance <- first(hh);
@@ -591,7 +593,7 @@ species university_si{
 			}
 			ANR_instance <- ANR_instance + 1;
 			pfa.is_ANR <- true;
-			write "ANR instance: "+ANR_instance;
+			write "ANR instance: "+ANR_instance+" plot: "+pfa.name;
 		}
 		write "end of ANR";
 	}
