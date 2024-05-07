@@ -31,7 +31,7 @@ species labour control: fsm{
 	int p_t_type;	//planting tree type
 	int h_t_type;	//harvesting tree type
  	
-//	comm_member com_identity <- nil;
+	comm_member com_identity <- nil;
 	list<trees> all_seedlings_gathered <- [];  
 	list<plot> to_visit_plot <- [];
 	

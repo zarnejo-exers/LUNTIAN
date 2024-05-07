@@ -10,7 +10,7 @@ import "llg.gaml"
 import "market.gaml"
 import "investor.gaml"
 import "labour.gaml"
-//import "comm_member.gaml"
+import "comm_member.gaml"
 import "special_police.gaml"
 
 /* Insert your model definition here */
@@ -39,7 +39,7 @@ global{
 	int nursery_count <- 2 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
 	float dbh_policy <- 50.0 update: dbh_policy; 
-	bool hiring_prospect <- false;
+	bool is_hiring <- false;
 	
 	int harvesting_age_exotic <- 15 update: harvesting_age_exotic;	//temp
 	int harvesting_age_native <- 20 update: harvesting_age_native;	//actual 40
@@ -161,7 +161,7 @@ species university_si{
 	//once hired, nursery laborer either attends to the plot (manage_nursery) or goes out to gather seedlings (assigned_nursery)
 	reflex hireNurseryLaborer when: ((my_nurseries count ((length(each.my_laborers)) = 0)) > 0){
 		list<plot> nursery_wo_laborer <- my_nurseries where ((length(each.my_laborers)) = 0);
-		list<labour> free_laborer <- (sort_by((labour where (each.state = "vacant" and each.my_assigned_plot = nil)), each.total_earning));
+		list<labour> free_laborer <- (sort_by((labour where (each.labor_type = each.OWN_LABOUR and each.state = "vacant" and each.my_assigned_plot = nil)), each.total_earning));
 			
 		if(length(free_laborer) > 0){
 			loop i from: 0 to: length(free_laborer)-1{
@@ -207,11 +207,9 @@ species university_si{
 			cost <- NURSERY_LCOST;
 		}
 		
-//		if(cl.com_identity != nil){
-//			cl.com_identity.current_earning <- cl.com_identity.current_earning + cost;
-//		}else{
-//			cl.total_earning <- cl.total_earning + cost;
-//		}
+		if(cl.com_identity != nil){
+			cl.com_identity.current_earning <- cl.com_identity.current_earning + cost;
+		}
 	
 //		write "Before payLaborer: "+cl.total_earning;
 		cl.total_earning <- cl.total_earning + cost;
@@ -392,7 +390,7 @@ species university_si{
 	}
 	
 	list<labour> getLaborers(int needed_laborers){ 
-		list<labour> available_laborers <- labour where ((each.labor_type = each.OWN_LABOUR and each.my_assigned_plot=nil));	//get own laborers that are not nursery|planting labours
+		list<labour> available_laborers <- (labour where ((each.labor_type = each.OWN_LABOUR and each.my_assigned_plot=nil))) sort_by each.total_earning;	//get own laborers that are not nursery|planting labours
 		int still_needed_laborers <- needed_laborers - length(available_laborers);
 		
 		write "Available laborers: "+length(available_laborers)+" still needed: "+still_needed_laborers;
@@ -403,26 +401,23 @@ species university_si{
 			//get only the first LABOUR_TCAPACITY laborers
 			hired_laborers <- hired_laborers[0::needed_laborers];
 		}else{
-			//hire from available community
-//			list<comm_member> avail_member <- comm_member where (each.state = "potential_partner" and each.instance_labour = nil);
-//			int total_to_hire <- (length(avail_member) > still_needed_harvesters)?still_needed_harvesters:length(avail_member);
-//			if(total_to_hire = 0) { total_to_hire <- 1;}
-//			
-//			loop i from: 0 to: total_to_hire-1{
-//				comm_member cm <- first(avail_member);	//use the first member;
-//				if(cm != nil){
-//					create labour returns: new_labour {
-//						labor_type <- COMM_LABOUR; 
-//						com_identity <- cm;
-//					}	
-//					add first(new_labour) to: available_laborers;
-//					cm.instance_labour <- first(new_labour);
-//					remove cm from: avail_member;	
-//				}
-//			}
+			//hire the community members that are labor partners already
+			list<labour> comm_laborers <- ((comm_member where (each.state = "labour_partner" and each.instance_labour.my_assigned_plot = nil)) sort_by (each.current_earning)) collect each.instance_labour;
+			add all: (((comm_member where (each.state = "potential_partner" and each.instance_labour.my_assigned_plot = nil)) sort_by (each.total_earning)) collect each.instance_labour) to: comm_laborers;
+			
+			if(still_needed_laborers > length(comm_laborers)){
+				still_needed_laborers <- still_needed_laborers - length(comm_laborers);
+				add all: comm_laborers to: hired_laborers;
+				write "Hired "+length(comm_laborers)+" community laborers";			
+			}else{
+				add all: comm_laborers[0::still_needed_laborers] to: hired_laborers;
+				write "Hired "+still_needed_laborers+" community laborers"; 
+				still_needed_laborers <- 0;
+			}
 		}
-//		
-//		hiring_prospect <- (length(available_laborers) < needed_laborers or is_also_planters)?true:false;	//if the total labour isn't supplied, create a call for hiring prospect
+				
+		is_hiring <- (still_needed_laborers > 0)?true:false;	//if the total labour isn't supplied, create a call for hiring prospect
+		write "HIRING PROSPECT?: "+is_hiring;
 
 		return hired_laborers;
 	}
