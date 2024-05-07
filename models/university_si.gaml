@@ -145,32 +145,39 @@ species university_si{
 		list<plot> candidate_plots <- (plot where (each.is_candidate_nursery)) sort_by each.distance_to_river;
 		int needed_nurseries <- nursery_count-length(my_nurseries);
 		int actual_count <- (length(candidate_plots) <= needed_nurseries)?length(candidate_plots):needed_nurseries;
-		list<plot> nurseries <- candidate_plots[0::actual_count];
-//		write "needed_nurseries: "+needed_nurseries+" actual_count: "+actual_count;
 		
-		loop n over: nurseries{
-			n.is_nursery <- true;
-			n.is_candidate_nursery <- false;
-			n.nursery_type <- NATIVE;
-			add n to: my_nurseries;
-			do hireNurseryLaborer(n);
-//			write "Saplings in nursery: "+length(n.plot_trees where (each.state = SAPLING));
-			add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
-			write "I AM nursery: "+n.name;
+		if(actual_count > 0){
+			list<plot> nurseries <- candidate_plots[0::actual_count];
+	//		write "needed_nurseries: "+needed_nurseries+" actual_count: "+actual_count;
+			
+			loop n over: nurseries{
+				n.is_nursery <- true;
+				n.is_candidate_nursery <- false;
+				n.nursery_type <- NATIVE;
+				add n to: my_nurseries;
+				do hireNurseryLaborer(n);
+	//			write "Saplings in nursery: "+length(n.plot_trees where (each.state = SAPLING));
+				add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
+				write "I AM nursery: "+n.name;
+			}			
+		}else{
+			write "No candidate nursery plots found";
 		}
 	}
 	
 	//once hired, nursery laborer either attends to the plot (manage_nursery) or goes out to gather seedlings (assigned_nursery)
 	action hireNurseryLaborer(plot n_plot){
-		labour free_laborer <- (sort_by((labour where (each.state = "vacant")), each.total_earning))[0];
+		list<labour> free_laborer <- (sort_by((labour where (each.state = "vacant")), each.total_earning));
 			
-		ask free_laborer{
-			is_nursery_labour <- true;
-			current_plot <- n_plot;
-			my_assigned_plot <- n_plot;	//assigned plot
-			location <- n_plot.location;
-			add self to: n_plot.my_laborers;
-			add self to: myself.n_laborers;
+		if(length(free_laborer) > 0){
+			ask first(free_laborer){
+				is_nursery_labour <- true;
+				current_plot <- n_plot;
+				my_assigned_plot <- n_plot;	//assigned plot
+				location <- n_plot.location;
+				add self to: n_plot.my_laborers;
+				add self to: myself.n_laborers;
+			}	
 		}
 	}
 		
@@ -576,13 +583,14 @@ species university_si{
 	//1 available vacant laborer = 1 plot 
 	reflex monitorSBAforANR when: ((labour count (each.state = "vacant"))>0){
 		write "Performing ANR on plots";
-		list<plot> plot_for_ANR <- sort_by((plot where (each.stand_basal_area < 5.0 and (length(each.plot_trees) < 200))), each.stand_basal_area);	
+		list<plot> plot_for_ANR <- sort_by((plot where (!each.is_ANR and !each.is_nursery and each.stand_basal_area < 5.0 and (length(each.plot_trees) < 200))), each.stand_basal_area);	
 		
 		loop pfa over: plot_for_ANR{
 			if(!replantPlot(pfa)){
 				break;	//once it breaks it means that there are no more laborers avaialble to conduct ANR
 			}
 			ANR_instance <- ANR_instance + 1;
+			pfa.is_ANR <- true;
 			write "ANR instance: "+ANR_instance;
 		}
 		write "end of ANR";

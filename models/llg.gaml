@@ -18,10 +18,10 @@ global {
 	int POLE <- 2;
 	int ADULT <- 3;
 	
-//	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
-//	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
-	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
+//	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//mixed species
+//	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
@@ -74,7 +74,7 @@ global {
 	
 	list<point> drain_cells <- [];
 	
-	geometry shape <- envelope(plot_shapefile);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
+	geometry shape <- envelope(Soil_Group);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
 	list<geometry> clean_lines;
 	list<list<point>> connected_components ;
 	list<rgb> colors;
@@ -572,12 +572,12 @@ species plot{
 	int nursery_type <- -1;
 	bool is_investable <- false;
 
-	
 	list<labour> my_laborers <- [];
 	int tree_count <- length(plot_trees) update: length(plot_trees);
 	soil my_soil <- soil closest_to location;	
 	
-	
+	bool is_ANR <- false;
+		
 	//STATUS: CHECKED
 	//per plot
 	reflex native_determineNumberOfRecruits when: (fruiting_months_N contains current_month){
@@ -611,6 +611,9 @@ species plot{
 	aspect default{
 		if(is_nursery){
 			draw shape color: #green;
+		}else if(is_ANR){
+			draw shape color: #aquamarine;
+			is_ANR <- false;
 		}else{
 			draw shape color: rgb(153,136,0);
 		}
