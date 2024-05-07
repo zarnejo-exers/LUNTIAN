@@ -78,23 +78,18 @@ global{
 		}
 	}
 	
-	reflex updateTHT{
-		tht <- 0;
-		loop i over: investor{
-			tht <- tht + i.tht; 
-		}
-	}
-	
-	//stop simulation at year 50
-//	reflex stopAtYear100 when: cycle=1200{
-//		do pause;
+//	reflex updateTHT{
+//		tht <- 0;
+//		loop i over: investor{
+//			tht <- tht + i.tht; 
+//		}
 //	}
 	
 	//start checking once all investor already have investments
 	//stop simulation when the rotation years of all investor is finished
-	reflex waitForHarvest when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
-    	loop i over: investor where (each.my_plot != nil){
-    		if(i.my_plot.rotation_years =0 and i.waiting){
+//	reflex waitForHarvest when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
+//    	loop i over: investor where (each.my_plot != nil){
+//    		if(i.my_plot.rotation_years =0 and i.waiting){
 //    			ask university_si{
 //    				list<trees> trees_to_harvest_n <- (getTreesToHarvestSH(i.my_plot)) where (each.type = NATIVE);
 //    				do harvestEarning(i, timberHarvesting(false, i.my_plot, trees_to_harvest_n), NATIVE, false);
@@ -102,20 +97,20 @@ global{
 //					do harvestEarning(i, timberHarvesting(false, i.my_plot, trees_to_harvest_e), EXOTIC, false);
 //					do hirePlanter(i.my_plot, 0);
 //    			}
-    			i.waiting <- false;	
-    		}else{
-    			write "Rotation year remaining: "+i.my_plot.rotation_years;	
-    		}
-    	}
-    }
+//    			i.waiting <- false;	
+//    		}else{
+//    			write "Rotation year remaining: "+i.my_plot.rotation_years;	
+//    		}
+//    	}
+//    }
     
-    reflex warnedCMReportFromSP{
-    	int temp_count <- 0;
-		ask special_police{
-			temp_count <- temp_count + self.total_comm_members_reprimanded; 
-		}
-		total_warned_CM <- temp_count;
-    }
+//    reflex warnedCMReportFromSP{
+//    	int temp_count <- 0;
+//		ask special_police{
+//			temp_count <- temp_count + self.total_comm_members_reprimanded; 
+//		}
+//		total_warned_CM <- temp_count;
+//    }
 }
 
 species university_si{
@@ -136,8 +131,7 @@ species university_si{
 	bool investment_open <- length(my_nurseries) >= nursery_count/2 update: length(my_nurseries) >= nursery_count/2;
 	list<plot> my_nurseries;	//list of nurseries managed by university
 	list<trees> my_saplings <- [] update: (my_saplings where !dead(each)); //contains all saplings in the nusery, remove all the dead saplings
-	list<labour> n_laborers <- [];
-	list<plot> harvestable_plot <- plot where (each.stand_basal_area > 12 and !each.is_nursery) update: plot where (each.stand_basal_area > 12);
+	list<plot> harvestable_plot <- plot where (each.stand_basal_area > 12 and !each.is_nursery) update: plot where (each.stand_basal_area > 12  and !each.is_nursery);
 	
 	//candidate nursery are those plots with road 
 	//nursery plots are chosen based on the distance from river
@@ -155,7 +149,6 @@ species university_si{
 				n.is_candidate_nursery <- false;
 				n.nursery_type <- NATIVE;
 				add n to: my_nurseries;
-				do hireNurseryLaborer(n);
 	//			write "Saplings in nursery: "+length(n.plot_trees where (each.state = SAPLING));
 				add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
 				write "I AM nursery: "+n.name;
@@ -166,18 +159,27 @@ species university_si{
 	}
 	
 	//once hired, nursery laborer either attends to the plot (manage_nursery) or goes out to gather seedlings (assigned_nursery)
-	action hireNurseryLaborer(plot n_plot){
-		list<labour> free_laborer <- (sort_by((labour where (each.state = "vacant")), each.total_earning));
+	reflex hireNurseryLaborer when: ((my_nurseries count ((length(each.my_laborers)) = 0)) > 0){
+		list<plot> nursery_wo_laborer <- my_nurseries where ((length(each.my_laborers)) = 0);
+		list<labour> free_laborer <- (sort_by((labour where (each.state = "vacant" and each.my_assigned_plot = nil)), each.total_earning));
 			
 		if(length(free_laborer) > 0){
-			ask first(free_laborer){
-				is_nursery_labour <- true;
-				current_plot <- n_plot;
-				my_assigned_plot <- n_plot;	//assigned plot
-				location <- n_plot.location;
-				add self to: n_plot.my_laborers;
-				add self to: myself.n_laborers;
-			}	
+			loop i from: 0 to: length(free_laborer)-1{
+				if(i < length(nursery_wo_laborer)){
+					plot n_plot <- nursery_wo_laborer[i];
+					
+					free_laborer[i].is_nursery_labour <- true;
+					free_laborer[i].current_plot <- n_plot;
+					free_laborer[i].my_assigned_plot <- n_plot;	//assigned plot
+					free_laborer[i].location <- n_plot.location;
+					add free_laborer[i] to: n_plot.my_laborers;
+					write "Laborer: "+free_laborer[i].name+" is assigned to nursery";	
+				}else{	//break if there are no more nursery_wo_laborer
+					break;
+				}
+			}
+		}else{
+			write "No free laborer available to manage nursery";
 		}
 	}
 		
@@ -390,14 +392,14 @@ species university_si{
 	}
 	
 	list<labour> getLaborers(int needed_laborers){ 
-		list<labour> available_laborers <- labour where ((each.labor_type = each.OWN_LABOUR and each.state="vacant" and !each.is_planting_labour and !each.is_harvest_labour));	//get own laborers that are not nursery|planting labours
-		int still_needed_harvesters <- needed_laborers - length(available_laborers);
+		list<labour> available_laborers <- labour where ((each.labor_type = each.OWN_LABOUR and each.my_assigned_plot=nil));	//get own laborers that are not nursery|planting labours
+		int still_needed_laborers <- needed_laborers - length(available_laborers);
 		
-		write "Available laborers: "+length(available_laborers)+" still needed: "+still_needed_harvesters;
+		write "Available laborers: "+length(available_laborers)+" still needed: "+still_needed_laborers;
 	
 		list<labour> hired_laborers <- available_laborers sort_by each.total_earning;
 		
-		if(still_needed_harvesters < 0){
+		if(still_needed_laborers < 0){
 			//get only the first LABOUR_TCAPACITY laborers
 			hired_laborers <- hired_laborers[0::needed_laborers];
 		}else{
