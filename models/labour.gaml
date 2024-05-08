@@ -123,7 +123,9 @@ species labour control: fsm{
 	action cutMarkedTrees{
 		ask marked_trees{
 			remove self from: my_plot.plot_trees;
-			remove myself from: my_plot.my_laborers;
+			if(myself in my_plot.my_laborers){
+				remove myself from: my_plot.my_laborers;	
+			}
 			do die;
 		}
 		remove all: marked_trees from: marked_trees;
@@ -276,13 +278,12 @@ species labour control: fsm{
 	}
 	
 	state independent{	//if instance of independent community member 
-//		if(my_assigned_plot != nil){
-//			list<trees> trees_before_cutting <- marked_trees;
-//			do cutMarkedTrees();
-//			ask com_identity{
-//				do completeHarvest(trees_before_cutting - myself.marked_trees);
-//			}
-//		}
-
+		if(my_assigned_plot != nil){
+			list<trees> trees_before_cutting <- marked_trees;
+			do cutMarkedTrees();
+			ask com_identity{
+				do completeHarvest(trees_before_cutting - myself.marked_trees);
+			}
+		}
 	}
 }

@@ -17,8 +17,6 @@ global{
 	float max_planting_pay <- PLANTING_LABOUR * PLANTING_LCOST;
 	float max_nursery_pay <- NURSERY_LABOUR * NURSERY_LCOST;
 	
-	map<comm_member,int> h_monitor; 
-	
 	init{
 		create comm_member number: member_count{
 			create labour{
@@ -97,33 +95,36 @@ species comm_member control: fsm{
 		if(success < caught){return flip(0.5-(0.5*success/caught));} 
 	}
 	
-//	action completeHarvest(list<trees> harvested_trees){
-//		current_earning <- computeEarning(harvested_trees);	//compute earning of community member
-//		total_earning <- total_earning + current_earning;
-//		success <- success + 1;
-//		current_earning <- 0.0;
-//		if(state = "independent_harvesting"){
-//			h_monitor[self] <- h_monitor[self] + 1;	
-//		}
-//	}
+	//TODO: verify if this computes properly
+	action completeHarvest(list<trees> harvested_trees){
+		current_earning <- computeEarning(harvested_trees);	//compute earning of community member"
+		write "MY EARNING AS INDEPENDENT: "+current_earning+" for "+length(harvested_trees)+" trees";	//TODO: oh noes! returns current_earning = 0
+		total_earning <- total_earning + current_earning;
+		success <- success + 1;
+		current_earning <- 0.0;
+	}
 
 	//uses the same metrics as with the university in terms of determining the cost per harvested tree
-//	float computeEarning(list<trees> harvested_trees){
-//		float temp_earning <- 0.0;
-//		float thv_n;
-//		float thv_e; 
-//		list<trees> native <- harvested_trees where (each.type = NATIVE);
-//		list<trees> exotic <- harvested_trees where (each.type = EXOTIC);
-//		ask market{
-//			thv_n <- getTotalBDFT(native);
-//			thv_e <- getTotalBDFT(exotic);
-//		}
-//		
-//	    ask market{
-//	    	return getProfit(NATIVE, thv_n) + getProfit(EXOTIC, thv_e);
-//	    }
-//	}
+	float computeEarning(list<trees> harvested_trees){
+		float temp_earning <- 0.0;
+		float thv_n;
+		float thv_e; 
+		list<trees> native <- harvested_trees where (each.type = NATIVE);
+		list<trees> exotic <- harvested_trees where (each.type = EXOTIC);
+		ask market{
+			thv_n <- getTotalBDFT(native);
+			thv_e <- getTotalBDFT(exotic);
+		}
 		
+	    ask market{
+	    	return getProfit(NATIVE, thv_n) + getProfit(EXOTIC, thv_e);
+	    }
+	}
+	
+	action markTrees{
+		list<trees> chosen_trees <- reverse(instance_labour.my_assigned_plot.plot_trees sort_by each.dbh);
+		instance_labour.marked_trees <- chosen_trees[0::LABOUR_TCAPACITY];
+	}	
 	
 	//waiting to be hired
 	state potential_partner initial: true { 
@@ -178,10 +179,11 @@ species comm_member control: fsm{
 	    loop i from: 0 to: 2{	//will look for plot three times then stop
 			do findPlot();	//find the plot where to harvest
 			if(instance_labour.my_assigned_plot != nil){
+				do markTrees();
 				break;
 			}	
 		}
-//
+
 // 	 	//after harvesting, gets alerted of being caught 
 // 	 	transition to: independent_passive when: (is_caught) { 	//if caught 
 //	        success <- success - 1;
@@ -189,7 +191,7 @@ species comm_member control: fsm{
 //	        is_caught <- false;
 //	        
 //	        //when caught 
-//	        write "CAUGHT! curreng_earning: "+current_earning;
+//	        write "CAUGHT! current_earning: "+current_earning;
 //	        total_earning <- total_earning - current_earning;
 //	        current_earning <- 0.0; 
 //	    } 
