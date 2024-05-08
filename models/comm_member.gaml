@@ -54,22 +54,22 @@ species comm_member control: fsm{
 	
 	//get a plot where to harvest that isn't occupied by laborers yet
 	action findPlot{
-		if(instance_labour.my_assigned_plot != nil){	//meaning, the laborer has harvested already
-			//get the closest plot
-			instance_labour.my_assigned_plot <- (plot where (length(each.my_laborers) = 0)) closest_to(instance_labour.my_assigned_plot);
-			write "FIND PLOT HERE! plot is "+instance_labour.my_assigned_plot.name+" for community: "+name;
-		}else{	//laborer's first time to harvest
-			list<comm_member> not_cooperating_members <- (comm_member-self) where (each.state = "independent_harvesting" and each.instance_labour.my_assigned_plot != nil);
-			
-			if(length(not_cooperating_members) > 0){	//randomly choose from the harvested plots which among them to be close to
-				list<plot> harvested_plots <- not_cooperating_members collect each.instance_labour.my_assigned_plot;
-				instance_labour.my_assigned_plot <- (plot-harvested_plots) closest_to(one_of(harvested_plots));		
-				write "FIND PLOT IN HERE! plot is "+instance_labour.my_assigned_plot.name+" for community: "+name;
-			}else{	//get randomly from the fringe plots
-				instance_labour.my_assigned_plot <- one_of(entrance_plots where (length(each.my_laborers) = 0));
-				write "NO HERE! plot is "+instance_labour.my_assigned_plot.name+" for community: "+name;	
-			}
-		}		
+		list<plot> harvested_plots <- (plot where (length(each.my_laborers) > 0)) + (comm_member collect each.instance_labour.my_assigned_plot);
+		list<plot> open_plots <- plot-harvested_plots;
+		
+		if(length(open_plots) > 0){
+			if(instance_labour.my_assigned_plot != nil){	//meaning, the laborer has harvested already; //get the closest plot
+				instance_labour.my_assigned_plot <- open_plots closest_to(instance_labour.my_assigned_plot);
+			}else{	//laborer's first time to harvest
+				list<comm_member> not_cooperating_members <- (comm_member-self) where (each.state = "independent_harvesting" and each.instance_labour.my_assigned_plot != nil);
+				
+				if(length(not_cooperating_members) > 0){	//randomly choose from the harvested plots which among them to be close to
+					instance_labour.my_assigned_plot <- open_plots closest_to(one_of(not_cooperating_members collect each.instance_labour.my_assigned_plot));		
+				}else{	//get randomly from the fringe plots
+					instance_labour.my_assigned_plot <- one_of(entrance_plots where (!(each in harvested_plots)));
+				}
+			}	
+		}	
 	}
 	
 	//determines hiring prospecti
