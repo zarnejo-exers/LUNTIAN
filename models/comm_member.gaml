@@ -96,29 +96,31 @@ species comm_member control: fsm{
 	}
 	
 	//TODO: verify if this computes properly
-	action completeHarvest(list<trees> harvested_trees){
-		current_earning <- computeEarning(harvested_trees);	//compute earning of community member"
-		write "MY EARNING AS INDEPENDENT: "+current_earning+" for "+length(harvested_trees)+" trees";	//TODO: oh noes! returns current_earning = 0
+	action computeEarning{
+		current_earning <- estimateValue(instance_labour.marked_trees);	//compute earning of community member"
 		total_earning <- total_earning + current_earning;
 		success <- success + 1;
 		current_earning <- 0.0;
 	}
 
 	//uses the same metrics as with the university in terms of determining the cost per harvested tree
-	float computeEarning(list<trees> harvested_trees){
+	float estimateValue(list<trees> harvested_trees){
 		float temp_earning <- 0.0;
 		float thv_n;
 		float thv_e; 
-		list<trees> native <- harvested_trees where (each.type = NATIVE);
-		list<trees> exotic <- harvested_trees where (each.type = EXOTIC);
+		list<trees> native <- instance_labour.marked_trees where (each.type = NATIVE);
+		list<trees> exotic <- instance_labour.marked_trees where (each.type = EXOTIC);
 		ask market{
 			thv_n <- getTotalBDFT(native);
 			thv_e <- getTotalBDFT(exotic);
 		}
 		
+		float profit <- 0.0;
+		
 	    ask market{
-	    	return getProfit(NATIVE, thv_n) + getProfit(EXOTIC, thv_e);
+	    	profit <- getProfit(NATIVE, thv_n) + getProfit(EXOTIC, thv_e);	
 	    }
+	    return profit;
 	}
 	
 	action markTrees{
@@ -169,41 +171,41 @@ species comm_member control: fsm{
 	//observe independent_harvesting community members here
 	//if their gain is more than 
 	state independent_harvesting { 
-		enter{
-			instance_labour.state <- "independent";
-		} 
 
-	    //before you even start to harvest, check if there are prospects of being hired
-	    transition to: potential_partner when: (checkHiringProspective()); 	//if there's hiring prospective, choose to cooperate
-	    
-	    loop i from: 0 to: 2{	//will look for plot three times then stop
+		loop i from: 0 to: 2{	//will look for plot three times then stop
 			do findPlot();	//find the plot where to harvest
 			if(instance_labour.my_assigned_plot != nil){
 				do markTrees();
+				do computeEarning();
+				instance_labour.state <- "independent";
 				break;
 			}	
 		}
-
-// 	 	//after harvesting, gets alerted of being caught 
-// 	 	transition to: independent_passive when: (is_caught) { 	//if caught 
-//	        success <- success - 1;
-//	        caught <- caught + 1; 
-//	        is_caught <- false;
-//	        
-//	        //when caught 
-//	        write "CAUGHT! current_earning: "+current_earning;
-//	        total_earning <- total_earning - current_earning;
-//	        current_earning <- 0.0; 
-//	    } 
-
-		exit{
+		
+	    //before you even start to harvest, check if there are prospects of being hired
+	    //if there's hiring prospective, choose to cooperate
+	    transition to: potential_partner when: (checkHiringProspective()){
 			if(instance_labour.my_assigned_plot != nil){
 				remove instance_labour from: instance_labour.my_assigned_plot.my_laborers;	
 			}
 			instance_labour.my_assigned_plot <- nil;
 			instance_labour.state <- "vacant";
-			lapsed_time <- waiting_allowance;
-		}
+			lapsed_time <- waiting_allowance;	    	
+	    } 	
+	    
+	    
+ 	 	//after harvesting, gets alerted of being caught 
+ 	 	transition to: independent_passive when: (is_caught) { 	//if caught 
+	        success <- success - 1;
+	        caught <- caught + 1; 
+	        is_caught <- false;
+	        
+	        //when caught 
+	        write "CAUGHT! current_earning: "+current_earning;
+	        total_earning <- total_earning - current_earning;
+	        current_earning <- 0.0; 
+	    } 
+
 	}
 	
 	state independent_passive{
