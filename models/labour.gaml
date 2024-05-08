@@ -274,17 +274,15 @@ species labour control: fsm{
 			is_harvest_labour <- false;	
 		}
 	}
-//	
-//	state independent{	//if instance of independent community member 
-//		if(plot_to_harvest != nil){
-//			do harvestPlot;
+	
+	state independent{	//if instance of independent community member 
+//		if(my_assigned_plot != nil){
+//			list<trees> trees_before_cutting <- marked_trees;
+//			do cutMarkedTrees();
 //			ask com_identity{
-//				do completeHarvest(myself.harvested_trees);
+//				do completeHarvest(trees_before_cutting - myself.marked_trees);
 //			}
-//			do cutTrees(harvested_trees);
 //		}
-//		
-//		transition to: assigned_itp_harvester when: is_harvest_labour;
-//		transition to: assigned_planter when: is_planting_labour;
-//	}
+
+	}
 }
