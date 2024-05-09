@@ -30,7 +30,6 @@ global{
 }
 
 species comm_member control: fsm{
-	int lapsed_time <- waiting_allowance;
 	labour instance_labour; 
 	float total_earning <- 0.0;		//total earning for the entire simulation
 	float current_earning <- 0.0; //earning of the community at the current commitment
@@ -138,19 +137,23 @@ species comm_member control: fsm{
 	
 	//waiting to be hired
 	state potential_partner initial: true { 
-	 	lapsed_time <- lapsed_time - 1; 
+		enter{
+			int lapsed_time <- waiting_allowance;
+		} 
 	 	
 	    transition to: independent_passive when: (lapsed_time = 0);
 	    transition to: labour_partner when: (instance_labour.my_assigned_plot != nil);
-	 
-	    exit { 
-	    	lapsed_time <- waiting_allowance;
-	    } 
+	 	
+	 	lapsed_time <- lapsed_time - 1;
 	} 
 	
 	//wage here
-	//kill instance_labour after
-	state labour_partner { 
+	//waits for 6 months before turning into independent harvester
+	state labour_partner {
+		enter{
+			int month <- 0;
+		}
+		 
 	    bool satisfied; 
 	    	
 	    if(instance_labour.is_harvest_labour) {		
@@ -166,9 +169,10 @@ species comm_member control: fsm{
 	    
 	    write "Community: "+name+" is "+(satisfied?"satified":"not satisfied");
 	    
-	    transition to: independent_harvesting when: (instance_labour.is_harvest_labour and !satisfied);
+	    transition to: independent_harvesting when: (instance_labour.is_harvest_labour and !satisfied and month = 6);
 	    transition to: potential_partner when: (!satisfied);
 	 
+	 	month <- month + 1;
 	    exit {
 	    	total_earning <- total_earning + current_earning;
 	    	current_earning <- 0.0;
@@ -210,16 +214,17 @@ species comm_member control: fsm{
 				remove instance_labour from: instance_labour.my_assigned_plot.my_laborers;	
 			}
 			instance_labour.my_assigned_plot <- nil;
-			instance_labour.state <- "vacant";
-			lapsed_time <- waiting_allowance;	    	
+			instance_labour.state <- "vacant";	
 	    } 	
 
 	}
 	
 	state independent_passive{
-		transition to: potential_partner when: (checkHiringProspective()) { 	//if there's hiring prospective, choose to cooperate
-	        lapsed_time <- waiting_allowance;
-	    }
-	    transition to: independent_harvesting when: (probaHarvest()); 	//if there's no hiring prospective, hire on one's own
+		enter{
+			int month <- 0;
+		}
+		transition to: potential_partner when: (checkHiringProspective()); 	//if there's hiring prospective, choose to cooperate
+	    transition to: independent_harvesting when: (probaHarvest() and month = 1); 	//if there's no hiring prospective, hire on one's own
+	    month <- 1;
 	}	
 }
