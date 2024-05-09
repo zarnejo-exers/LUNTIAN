@@ -20,10 +20,10 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	
 	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
 	parameter "Harvesting age (E)" category: "Exotic Setup" var: harvesting_age_exotic;
-	parameter "Price per Volume (E)" category: "Exotic Setup" var: exotic_price_per_volume;
+	parameter "Price per BDFT (E)" category: "Exotic Setup" var: exotic_price_per_bdft;
 	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
 	parameter "Harvesting age (N)" category: "Native Setup" var: harvesting_age_native;
-	parameter "Price per Volume (N)" category: "Native Setup" var: native_price_per_volume;
+	parameter "Price per BDFT (N)" category: "Native Setup" var: native_price_per_bdft;
 	
 	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
 	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;

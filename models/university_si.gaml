@@ -21,6 +21,8 @@ global{
 	int LABOUR_TCAPACITY <- 15;	//number of trees that the laborer can plant/manage
 	
 	//fixed rate
+	float EST_MANAGEMENT_COST_PYEAR <- 17449.14;
+	int NURSERY_ESTABLISHMENT_COST <- 100000;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf
 	float NURSERY_LCOST <- 12810.0;	//labor per month https://velocityglobal.com/resources/blog/minimum-wage-by-country
 	float HARVESTING_LCOST <- 13834.51;	//one month labor
 	float PLANTING_LCOST <- 25.0;	//
@@ -29,8 +31,8 @@ global{
 	float HARVESTING_COST <- 17.04; //cost = (0.28+0.33)/2 usd per bdft, 17.04php
 	float NATIVE_price_per_SAPLING <- 100.0; //Temporary variable, plants native on every ANR
 	
-	float exotic_price_per_volume <- 70.0 update: exotic_price_per_volume;
-	float native_price_per_volume <- 70.0 update: native_price_per_volume;
+	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;
+	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;
 	
 	int average_no_trees_in1ha <- 20;
 	int police_count <- 2 update: police_count;
@@ -121,10 +123,10 @@ species university_si{
 	list<plot> my_invested_plots;		//list of plots invested by the university
 	list<investor> current_investors <- investor where (each.my_plot != nil) update: investor where (each.my_plot != nil);
 	
-	float mcost_of_native <- 5.0; //management cost in man hours of labor
-	float mcost_of_exotic <- 4.0; //management cost in man hours of labor
-	float pcost_of_native <- 1.0;	//planting cost in man hours of labor
-	float pcost_of_exotic <- 1.0;	//planting cost in man hours of labor
+//	float mcost_of_native <- 5.0; //management cost in man hours of labor
+//	float mcost_of_exotic <- 4.0; //management cost in man hours of labor
+//	float pcost_of_native <- 1.0;	//planting cost in man hours of labor
+//	float pcost_of_exotic <- 1.0;	//planting cost in man hours of labor
 	
 	float labor_price <- 3.0; //per months
 	
@@ -159,6 +161,7 @@ species university_si{
 	//			write "Saplings in nursery: "+length(n.plot_trees where (each.state = SAPLING));
 				add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
 				write "I AM nursery: "+n.name;
+				total_management_cost <- total_management_cost + NURSERY_ESTABLISHMENT_COST;
 			}			
 		}
 	}
@@ -184,6 +187,13 @@ species university_si{
 			}
 		}
 	}
+
+//	float getPlantingCost(int t_type){
+//		return ((t_type = 1)?pcost_of_exotic:pcost_of_native);
+//	}	
+//	float getManagementCost(int t_type){
+//		return ((t_type = 1)?mcost_of_exotic:mcost_of_native);
+//	}	
 		
 	/*
 	 * Determine amount of investment needed per hectare
@@ -202,6 +212,9 @@ species university_si{
 	 	
 	 	cost_to_support_investment <- cost_to_support_investment + (needed_plaborer*PLANTING_LCOST);	//cost of planters that will be hired
 	 	cost_to_support_investment <- cost_to_support_investment + (HARVESTING_LCOST * 2);	//cost of harvesters that will be hired 
+	 	
+	 	//add management cost 
+	 	cost_to_support_investment <- cost_to_support_investment + (EST_MANAGEMENT_COST_PYEAR*investment_rotation_years);
 	 	
 	 	return cost_to_support_investment;
 	 }
@@ -222,12 +235,12 @@ species university_si{
 		//future harvestable
 		trees sample_sapling <- first(buySaplings(1));
 		float pfuture_dbh <- (sample_sapling.age + investment_rotation_years)*growth_rate_native;
-		float pfuture_vol <- calculateVolume(pfuture_dbh, NATIVE);
+		float pfuture_bdft <- calculateVolume(pfuture_dbh, NATIVE)/12;
 		
 		ask market{
-			projected_profit <- projected_profit + (getProfit(NATIVE, pfuture_vol*sapling_places)*0.75);	
+			projected_profit <- projected_profit + (getProfit(NATIVE, pfuture_bdft*sapling_places)*0.75);	
 		}
-		write "future values: dbh = "+pfuture_dbh+" vol = "+pfuture_vol+" projected_profit = "+projected_profit;
+		write "future values: dbh = "+pfuture_dbh+" bdft = "+pfuture_bdft+" projected_profit = "+projected_profit;
 		
 		return projected_profit; 
 	}	
@@ -280,15 +293,7 @@ species university_si{
 		cl.total_earning <- cl.total_earning + cost;
 //		write "After payLaborer: "+cl.total_earning;
 		current_labor_cost <- current_labor_cost + cost;
-	}
-	
-	float getPlantingCost(int t_type){
-		return ((t_type = 1)?pcost_of_exotic:pcost_of_native);
 	}	
-	
-	float getManagementCost(int t_type){
-		return ((t_type = 1)?mcost_of_exotic:mcost_of_native);
-	}
 	
 	plot getInvestablePlot{
 		list<plot> investable_plots <- reverse(sort_by(plot where (!each.is_nursery and !each.is_invested), each.stand_basal_area)); 

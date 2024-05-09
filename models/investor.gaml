@@ -68,24 +68,19 @@ species investor control: fsm{
 				projected_profit <- projectProfit(myself, investable_plot, cplaces_to_fill);
 				investment_cost <- computeInvestmentCost(investable_plot, cplaces_to_fill);
 				write "INVESTMENT COST: "+investment_cost+" PROJECTED_PROFIT: "+projected_profit;
+				write "investment > projected ? "+(investment_cost>projected_profit);
+			}
+			bool decision <- decideOnRisk(projected_profit, investment_cost, rt);
+			if(decision){
+				write "Commencing investment";
+			}else{
+				write "Risk not satisfied";
 			}
 		}else{
 			write "No available plot for investment";
 		}
 
-//		plot investable_plot; 
-//		int s_type;	//supported ITP type
-//		int needed_native;
-//		bool can_invest; 
-//		 
-//		ask university_si{
-//			can_invest <- investment_open;
-//			if(investment_open){
-//				investable_plot <- getInvestablePlot();		//get the first plot with highest SBA;
-//				write "Getting Details of Investment";
-//				needed_native <- getInvestmentDetailsOfPlot(investable_plot);				
-//			}
-//		}
+
 //		if(investable_plot != nil and can_invest){
 //			//decide investment based on risk type
 //			write "Investor: "+name+" is investing on plot: "+investable_plot.name+" with sba: "+investable_plot.stand_basal_area;
@@ -107,12 +102,7 @@ species investor control: fsm{
 //				write "Investment granted -- cost: "+investment+" promised profit: "+promised_profit;
 //				investment_count <- investment_count + 1;
 //				total_investment_count <- total_investment_count + 1;
-//			}else{
-//				write "Risk not satisfied!";
-//			}	
-//		}else{
-//			write "Cannot Invest";
-//		}
+//			}
 	}
 	
 	bool decideOnRisk(float projected_profit, float investment_cost, int risk_type){

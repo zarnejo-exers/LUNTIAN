@@ -25,15 +25,15 @@ species market{
 		
 		ask tth{
 			ask university_si{
-				total_bdft <- total_bdft + (calculateVolume(myself.dbh, myself.type));	
+				total_bdft <- total_bdft + (calculateVolume(myself.dbh, myself.type)/12);	//TODO: get the source of bdft computation
 			}
 		}
 		
 		return total_bdft;
 	}	
 	
-	float getProfit(int type, float thv){
-		return thv * ((type = EXOTIC)?exotic_price_per_volume:native_price_per_volume);
+	float getProfit(int type, float th_bdft){
+		return th_bdft * ((type = EXOTIC)?exotic_price_per_bdft:native_price_per_bdft);
 	}
 }
 
