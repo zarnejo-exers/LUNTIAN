@@ -127,8 +127,9 @@ species comm_member control: fsm{
 		list<trees> chosen_trees <- instance_labour.my_assigned_plot.plot_trees where (each.dbh > 10);
 		 
 		if(length(chosen_trees) > 0){
-			chosen_trees <- reverse(chosen_trees sort_by each.dbh);			
-			instance_labour.marked_trees <- chosen_trees[0::((length(chosen_trees) < LABOUR_TCAPACITY)?length(chosen_trees):LABOUR_TCAPACITY)];
+			chosen_trees <- reverse(chosen_trees sort_by each.dbh);
+			int capacity <- int(LABOUR_TCAPACITY/2); //reduce the capacity of individual harvester			
+			instance_labour.marked_trees <- chosen_trees[0::((length(chosen_trees) < capacity)?length(chosen_trees):capacity)];
 			ask instance_labour.marked_trees{
 				is_illegal <- true;
 			}		

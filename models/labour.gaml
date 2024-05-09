@@ -282,10 +282,6 @@ species labour control: fsm{
 			int month <- 0;
 		}
 		if(my_assigned_plot != nil and length(marked_trees) > 0 and month = 1){
-			write "illegally CUTTING "+length(marked_trees)+" trees";
-			ask marked_trees{
-				write "tree with "+dbh+"cm dbh";
-			}
 			do cutMarkedTrees();
 		}else{
 			month <- 1;
