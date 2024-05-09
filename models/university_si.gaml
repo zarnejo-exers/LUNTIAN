@@ -47,7 +47,7 @@ global{
 	
 	int harvesting_age_exotic <- 15 update: harvesting_age_exotic;	//temp
 	int harvesting_age_native <- 20 update: harvesting_age_native;	//actual 40
-	int investment_rotation_years <- 10 update: investment_rotation_years;	
+	int investment_rotation_years <- 5 update: investment_rotation_years;	
 	bool start_harvest <- false;
 	
 	int tht <- 0;
@@ -186,14 +186,7 @@ species university_si{
 				}
 			}
 		}
-	}
-
-//	float getPlantingCost(int t_type){
-//		return ((t_type = 1)?pcost_of_exotic:pcost_of_native);
-//	}	
-//	float getManagementCost(int t_type){
-//		return ((t_type = 1)?mcost_of_exotic:mcost_of_native);
-//	}	
+	}	
 		
 	/*
 	 * Determine amount of investment needed per hectare
@@ -297,38 +290,10 @@ species university_si{
 
 		return first(investable_plots);
 	}
-
-	//returns true if successful, else false
-	//idea: investor decides given the following information, # of species per each plot, future value, investment value, investment payout
-//	action investOnPlot(investor investing_investor, plot chosen_plot){
-//		//confirm investment 
-//		chosen_plot.is_nursery <- false;
-//		investing_investor.my_plot <- chosen_plot;
-//		investing_investor.investment <- chosen_plot.investment_cost;
-//		
-//		//assign laborer and get available seeds from the nursery 		 
-//		do setRotationYears(chosen_plot);		//set rotation years to plot
-//		add chosen_plot.rotation_years to: investing_investor.investment_rotation_years;
-//		chosen_plot.is_itp <- true;
-//		
-//		//1. get all the trees that will be harvested via selective harvesting
-////		list<trees> trees_to_harvest_n <- (getTreesToHarvestSH(chosen_plot)) where (each.type = NATIVE);
-////		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_n), NATIVE, false);
-////		list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(chosen_plot)) where (each.type = EXOTIC);
-////		do harvestEarning(investing_investor, timberHarvesting(true, chosen_plot, trees_to_harvest_e), EXOTIC, false);
-////		do hirePlanter(chosen_plot, 0);	
-//		investing_investor.waiting <- true;
-//		write("!!!Investment commenced!!!");
-//	}
-	//end get InvestmentDeatilsOfPlot
-	//	the investor decides given projected profit and investment_cost and risk profile
-	//	once the investor enters the deal, the university fills up the plot with all the needed saplings
-	//	earning happens twice, at the beginning and in the end of the investment 
-	//	the investor decides whether to be active or passive depending on the actual gain after the investment 
 	
 	//pays the hired harvester and gives the earning to laborer
 	//compute cost
-	action harvestEarning(investor i, float thv, int type, bool is_final_harvesting){
+	action harvestEarning(investor i, float thv, int type){
 		//give payment to investor
 	    float c_profit;
 	    ask market{
@@ -338,11 +303,9 @@ species university_si{
 	    if(i != nil){
 	    	i.tht <- i.tht + 1;
 	    	i.recent_profit <- i.recent_profit + (c_profit*0.75);		//actual profit of investor is 75% of total profit
-		    i.total_profit <- i.total_profit + (c_profit*0.75);
-		    i.waiting <- is_final_harvesting;
 		    
-//		    write "CProfit: "+c_profit+" thv: "+thv;
-//		    write "Investor earning... "+i.recent_profit;	
+		    write "CProfit: "+c_profit+" thv: "+thv;
+		    write "Investor earning... "+i.recent_profit;	
 	    }
 	    
 	    total_ITP_earning <- total_ITP_earning + (c_profit * ((i!=nil)?0.25:1.0));
@@ -565,25 +528,27 @@ species university_si{
 		}
 	}
 	
-	reflex checkForITPHarvesting when: length(my_nurseries) > (nursery_count/2){	//will harvest only when I already have at least half of wanted nursery
+	reflex startITPHarvesting when: length(my_nurseries) > (nursery_count/2){
 		loop h_plot over: harvestable_plot{
-//			write "Harvesting in plot: "+h_plot.name+" sba: "+h_plot.stand_basal_area;
-    		list<trees> trees_to_harvest <- getTreesToHarvestSH(h_plot);
-    		list<trees> native_trees <- (trees_to_harvest where (each.type = NATIVE));
-    		list<trees> exotic_trees <- trees_to_harvest - native_trees;
-    		
-    		if(native_trees != []){
-//    			write "Harvesting "+length(native_trees)+" native trees";
-    			do harvestEarning(nil, timberHarvesting(h_plot, native_trees), NATIVE, false);	
-    		}
-    		if(exotic_trees != []){
-//    			write "Harvesting "+length(exotic_trees)+" exotic trees";
-    			do harvestEarning(nil, timberHarvesting(h_plot, exotic_trees), EXOTIC, false);	
-    		}	
-			if(!replantPlot(h_plot)){
+			if(!harvestITP(nil, h_plot)){
 				break;
 			}
 		}
+	}
+	
+	//returns true when it can support more harvesting, else false
+	bool harvestITP(investor inv, plot plot_to_harvest){	//will harvest only when I already have at least half of wanted nursery
+		list<trees> trees_to_harvest <- getTreesToHarvestSH(plot_to_harvest);
+    	list<trees> native_trees <- (trees_to_harvest where (each.type = NATIVE));
+    	list<trees> exotic_trees <- trees_to_harvest - native_trees;
+    		
+    	if(native_trees != []){
+    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, native_trees), NATIVE);	
+    	}
+    	if(exotic_trees != []){
+    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
+    	}	
+		return replantPlot(plot_to_harvest);
 	}
 	
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)

@@ -33,14 +33,13 @@ global{
 //profit threshold will dictate whether the investor will continue on investing on a plot or not
 //plot's projected profit is determined by the university
 species investor control: fsm{
-	plot my_plot;
-	int harvest_monitor;	//corresponds to the position of the plot, like a timer to signal if a year already passed
 	float total_profit <- 0.0;
-	float recent_profit;
+	float recent_profit <- 0.0;
 	float total_investment <- 0.0;
-	float investment <- 0.0;
-	float promised_profit; 
 	int tht <- 0;	//total harvested trees
+	
+	plot my_plot <- nil;
+	float promised_profit; 
 	int investment_count <- 0;
 	int rt;	//risk type
 	bool waiting <- false;
@@ -65,42 +64,21 @@ species investor control: fsm{
 				int cplaces_to_fill <- length(getSquareSpaces(investable_plot.shape, investable_plot.plot_trees, true, 3));	//to support investment
 				projected_profit <- projectProfit(myself, investable_plot, cplaces_to_fill);
 				investment_cost <- computeInvestmentCost(investable_plot, cplaces_to_fill);
-				write "INVESTMENT COST: "+investment_cost+" PROJECTED_PROFIT: "+projected_profit;
-				write "investment > projected ? "+(investment_cost>projected_profit);
 			}
 			bool decision <- decideOnRisk(projected_profit, investment_cost, rt);
 			if(decision){
 				write "Commencing investment";
-			}else{
-				write "Risk not satisfied";
+				my_plot <- investable_plot;
+				investable_plot.is_invested <- true;
+				total_investment <- total_investment + investment_cost;
+				total_ITP_earning <- total_ITP_earning + investment_cost;
+				ask university_si{
+					do harvestITP(myself, myself.my_plot);	
+				} 
 			}
 		}else{
 			write "No available plot for investment";
 		}
-
-
-//		if(investable_plot != nil and can_invest){
-//			//decide investment based on risk type
-//			write "Investor: "+name+" is investing on plot: "+investable_plot.name+" with sba: "+investable_plot.stand_basal_area;
-//			bool decision <- decideOnRisk(investable_plot, rt);
-//			if(decision){
-//				write "Must plant: "+needed_native+" investment_cost: "+investable_plot.investment_cost;
-//				ask university_si{
-//					do investOnPlot(myself, investable_plot);
-////					do hirePlanter(investable_plot, needed_native);
-//					total_management_cost <- total_management_cost + ((NATIVE_price_per_SAPLING) * needed_native);
-//					total_ITP_earning <- total_ITP_earning + investable_plot.investment_cost; 	//give the investment to the university
-//				}			
-//				harvest_monitor <- 0;
-//				investable_plot.is_investable <- false;
-//				investable_plot.is_invested <- true;
-//				investment <- investable_plot.investment_cost;
-//				promised_profit <- investable_plot.projected_profit;
-//				my_plot <- investable_plot;
-//				write "Investment granted -- cost: "+investment+" promised profit: "+promised_profit;
-//				investment_count <- investment_count + 1;
-//				total_investment_count <- total_investment_count + 1;
-//			}
 	}
 	
 	bool decideOnRisk(float projected_profit, float investment_cost, int risk_type){
@@ -115,49 +93,44 @@ species investor control: fsm{
 		return false; 
 	}
 	
-	//to signal when to harvest and earn
-	//harvest_monitor ticks to monitor the month, when harvest_monitor = 12, it means a year has passed
-	//each plot have rotation_years, there is a set rotation year for each ITP, so you decrement the rotation_year whenever the harvest_monitor reaches 12
-//	action updateRotationYears{	// when: length(my_plots) > 0
-//		harvest_monitor <- 1 + harvest_monitor;
-//		if(harvest_monitor = 12){
-//			if(my_plot.rotation_years != 0){
-//				my_plot.rotation_years <- my_plot.rotation_years - 1;
-//			}
-//			harvest_monitor <- 0;
-//		}
-//	}
-	
 	state potential_active initial: true{ 
 		if(investment_open){
 			do decideInvestment;	
 		}
-//	    transition to: investing when: (my_plot != nil);
+	    transition to: investing when: (my_plot != nil);
 	} 
-//	
-//	state investing { 
-//	 	do updateRotationYears;
-//	 	
-//	    transition to: potential_active when: (!waiting and (recent_profit >= promised_profit));
-//	    transition to: potential_passive when: (!waiting and (recent_profit < promised_profit));
-//	 
-//	    exit {
-//	    	my_plot.is_invested <- false;
-//	        my_plot <- nil;
-//	    	total_investment <- total_investment + investment;
-//	    	recent_profit <- 0.0;
-//	    	harvest_monitor <- 0;
-//	    	investment <- 0.0;
-//	    } 
-//	}
-//	
-//	state potential_passive { 
-//	    string risk <- risk_types.keys[rt];
-//		if(risk = "Neutral"){
-//			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
-//		}
-//		bool to_transition <- flip(risk_types[risk]);
-//	    
-//	    transition to: potential_active when: (to_transition);
-//	}
+	
+	state investing { 
+		enter{
+			int harvest_month_monitor <- 0;
+		}
+				
+	    transition to: potential_active when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit >= promised_profit));
+	    transition to: potential_passive when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit < promised_profit));
+	 
+	 	if(harvest_month_monitor = investment_rotation_years){
+	 		ask university_si{
+				do harvestITP(myself, myself.my_plot);	
+			}
+	 	}else{
+	 		harvest_month_monitor <- harvest_month_monitor + 1;	
+	 	}
+	 	
+	    exit {
+	    	my_plot.is_invested <- false;
+	        my_plot <- nil;
+	        total_profit <- total_profit + recent_profit;
+	    	recent_profit <- 0.0;
+	    } 
+	}
+	
+	state potential_passive { 
+	    string risk <- risk_types.keys[rt];
+		if(risk = "Neutral"){
+			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
+		}
+		bool to_transition <- flip(risk_types[risk]);
+	    
+	    transition to: potential_active when: (to_transition);
+	}
 }
