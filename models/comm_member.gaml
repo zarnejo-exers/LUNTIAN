@@ -98,9 +98,8 @@ species comm_member control: fsm{
 	//TODO: verify if this computes properly
 	action computeEarning{
 		current_earning <- estimateValue(instance_labour.marked_trees);	//compute earning of community member"
-		total_earning <- total_earning + current_earning;
 		success <- success + 1;
-		current_earning <- 0.0;
+		total_earning <- total_earning + current_earning;
 	}
 
 	//uses the same metrics as with the university in terms of determining the cost per harvested tree
@@ -124,8 +123,16 @@ species comm_member control: fsm{
 	}
 	
 	action markTrees{
-		list<trees> chosen_trees <- reverse(instance_labour.my_assigned_plot.plot_trees sort_by each.dbh);
-		instance_labour.marked_trees <- chosen_trees[0::LABOUR_TCAPACITY];
+		
+		list<trees> chosen_trees <- instance_labour.my_assigned_plot.plot_trees where (each.dbh > 10);
+		 
+		if(length(chosen_trees) > 0){
+			chosen_trees <- reverse(chosen_trees sort_by each.dbh);			
+			instance_labour.marked_trees <- chosen_trees[0::((length(chosen_trees) < LABOUR_TCAPACITY)?length(chosen_trees):LABOUR_TCAPACITY)];
+			ask instance_labour.marked_trees{
+				is_illegal <- true;
+			}		
+		}
 	}	
 	
 	//waiting to be hired
@@ -172,6 +179,7 @@ species comm_member control: fsm{
 	//if their gain is more than 
 	state independent_harvesting { 
 
+		current_earning <- 0.0;	
 		loop i from: 0 to: 2{	//will look for plot three times then stop
 			do findPlot();	//find the plot where to harvest
 			if(instance_labour.my_assigned_plot != nil){
@@ -181,19 +189,7 @@ species comm_member control: fsm{
 				break;
 			}	
 		}
-		
-	    //before you even start to harvest, check if there are prospects of being hired
-	    //if there's hiring prospective, choose to cooperate
-	    transition to: potential_partner when: (checkHiringProspective()){
-			if(instance_labour.my_assigned_plot != nil){
-				remove instance_labour from: instance_labour.my_assigned_plot.my_laborers;	
-			}
-			instance_labour.my_assigned_plot <- nil;
-			instance_labour.state <- "vacant";
-			lapsed_time <- waiting_allowance;	    	
-	    } 	
-	    
-	    
+
  	 	//after harvesting, gets alerted of being caught 
  	 	transition to: independent_passive when: (is_caught) { 	//if caught 
 	        success <- success - 1;
@@ -204,7 +200,18 @@ species comm_member control: fsm{
 	        write "CAUGHT! current_earning: "+current_earning;
 	        total_earning <- total_earning - current_earning;
 	        current_earning <- 0.0; 
-	    } 
+	    } 	
+		
+	    //before you even start to harvest, check if there are prospects of being hired
+	    //if there's hiring prospective, choose to cooperate
+	    transition to: potential_partner when: ((length(instance_labour.marked_trees) = 0) and checkHiringProspective()){
+			if(instance_labour.my_assigned_plot != nil){
+				remove instance_labour from: instance_labour.my_assigned_plot.my_laborers;	
+			}
+			instance_labour.my_assigned_plot <- nil;
+			instance_labour.state <- "vacant";
+			lapsed_time <- waiting_allowance;	    	
+	    } 	
 
 	}
 	

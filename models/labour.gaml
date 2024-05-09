@@ -128,7 +128,6 @@ species labour control: fsm{
 			}
 			do die;
 		}
-		write "CUT "+length(marked_trees)+" trees";
 		remove all: marked_trees from: marked_trees;
 	}	
 	//gather all seedlings from the current plot
@@ -279,8 +278,17 @@ species labour control: fsm{
 	}
 	
 	state independent{	//if instance of independent community member 
-		if(my_assigned_plot != nil and length(marked_trees) > 0){
+		enter{
+			int month <- 0;
+		}
+		if(my_assigned_plot != nil and length(marked_trees) > 0 and month = 1){
+			write "illegally CUTTING "+length(marked_trees)+" trees";
+			ask marked_trees{
+				write "tree with "+dbh+"cm dbh";
+			}
 			do cutMarkedTrees();
+		}else{
+			month <- 1;
 		}
 	}
 }

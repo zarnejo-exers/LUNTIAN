@@ -271,6 +271,7 @@ species trees{
 	bool has_flower <- false;
 	bool is_new_tree <- false;
 	bool is_marked <- false;
+	bool is_illegal <- false;
 	
 	list<trees> my_neighbors; 	
 	
@@ -279,12 +280,14 @@ species trees{
 		if(crown_diameter != 0){
 			//this is the crown
 			// /2 since parameter asks for radius
-			if(is_marked){
+			if(is_illegal){
+				draw sphere((self.crown_diameter/2)#m) color: #red at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
+			}else if(is_marked){
 				draw sphere((self.crown_diameter/2)#m) color: #black at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
 			}else if(type = NATIVE){
 				draw sphere((self.crown_diameter/2)#m) color: #darkgreen at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
 			}else{
-				draw sphere((self.crown_diameter/2)#m) color: #violet at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
+				draw sphere((self.crown_diameter/2)#m) color: #darkviolet at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
 			}
 			
 			//this is the stem
@@ -310,7 +313,9 @@ species trees{
 		if(crown_diameter != 0){
 			//this is the crown
 			// /2 since parameter asks for radius
-			if(is_marked){
+			if(is_illegal){
+				draw sphere((self.crown_diameter/2)#m) color: #red at: {location.x,location.y,th#m};
+			}else if(is_marked){
 				draw sphere((self.crown_diameter/2)#m) color: #black at: {location.x,location.y,th#m};
 			}else if(type = NATIVE){
 				draw sphere((self.crown_diameter/2)#m) color: #darkgreen at: {location.x,location.y,th#m};
@@ -665,10 +670,10 @@ species plot{
 	}
 	
 	//if there exist a mother tree in one of the trees inside the plot, it becomes a candidate nursery
-	//put 
-	reflex checkifCandidateNursery when: has_road{	// should be reflex
-		int mother_count <- length(plot_trees where each.is_mother_tree);
-		is_candidate_nursery <- (mother_count > 0)?true:false;
+	//choose those with native mother trees and with no exotic mother trees
+	reflex checkifCandidateNursery when: (has_road){	// should be reflex
+		list<trees> mother_trees <- plot_trees where (each.is_mother_tree);
+		is_candidate_nursery <- (length(mother_trees) > 0 and (length(mother_trees where (each.type = EXOTIC)) = 0))?true:false;
 	}
 	
 	reflex checkIsDry{
