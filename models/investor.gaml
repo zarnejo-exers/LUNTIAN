@@ -19,6 +19,8 @@ global{
 	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.75, "Neutral"::0.5];
 	int total_investment_count <- 0 update: total_investment_count;
 	
+	
+	
 	init{
 		//assign risk type for each investor randomly
 		create investor number: investor_count{
@@ -42,15 +44,35 @@ species investor control: fsm{
 	float promised_profit; 
 	int tht <- 0;	//total harvested trees
 	int investment_count <- 0;
-	list<int> investment_rotation_years <- [];
 	int rt;	//risk type
 	bool waiting <- false;
+	
 	
 	//investor is deciding whether to invest or not
 	//computes for the rate of return on the invested plots
 	//once investment has been successfully completed; university starts the planting and assigns rotation years per plot.
 	// get firstbjarvestable plot
 	action decideInvestment{	////reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
+		
+		plot investable_plot;
+		float projected_profit;
+		float investment_cost; 
+		
+		ask university_si{
+			investable_plot <- getInvestablePlot();	//receives the first plot with the highest SBA
+		}
+		
+		if(investable_plot != nil){
+			ask university_si{
+				int cplaces_to_fill <- length(getSquareSpaces(investable_plot.shape, investable_plot.plot_trees, true, 3));	//to support investment
+				projected_profit <- projectProfit(myself, investable_plot, cplaces_to_fill);
+				investment_cost <- computeInvestmentCost(investable_plot, cplaces_to_fill);
+				write "INVESTMENT COST: "+investment_cost+" PROJECTED_PROFIT: "+projected_profit;
+			}
+		}else{
+			write "No available plot for investment";
+		}
+
 //		plot investable_plot; 
 //		int s_type;	//supported ITP type
 //		int needed_native;
@@ -93,7 +115,7 @@ species investor control: fsm{
 //		}
 	}
 	
-	bool decideOnRisk(plot i_plot, int risk_type){
+	bool decideOnRisk(float projected_profit, float investment_cost, int risk_type){
 		string risk <- risk_types.keys[risk_type];
 		if(risk = "Neutral"){	//if risk tyep = neutral, flip what kind of risk it will be on this step
 			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
@@ -101,12 +123,12 @@ species investor control: fsm{
 		
 		switch risk{
 			match "Averse" {
-				if(i_plot.projected_profit>0 and (1-(i_plot.investment_cost / i_plot.projected_profit) < risk_types[risk])){
+				if(projected_profit>0 and (1-(investment_cost / projected_profit) < risk_types[risk])){
 					return true;
 				}	
 			}
 			match "Loving" {
-				if(i_plot.projected_profit > 0 and (1-(i_plot.investment_cost / i_plot.projected_profit)) >= risk_types[risk]){
+				if(projected_profit > 0 and (1-(investment_cost / projected_profit)) >= risk_types[risk]){
 					return true;
 				}
 			}
@@ -117,20 +139,22 @@ species investor control: fsm{
 	//to signal when to harvest and earn
 	//harvest_monitor ticks to monitor the month, when harvest_monitor = 12, it means a year has passed
 	//each plot have rotation_years, there is a set rotation year for each ITP, so you decrement the rotation_year whenever the harvest_monitor reaches 12
-	action updateRotationYears{	// when: length(my_plots) > 0
-		harvest_monitor <- 1 + harvest_monitor;
-		if(harvest_monitor = 12){
-			if(my_plot.rotation_years != 0){
-				my_plot.rotation_years <- my_plot.rotation_years - 1;
-			}
-			harvest_monitor <- 0;
-		}
-	}
+//	action updateRotationYears{	// when: length(my_plots) > 0
+//		harvest_monitor <- 1 + harvest_monitor;
+//		if(harvest_monitor = 12){
+//			if(my_plot.rotation_years != 0){
+//				my_plot.rotation_years <- my_plot.rotation_years - 1;
+//			}
+//			harvest_monitor <- 0;
+//		}
+//	}
 	
-//	state potential_active initial: true{ 
-//	 	do decideInvestment;	
+	state potential_active initial: true{ 
+		if(investment_open){
+			do decideInvestment;	
+		}
 //	    transition to: investing when: (my_plot != nil);
-//	} 
+	} 
 //	
 //	state investing { 
 //	 	do updateRotationYears;

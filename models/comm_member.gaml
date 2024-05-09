@@ -74,11 +74,9 @@ species comm_member control: fsm{
 	bool checkHiringProspective{
 		ask university_si{
 			if(!is_hiring){
-				write "NOT HIRING!";
 				return false;		//if there's no hiring prospect, return false right away	
 			}
 		}
-		write "THERE'S HIRING PROSPECT!";
 		//if there is a hiring prospect, check the state of all competitors
 		//shift meaning, become labour_partner
 		int competition_count <- comm_member count (each.state = "independent_harvesting" or each.state = "independent_passive");
@@ -104,13 +102,12 @@ species comm_member control: fsm{
 	//uses the same metrics as with the university in terms of determining the cost per harvested tree
 	float estimateValue(list<trees> harvested_trees){
 		float temp_earning <- 0.0;
-		float thv_n;
-		float thv_e; 
-		list<trees> native <- instance_labour.marked_trees where (each.type = NATIVE);
-		list<trees> exotic <- instance_labour.marked_trees where (each.type = EXOTIC);
+		float thv_n <- 0.0;
+		float thv_e <- 0.0; 
+
 		ask market{
-			thv_n <- getTotalBDFT(native);
-			thv_e <- getTotalBDFT(exotic);
+			thv_n <- getTotalBDFT((myself.instance_labour.marked_trees where (each.type = NATIVE)));	
+			thv_e <- getTotalBDFT((myself.instance_labour.marked_trees where (each.type = EXOTIC)));	
 		}
 		
 		float profit <- 0.0;
@@ -167,8 +164,6 @@ species comm_member control: fsm{
 	    	}	
 	    } 
 	    
-	    write "Community: "+name+" is "+(satisfied?"satified":"not satisfied");
-	    
 	    transition to: independent_harvesting when: (instance_labour.is_harvest_labour and !satisfied and month = 6);
 	    transition to: potential_partner when: (!satisfied);
 	 
@@ -202,7 +197,6 @@ species comm_member control: fsm{
 	        is_caught <- false;
 	        
 	        //when caught 
-	        write "CAUGHT! current_earning: "+current_earning;
 	        total_earning <- total_earning - current_earning;
 	        current_earning <- 0.0; 
 	    } 	

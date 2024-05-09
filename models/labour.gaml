@@ -192,7 +192,6 @@ species labour control: fsm{
 		ask university_si{
 			do payLaborer(myself);
 		}
-		write "managing nursery";
 		
 		transition to: assigned_nursery when: ((fruiting_months_N + fruiting_months_E) contains current_month){//fruiting season, go out to gather
 			add all: (plot where !each.is_nursery) to: to_visit_plot;	
@@ -209,8 +208,6 @@ species labour control: fsm{
 			list<trees> seedlings_in_plot <- gatherSeedlings(current_plot);
 			all_seedlings_gathered <<+ seedlings_in_plot;
 			remove current_plot from: to_visit_plot;	
-		}else{
-			write "have harvested all possible places. nowhere to harvest";
 		}
 		ask university_si{
 			do payLaborer(myself);
@@ -220,7 +217,6 @@ species labour control: fsm{
 		{	//!fruiting season, return to nursery
 			
 			//plant first before returning to nursery
-			write "Laborer "+name+" is putting all gathered seedlings to plot.";
 			if(length(all_seedlings_gathered) > 0){
 				location <- my_assigned_plot.location;	//put laborer back to the nursery
 				current_plot <- my_assigned_plot;
@@ -229,8 +225,6 @@ species labour control: fsm{
 				ask university_si{
 					do payLaborer(myself);
 				}
-			}else{
-				write "Laborers: "+name+" wasn't able to gather seeds";
 			}
 		}
 	}
@@ -238,7 +232,6 @@ species labour control: fsm{
 	//ITP planter
 	state assigned_planter{
 		//go to nurseries and get trees as much as it can carry => carrying_capacity
-		write "Count of saplings to plant: "+length(my_trees);
 		do gatherSaplings();
 		do plantInSquare();
 		ask university_si{

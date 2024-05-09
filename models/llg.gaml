@@ -18,10 +18,10 @@ global {
 	int POLE <- 2;
 	int ADULT <- 3;
 	
-//	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
-//	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
-	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
+//	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//mixed species
+//	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
@@ -36,12 +36,10 @@ global {
 	float max_dbh_exotic <- 110.8 update: max_dbh_exotic;
 	float min_dbh_exotic <- 1.0 update: min_dbh_exotic;
 	//int ave_fruits_exotic <- 700 update: ave_fruits_exotic;
-	float exotic_price_per_volume <- 70.0 update: exotic_price_per_volume;
 	
 	float max_dbh_native <- 130.0 update: max_dbh_native;
 	float min_dbh_native <- 1.0 update: min_dbh_native;
 	//int ave_fruits_native <- 100 update: ave_fruits_native;
-	float native_price_per_volume <- 70.0 update: native_price_per_volume;
 
 	field elev <- field(elev_file);	
 	field water_content <- field(water_file);
@@ -74,7 +72,7 @@ global {
 	
 	list<point> drain_cells <- [];
 	
-	geometry shape <- envelope(plot_shapefile);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
+	geometry shape <- envelope(Soil_Group);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
 	list<geometry> clean_lines;
 	list<list<point>> connected_components ;
 	list<rgb> colors;
@@ -119,7 +117,10 @@ global {
 			th <- float(read("Book2_TH"));		
 			r <- float(read("Book2_R"));		
 			type <- (string(read("Book2_Clas")) = "Native")? NATIVE:EXOTIC;	
-			th <- calculateHeight(dbh, type);
+			
+			ask university_si{
+				myself.th <- calculateHeight(myself.dbh, myself.type);	
+			}
 			basal_area <- #pi * (dbh^2)/40000;
 			do setState();
 			
@@ -245,7 +246,7 @@ global {
 	}
 }
 
-species trees{
+species trees{ 
 	float dbh; //diameter at breast height
 	float th; //total height
 	float mh;	//merchantable height
@@ -341,26 +342,6 @@ species trees{
 			
 		}		
 	}
-	
-	//STATUS: CHECKED
-	float calculateHeight(float temp_dbh, int t_type){
-		float predicted_height; 
-		switch t_type{
-			match EXOTIC {
-				predicted_height <- (1.3 + (12.39916 * (1 - exp(-0.105*dbh)))^1.79);	//https://www.cifor-icraf.org/publications/pdf_files/Books/BKrisnawati1110.pdf 
-			}
-			match NATIVE {
-				predicted_height <- 1.3+(dbh/(1.5629+0.3461*dbh))^3;	//https://d-nb.info/1002231884/34		
-			}
-		}
-		
-		return predicted_height;	//in meters	
-	}
-	
-	//in cubic meters
-	float calculateVolume(float temp_dbh, int t_type){
-		return -0.08069 + 0.31144 * ((temp_dbh*0.01)^2) * calculateHeight(temp_dbh, t_type);	//Nguyen, T. T. (2009). Modelling Growth and Yield of Dipterocarp Forests in Central Highlands of Vietnam [Ph.D. Dissertation]. Technische Universität München.	
-	}
 
 	//STATUS: CHECKED, but needs neighbor effect
 	//growth of tree
@@ -397,7 +378,10 @@ species trees{
 		if(dbh > max_dbh_per_class[type][ADULT]){
 			dbh <- max_dbh_per_class[type][ADULT];
 		}
-		th <- calculateHeight(dbh, type);
+		
+		ask university_si{
+			myself.th <- calculateHeight(myself.dbh, myself.type);	
+		}
 		do setState();
 	}
 	
@@ -437,7 +421,10 @@ species trees{
 				shade_tolerant <- myself.shade_tolerant;
 				is_new_tree <- true;
 				t_space <- t_space - circle((dbh/2)#cm);	//remove from available spaces the space occupied by new tree
-				th <- calculateHeight(dbh, type);
+				
+				ask university_si{
+					myself.th <- calculateHeight(myself.dbh, myself.type);	
+				}
 				basal_area <- #pi * (dbh^2)/40000;
 				add self to: my_plot.plot_trees;
 				do setState();	
@@ -606,14 +593,12 @@ species plot{
 	
 	float growth_coeff_N;
 	float growth_coeff_E; 
-	
-	int rotation_years <- 0; 	//only set once an investor decided to invest on a plot
+
 	bool is_near_water <- false;
 	bool is_nursery <- false;
 	bool has_road <- false;
 	bool is_invested <- false;
 	bool is_candidate_nursery <- false; //true if there exist a mother tree in one of its trees;
-	float projected_profit;
 	float investment_cost;
 	bool is_itp <- false;
 	bool is_policed <- false;

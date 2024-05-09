@@ -14,6 +14,7 @@ import "university_si.gaml"
 species market{
 	float bprice_of_exotic <- 4000.0;	//php per cubic meter
 	float bprice_of_native <- 8000.0; 	//php per dbh
+	float native_sapling_price <- 100.0; //TODO: must set
 	
 	float getBuyingPrice(int t_type){
 		return ((t_type = 1)?bprice_of_exotic:bprice_of_native);
@@ -23,8 +24,11 @@ species market{
 		float total_bdft <- 0.0;
 		
 		ask tth{
-			total_bdft <- total_bdft + (calculateVolume(dbh, type) / 12);	
+			ask university_si{
+				total_bdft <- total_bdft + (calculateVolume(myself.dbh, myself.type));	
+			}
 		}
+		
 		return total_bdft;
 	}	
 	
