@@ -19,8 +19,6 @@ global{
 	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.75, "Neutral"::0.5];
 	int total_investment_count <- 0 update: total_investment_count;
 	
-	
-	
 	init{
 		//assign risk type for each investor randomly
 		create investor number: investor_count{
@@ -111,17 +109,8 @@ species investor control: fsm{
 			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
 		}
 		
-		switch risk{
-			match "Averse" {
-				if(projected_profit>0 and (1-(investment_cost / projected_profit) < risk_types[risk])){
-					return true;
-				}	
-			}
-			match "Loving" {
-				if(projected_profit > 0 and (1-(investment_cost / projected_profit)) >= risk_types[risk]){
-					return true;
-				}
-			}
+		if(projected_profit>0 and ((investment_cost / projected_profit) < risk_types[risk])){
+			return true;
 		}
 		return false; 
 	}

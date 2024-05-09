@@ -230,8 +230,6 @@ species university_si{
 			projected_profit <- (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.75;
 		}	
 		
-		write "current projected profit: "+projected_profit;
-		
 		//future harvestable
 		trees sample_sapling <- first(buySaplings(1));
 		float pfuture_dbh <- (sample_sapling.age + investment_rotation_years)*growth_rate_native;
@@ -240,7 +238,6 @@ species university_si{
 		ask market{
 			projected_profit <- projected_profit + (getProfit(NATIVE, pfuture_bdft*sapling_places)*0.75);	
 		}
-		write "future values: dbh = "+pfuture_dbh+" bdft = "+pfuture_bdft+" projected_profit = "+projected_profit;
 		
 		return projected_profit; 
 	}	
