@@ -58,7 +58,6 @@ species special_police{
 	reflex guardPlotNeighborhood{
 		loop on over: observed_neighborhood{
 			ask ((labour-uni_laborers) inside on){
-				write "Laborer: "+name+" is inside plot "+on.name;
 				if(com_identity!=nil and com_identity.state = "independent_harvesting"){
 					write "Special police "+name+" caught member "+com_identity.name;
 					com_identity.is_caught <- true;

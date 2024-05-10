@@ -49,7 +49,7 @@ global{
 	int total_investments <- 0;
 	float total_management_cost <- 0.0;
 	float total_ITP_earning <- 0.0;
-	int total_warned_CM <- 0;
+	int total_warned_CM <- sum(special_police collect each.total_comm_members_reprimanded) update: sum(special_police collect each.total_comm_members_reprimanded);
 	
 	bool investment_open;
 	list<labour> uni_laborers;
@@ -90,7 +90,6 @@ global{
 
 species university_si{
 	list<plot> my_invested_plots;		//list of plots invested by the university
-	list<investor> current_investors <- investor where (each.my_plot != nil) update: investor where (each.my_plot != nil);
 	
 	float labor_price <- 3.0; //per months
 	
@@ -362,6 +361,9 @@ species university_si{
 			basal_area <- #pi * (dbh^2)/40000;
 			my_plot <- nil;
 			location <- point(0,0,0);
+			if(name = "trees650"){
+				write "HERE!!!! 650";
+			}
 		}
 		return bought_saplings;
 	}
@@ -394,7 +396,7 @@ species university_si{
 			}
 			
 			list<trees> bought_saplings <- buySaplings(saplings_to_be_bought);
-		
+			
 			do sendPlanters(available_planters, the_plot, saplings_to_be_planted + bought_saplings, available_spaces);
 			return true;			
 		}
@@ -498,6 +500,7 @@ species university_si{
     	}else{
     		write "NOTHING to harvest";
     	}
+    	
     	
 		return replantPlot(plot_to_harvest);
 	}

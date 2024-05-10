@@ -38,11 +38,15 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		layout #split;
 	
 		display interaction{
-			species plot;
-			species investor visible: false;
-			species labour aspect: si;
-			species comm_member visible: false;
-			species special_police aspect: si;
+			species climate;
+			species plot; 
+//			species trees;	//aspect: geom3d
+			species river;
+			species road;
+			species special_police;
+			species labour;
+			species comm_member;
+			species investor;
 		}
 
 		display chart1 type: java2D{	

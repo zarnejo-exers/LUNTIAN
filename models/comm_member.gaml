@@ -185,7 +185,7 @@ species comm_member control: fsm{
 	    	total_earning <- total_earning + current_earning;
 	    	current_earning <- 0.0;
 	    	instance_labour.total_earning <- 0.0;
-	    	instance_labour.my_assigned_plot <- nil;
+//	    	instance_labour.my_assigned_plot <- nil;	//TODO: REMOE THIS LINE
 	    } 
 	}
 	

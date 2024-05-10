@@ -36,7 +36,7 @@ species investor control: fsm{
 	float recent_profit <- 0.0;
 	int tht <- 0;	//total harvested trees
 	
-	plot my_plot <- nil;
+	plot my_iplot <- nil;
 	float promised_profit; 
 	int investment_count <- 0;
 	int rt;	//risk type
@@ -71,12 +71,12 @@ species investor control: fsm{
 			if(decision){
 				total_investments <- total_investments + 1;
 				write "Commencing investment #"+total_investments+": investor "+name;
-				my_plot <- investable_plot;
-				location <- any_location_in(my_plot);
+				my_iplot <- investable_plot;
+				location <- any_location_in(my_iplot);
 				investable_plot.is_invested <- true;
 				total_ITP_earning <- total_ITP_earning + investment_cost;
 				ask university_si{
-					do harvestITP(myself, myself.my_plot);	
+					do harvestITP(myself, myself.my_iplot);	
 				} 
 			}
 		}else{
@@ -100,7 +100,7 @@ species investor control: fsm{
 		if(investment_open){
 			do decideInvestment;	
 		}
-	    transition to: investing when: (my_plot != nil);
+	    transition to: investing when: (my_iplot != nil);
 	} 
 	
 	state investing { 
@@ -113,15 +113,15 @@ species investor control: fsm{
 	 
 	 	if(harvest_month_monitor = investment_rotation_years){
 	 		ask university_si{
-				do harvestITP(myself, myself.my_plot);	
+				do harvestITP(myself, myself.my_iplot);	
 			}
 	 	}else{
 	 		harvest_month_monitor <- harvest_month_monitor + 1;	
 	 	}
 	 	
 	    exit {
-	    	my_plot.is_invested <- false;
-	        my_plot <- nil;
+	    	my_iplot.is_invested <- false;
+	        my_iplot <- nil;
 	        total_profit <- total_profit + recent_profit;
 	    	recent_profit <- 0.0;
 	    } 
