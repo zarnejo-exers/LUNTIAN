@@ -99,7 +99,7 @@ species university_si{
 	
 	list<plot> my_nurseries;	//list of nurseries managed by university
 	list<trees> my_saplings <- [] update: (my_saplings where !dead(each)); //contains all saplings in the nusery, remove all the dead saplings
-	list<plot> harvestable_plot <- plot where (each.stand_basal_area > 12 and !each.is_nursery) update: plot where (each.stand_basal_area > 12  and !each.is_nursery);
+	list<plot> harvestable_plot <- plot where (each.stand_basal_area > 12 and !each.is_nursery and !each.is_invested) update: plot where (each.stand_basal_area > 12  and !each.is_nursery and !each.is_invested);
 	
 	reflex alertInvestment{
 		investment_open <- length(my_nurseries) >= nursery_count/2;
@@ -366,28 +366,22 @@ species university_si{
 		return bought_saplings;
 	}
 	
-	//Prioritize replanting native trees
-	//native count is the number of native saplings bought by the university to fill the plot with trees
-	//native_count > 0
-	// after investment, must fill up the plot to capacity given the saplings in the nursery and buying #native_count of saplings if there are more spaces
-	// TODO: incur additional cost 
+	/* TWO types: 
+	 *  (i) encrichment planting as ANR approach
+	 *  (ii)planting for ITP
+	 * 
+	 * This function also "hires" planters
+	 */ 
 	bool replantPlot(plot the_plot){
-		//Step 1: Given the total saplings contained in the nursery -> my_saplings
-		//Step 2: Get the capacity of the plot (for replanting)
 		list<geometry> available_spaces <- getSquareSpaces(the_plot.shape, the_plot.plot_trees, true, 3);
 		int plot_capacity <- length(available_spaces); 	
-//		write "Available spaces: "+plot_capacity;
-		
-		//Step 3: hire planters based on planting_capacity/LABOUR_TCAPACITY
+
 		int needed_planters <- int(ceil(plot_capacity/LABOUR_TCAPACITY));
-//		write "Needed planters: "+needed_planters;
 		list<labour> available_planters <- getLaborers(needed_planters);
-//		write "Total hired planters: "+length(available_planters);
 		
 		if(length(available_planters)>0){
 			int available_saplings <- length(my_saplings);
 			
-			//get how many saplings should be bought given available laborers and available space
 			list<trees> saplings_to_be_planted <- [];
 			int saplings_to_be_bought <- 0;
 			int planting_capacity <- length(available_planters)*LABOUR_TCAPACITY;
@@ -500,7 +494,7 @@ species university_si{
 	    	}
 	    	if(exotic_trees != []){
 	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
-	    	}		
+	    	}
     	}else{
     		write "NOTHING to harvest";
     	}

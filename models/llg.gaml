@@ -648,7 +648,11 @@ species plot{
 		}else if(is_ANR){
 			draw shape color: #aquamarine;
 		}else if(is_harvested){
-			draw shape color: #violet;
+			draw shape color: #pink;
+		}else if(is_invested){
+			draw shape color: #maroon;
+		}else if(is_policed){
+			draw shape color: #yellow;	
 		}else{
 			draw shape color: rgb(153,136,0);
 		}

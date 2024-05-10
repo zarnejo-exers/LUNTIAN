@@ -50,8 +50,12 @@ species comm_member control: fsm{
 		
 	}
 	
-	reflex updateLocation when: instance_labour.my_assigned_plot != nil{
-		location <- any_location_in(instance_labour.my_assigned_plot);
+	reflex updateLocation {
+		if(instance_labour.my_assigned_plot != nil){
+			location <- any_location_in(instance_labour.my_assigned_plot);	
+		}else{
+			location <- point(0,0,0);
+		}
 	}
 		
 	//get the total number of comm_member with current earning greater than own current earning
@@ -181,6 +185,7 @@ species comm_member control: fsm{
 	    	total_earning <- total_earning + current_earning;
 	    	current_earning <- 0.0;
 	    	instance_labour.total_earning <- 0.0;
+	    	instance_labour.my_assigned_plot <- nil;
 	    } 
 	}
 	
