@@ -42,6 +42,10 @@ species investor control: fsm{
 	int rt;	//risk type
 	bool waiting <- false;
 	
+	aspect default{
+		draw pyramid(5) color: #gold; 
+	}
+	
 	
 	//investor is deciding whether to invest or not
 	//computes for the rate of return on the invested plots
@@ -68,6 +72,7 @@ species investor control: fsm{
 				total_investments <- total_investments + 1;
 				write "Commencing investment #"+total_investments+": investor "+name;
 				my_plot <- investable_plot;
+				location <- any_location_in(my_plot);
 				investable_plot.is_invested <- true;
 				total_ITP_earning <- total_ITP_earning + investment_cost;
 				ask university_si{

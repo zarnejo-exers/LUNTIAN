@@ -12,20 +12,20 @@ import "university_si.gaml"
 /* Insert your model definition here */
 //one instance of special_police = 1 group of police
 species special_police{
-	bool is_servicing <- false; 	//is the special police currently hired
 	int total_years_served <- 0;	//number of years the police was hired
 	plot assigned_area <- nil;		//position of the sp in the environment
 	list<plot> observed_neighborhood <- [];
 	int total_comm_members_reprimanded <- 0; 	//remembers only the number, since they are not mandated to catch
-	rgb color_neighbor <- rnd_color(0, 255);
 	
-	aspect si{
-		loop p over: observed_neighborhood{
-			draw p.shape color: color_neighbor;
+	aspect default{
+		draw hexagon(5) color: #yellowgreen;
+		
+		ask observed_neighborhood - assigned_area{
+			draw hexagon(5) color: #yellowgreen at: any_location_in(self);
 		}
 	}
 	
-	reflex updateArea when: (cycle mod 3 = 0) and is_servicing{
+	reflex updateArea when: (current_month mod 3 = 0){
 		//the police is going to change place, so the current place will no longer be policed
 		if(length(observed_neighborhood) > 0){	
 			ask observed_neighborhood{
@@ -36,30 +36,30 @@ species special_police{
 		
 		//getting new location
 		list<plot> open_plots <- getOpenPlots();
-		
-		assigned_area <- open_plots[rnd(length(open_plots)-1)];
-		assigned_area.is_policed <- true;
-		location <- assigned_area.location;
-		//get the neighbor of the plot
-		ask assigned_area{
-			myself.observed_neighborhood <- (plot at_distance 300) where (!each.is_policed);
+		assigned_area <- one_of(open_plots);	//get randomly from the open plots
+		location <- point(0,0,0);
+		if(assigned_area != nil){
+			location <- any_location_in(assigned_area.location);
+			assigned_area.is_policed <- true;
+			add all: (plot where (!each.is_policed and !each.is_nursery)) closest_to (self, 8) to: observed_neighborhood;
+//			add assigned_area to: observed_neighborhood;
+//			ask observed_neighborhood{
+//				is_policed <- true;
+//			}			
 		}
-		observed_neighborhood <- observed_neighborhood+assigned_area;
 	} 
 	
 	list<plot> getOpenPlots{
-		list<special_police> sp <- special_police where (each.is_servicing and assigned_area!=nil);
+		list<special_police> sp <- special_police where (assigned_area!=nil);
 		list<plot> guarded_plots <- (sp collect each.assigned_area) + (sp collect each.observed_neighborhood);	//get all guarded places
-		return plot - guarded_plots;
+		return (plot where ((!each.is_policed) and !each.is_nursery)) - guarded_plots;
 	} 
 	
-	reflex guardPlotNeighborhood when: is_servicing{
+	reflex guardPlotNeighborhood{
 		loop on over: observed_neighborhood{
-			on.is_policed <- true;
-			ask on.my_laborers{
-				if(self = nil){
-					remove self from: on.my_laborers;	
-				}else if(com_identity!=nil and com_identity.state="independent_harvesting" and !com_identity.is_caught){
+			ask ((labour-uni_laborers) inside on){
+				write "Laborer: "+name+" is inside plot "+on.name;
+				if(com_identity!=nil and com_identity.state = "independent_harvesting"){
 					write "Special police "+name+" caught member "+com_identity.name;
 					com_identity.is_caught <- true;
 					myself.total_comm_members_reprimanded <- myself.total_comm_members_reprimanded + 1; 

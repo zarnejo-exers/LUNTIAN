@@ -36,19 +36,8 @@ species labour control: fsm{
 	float total_earning <- 0.0;		//total earning for the entire simulation
 	
 	aspect default{
-		if(is_nursery_labour){
-			draw triangle(length(my_trees)+50) color: #orange rotate: 90.0;	
-		}else if(is_harvest_labour or is_planting_labour){
-			draw triangle(length(my_trees)+50) color: #violet rotate: 90.0;
-		}
-		
-	}
-	
-	aspect si{
 		if(labor_type = OWN_LABOUR){
-			draw circle(20, location) color: #red;	//if own labor, red; else, pink	
-		}else if(labor_type = COMM_LABOUR){
-			draw circle(20, location) color: #violet;	//if own labor, red; else, pink
+			draw teapot(5) color: #orange rotate: 90.0;	
 		}
 	}
 
@@ -86,7 +75,7 @@ species labour control: fsm{
 		}		
 		
 		current_plot <- neighborhood farthest_to self;
-		location <- current_plot.location;
+		location <- any_location_in(current_plot.location);
 		
 		return nil;	 
 	}
@@ -106,11 +95,11 @@ species labour control: fsm{
 				remove tnp from: self.my_trees;	//remove plant from the "bag" of the laborer
 				add tnp to: pt_plant.plot_trees;	//move to pt_plant
 				tnp.my_plot <- pt_plant;	//put the tree in the plot
-				tnp.location <- sq.location;
+				tnp.location <- any_location_in(sq.location);
 				remove sq from: available_square;
 				add tnp to: planted_trees;	
 			}else{
-				write "NO SPACE LEFT!";
+				write "NO SPACE LEFT in plot: "+pt_plant.name;
 				break;		
 			}				
 		}
@@ -131,7 +120,7 @@ species labour control: fsm{
 	//gather all seedlings from the current plot
 	//randomly choose from its neighbor where it will gather seedlings 
 	list<trees> gatherSeedlings(plot c_plot){
-		location <- c_plot.location;
+		location <- any_location_in(c_plot.location);
 		
 		list<trees> all_seedlings <- c_plot.plot_trees where (each.state = SEEDLING);
 		//get only what it can carry
@@ -155,6 +144,7 @@ species labour control: fsm{
 		ask saplings_in_nurseries{
 			remove self from: my_plot.plot_trees;
 			location <- point(0,0,0);
+			myself.location <- any_location_in(my_plot.location);
 		}
 	}
 	
@@ -165,7 +155,7 @@ species labour control: fsm{
 				geometry sq <- planting_spaces[0];
 				add tnp to: my_assigned_plot.plot_trees;	//move to pt_plant
 				tnp.my_plot <- my_assigned_plot;	//put the tree in the plot
-				tnp.location <- sq.location;
+				tnp.location <- any_location_in(sq.location);
 				remove sq from: planting_spaces;
 				add tnp to: planted_trees;
 			}else{
@@ -203,6 +193,7 @@ species labour control: fsm{
 		
 		if(coverage != []){
 			current_plot <- one_of(coverage);	//get a random location
+			location <- any_location_in(current_plot.location);
 			list<trees> seedlings_in_plot <- gatherSeedlings(current_plot);
 			all_seedlings_gathered <<+ seedlings_in_plot;
 			remove current_plot from: to_visit_plot;	
@@ -216,7 +207,7 @@ species labour control: fsm{
 			
 			//plant first before returning to nursery
 			if(length(all_seedlings_gathered) > 0){
-				location <- my_assigned_plot.location;	//put laborer back to the nursery
+				location <- any_location_in(my_assigned_plot.location);	//put laborer back to the nursery
 				current_plot <- my_assigned_plot;
 				list<trees> planted_trees <- plantInPlot(all_seedlings_gathered, my_assigned_plot);	//put to nursery all the gathered seedlings
 				remove all: planted_trees from: all_seedlings_gathered;
@@ -244,6 +235,7 @@ species labour control: fsm{
 			my_assigned_plot <- nil;
 			current_plot <- nil;
 			is_planting_labour <- false;	
+			location <- point(0,0,0);
 		}
 	}
 	
@@ -273,6 +265,7 @@ species labour control: fsm{
 			int month <- 0;
 		}
 		if(my_assigned_plot != nil and length(marked_trees) > 0 and month = 1){
+			location <- any_location_in(my_assigned_plot.location);
 			do cutMarkedTrees();
 		}else{
 			month <- 1;

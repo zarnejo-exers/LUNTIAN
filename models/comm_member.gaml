@@ -40,6 +40,19 @@ species comm_member control: fsm{
 	float max_earning <- (LABOUR_COST*MAX_WAITING_COMMITMENT);
 	
 	//int total_harvested_trees <- 0; //for independent harvesting
+	
+	aspect default{
+		if(state = "independent_harvesting"){
+			draw squircle(5,5) color: #royalblue;	
+		}else{
+			draw teapot(5) color: #darkblue;
+		}
+		
+	}
+	
+	reflex updateLocation when: instance_labour.my_assigned_plot != nil{
+		location <- any_location_in(instance_labour.my_assigned_plot);
+	}
 		
 	//get the total number of comm_member with current earning greater than own current earning
 	//if there exist even 1, return true (meaning, someone has better earning than self)

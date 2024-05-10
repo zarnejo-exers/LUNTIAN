@@ -52,6 +52,7 @@ global{
 	int total_warned_CM <- 0;
 	
 	bool investment_open;
+	list<labour> uni_laborers;
 	
 	/*Dipterocarp: max_dbh = [80,120]cm
 	 *Mahogany: max_dbh = 150cm
@@ -70,10 +71,11 @@ global{
 		create market;
 		create labour number: laborer_count{
 			labor_type <- OWN_LABOUR; 
+			add self to: uni_laborers;
 		}
 		create university_si;
 		create special_police number: police_count{
-			is_servicing <- true;
+			location <- point(0,0,0);
 		}
 	}
     
@@ -412,6 +414,7 @@ species university_si{
 			p.is_planting_labour <- true;
 			p.my_assigned_plot <- ptp;
 			p.current_plot <- ptp;
+			p.location <- p.current_plot.location;
 			add p to: ptp.my_laborers;
 			
 			list<trees> assigned_trees <- trees_to_be_planted[0::((count_of_trees<LABOUR_TCAPACITY)?count_of_trees:LABOUR_TCAPACITY)];
@@ -453,6 +456,7 @@ species university_si{
 				add self to: my_assigned_plot.my_laborers;
 				add all: to_harvest to: marked_trees;
 				state <- "assigned_itp_harvester";	
+				location <- current_plot.location;
 			}
 			remove labour_instance from: hh;
 			remove all: to_harvest from: trees_to_harvest;
@@ -513,8 +517,6 @@ species university_si{
 		if(current_month = 0){	//start of the new year
 			total_ANR_cost <- ANR_instance * ANR_COST;
 		}
-		 
-		int working_sp <- length(special_police where (each.is_servicing));
 		
 		total_management_cost <- total_management_cost + total_ANR_cost + current_labor_cost + current_harvest_cost;	//currently working nursery labor and cost
 		
