@@ -16,20 +16,15 @@ import "special_police.gaml"
 /* Insert your model definition here */
 global{
 	int NURSERY_LABOUR <- 12; //labor required per nursery, constant
-	int HARVEST_LABOUR <- 1;
-	int PLANTING_LABOUR <- 6;
 	int LABOUR_TCAPACITY <- 15;	//number of trees that the laborer can plant/manage
 	
 	//fixed rate
-	float EST_MANAGEMENT_COST_PYEAR <- 17449.14;
-	int NURSERY_ESTABLISHMENT_COST <- 100000;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf
-	float NURSERY_LCOST <- 12810.0;	//labor per month https://velocityglobal.com/resources/blog/minimum-wage-by-country
-	float HARVESTING_LCOST <- 13834.51;	//one month labor
-	float PLANTING_LCOST <- 25.0;	//
+	float EST_MANAGEMENT_COST_PYEAR <- 17449.14;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
+	float NURSERY_ESTABLISHMENT_COST <- 238952.35;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
+	float ANR_COST <- 10522.33; 	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf; considers the laborer already
 	
-	float POLICE_COST <- 18150.0; //average wage per month https://www.salaryexpert.com/salary/job/forest-officer/philippines
+	float LABOUR_COST <- 406.21;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf
 	float HARVESTING_COST <- 17.04; //cost = (0.28+0.33)/2 usd per bdft, 17.04php
-	float NATIVE_price_per_SAPLING <- 100.0; //Temporary variable, plants native on every ANR
 	
 	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;
 	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;
@@ -50,14 +45,12 @@ global{
 	int investment_rotation_years <- 5 update: investment_rotation_years;	
 	bool start_harvest <- false;
 	
-	int tht <- 0;
-	
+	int ANR_instance <- 0; 
+	int total_investments <- 0;
 	float total_management_cost <- 0.0;
 	float total_ITP_earning <- 0.0;
-	int total_ANR_instance <- 0;
 	int total_warned_CM <- 0;
 	
-	int total_seedlings_replanted <- 0;	//per year
 	bool investment_open;
 	
 	/*Dipterocarp: max_dbh = [80,120]cm
@@ -83,32 +76,6 @@ global{
 			is_servicing <- true;
 		}
 	}
-	
-//	reflex updateTHT{
-//		tht <- 0;
-//		loop i over: investor{
-//			tht <- tht + i.tht; 
-//		}
-//	}
-	
-	//start checking once all investor already have investments
-	//stop simulation when the rotation years of all investor is finished
-//	reflex waitForHarvest when: length(investor)>0{	//and (length(investor where !empty(each.my_plots)) = length(investor)) 
-//    	loop i over: investor where (each.my_plot != nil){
-//    		if(i.my_plot.rotation_years =0 and i.waiting){
-//    			ask university_si{
-//    				list<trees> trees_to_harvest_n <- (getTreesToHarvestSH(i.my_plot)) where (each.type = NATIVE);
-//    				do harvestEarning(i, timberHarvesting(false, i.my_plot, trees_to_harvest_n), NATIVE, false);
-//    				list<trees> trees_to_harvest_e <- (getTreesToHarvestSH(i.my_plot)) where (each.type = EXOTIC);
-//					do harvestEarning(i, timberHarvesting(false, i.my_plot, trees_to_harvest_e), EXOTIC, false);
-//					do hirePlanter(i.my_plot, 0);
-//    			}
-//    			i.waiting <- false;	
-//    		}else{
-//    			write "Rotation year remaining: "+i.my_plot.rotation_years;	
-//    		}
-//    	}
-//    }
     
 //    reflex warnedCMReportFromSP{
 //    	int temp_count <- 0;
@@ -123,14 +90,8 @@ species university_si{
 	list<plot> my_invested_plots;		//list of plots invested by the university
 	list<investor> current_investors <- investor where (each.my_plot != nil) update: investor where (each.my_plot != nil);
 	
-//	float mcost_of_native <- 5.0; //management cost in man hours of labor
-//	float mcost_of_exotic <- 4.0; //management cost in man hours of labor
-//	float pcost_of_native <- 1.0;	//planting cost in man hours of labor
-//	float pcost_of_exotic <- 1.0;	//planting cost in man hours of labor
-	
 	float labor_price <- 3.0; //per months
 	
-	int ANR_instance <- 0; 
 	float current_labor_cost <- 0.0;
 	float current_harvest_cost <- 0.0;
 	
@@ -151,14 +112,11 @@ species university_si{
 		
 		if(actual_count > 0){
 			list<plot> nurseries <- candidate_plots[0::actual_count];
-	//		write "needed_nurseries: "+needed_nurseries+" actual_count: "+actual_count;
 			
 			loop n over: nurseries{
 				n.is_nursery <- true;
 				n.is_candidate_nursery <- false;
-				n.nursery_type <- NATIVE;
 				add n to: my_nurseries;
-	//			write "Saplings in nursery: "+length(n.plot_trees where (each.state = SAPLING));
 				add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
 				write "I AM nursery: "+n.name;
 				total_management_cost <- total_management_cost + NURSERY_ESTABLISHMENT_COST;
@@ -203,8 +161,8 @@ species university_si{
 	 		cost_to_support_investment <- sapling_places * native_sapling_price;	
 	 	}
 	 	
-	 	cost_to_support_investment <- cost_to_support_investment + (needed_plaborer*PLANTING_LCOST);	//cost of planters that will be hired
-	 	cost_to_support_investment <- cost_to_support_investment + (HARVESTING_LCOST * 2);	//cost of harvesters that will be hired 
+	 	cost_to_support_investment <- cost_to_support_investment + (needed_plaborer*LABOUR_COST);	//cost of planters that will be hired
+	 	cost_to_support_investment <- cost_to_support_investment + (LABOUR_COST * 2);	//cost of harvesters that will be hired 
 	 	
 	 	//add management cost 
 	 	cost_to_support_investment <- cost_to_support_investment + (EST_MANAGEMENT_COST_PYEAR*investment_rotation_years);
@@ -264,25 +222,14 @@ species university_si{
 	
 	action payLaborer(labour cl){
 		
-		float cost <- 0.0; 
-		//serviced * labor_cost
-		if(cl.is_harvest_labour){
-			cost <- HARVESTING_LCOST;
-		}
-		else if(cl.is_planting_labour){
-			cost <- PLANTING_LCOST;
-		}else if(cl.is_nursery_labour){
-			cost <- NURSERY_LCOST;
-		}
-		
 		if(cl.com_identity != nil){
-			cl.com_identity.current_earning <- cl.com_identity.current_earning + cost;
+			cl.com_identity.current_earning <- cl.com_identity.current_earning + LABOUR_COST;
+		}
+		if(cl.is_harvest_labour){	//track only harvest labor cost since nursery and planting has already been considered 
+			current_labor_cost <- current_labor_cost + LABOUR_COST;
 		}
 	
-//		write "Before payLaborer: "+cl.total_earning;
-		cl.total_earning <- cl.total_earning + cost;
-//		write "After payLaborer: "+cl.total_earning;
-		current_labor_cost <- current_labor_cost + cost;
+		cl.total_earning <- cl.total_earning + LABOUR_COST;
 	}	
 	
 	plot getInvestablePlot{
@@ -539,39 +486,38 @@ species university_si{
 	//returns true when it can support more harvesting, else false
 	bool harvestITP(investor inv, plot plot_to_harvest){	//will harvest only when I already have at least half of wanted nursery
 		list<trees> trees_to_harvest <- getTreesToHarvestSH(plot_to_harvest);
-    	list<trees> native_trees <- (trees_to_harvest where (each.type = NATIVE));
-    	list<trees> exotic_trees <- trees_to_harvest - native_trees;
-    		
-    	if(native_trees != []){
-    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, native_trees), NATIVE);	
+    	
+    	if(length(trees_to_harvest) > 0){
+    		list<trees> native_trees <- (trees_to_harvest where (each.type = NATIVE));
+	    	list<trees> exotic_trees <- trees_to_harvest - native_trees;
+	    		
+	    	if(native_trees != []){
+	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, native_trees), NATIVE);	
+	    	}
+	    	if(exotic_trees != []){
+	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
+	    	}		
+    	}else{
+    		write "NOTHING to harvest";
     	}
-    	if(exotic_trees != []){
-    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
-    	}	
+    	
 		return replantPlot(plot_to_harvest);
 	}
 	
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
 	reflex computeTotalCost {
-		float police_cost <- 1000.0;
-		float ANR_cost <- 10725.0;
-		
-		float nursery_other_cost <- 0.0;
 		float total_ANR_cost <- 0.0;
 		
 		//added only at the start of the start of the new year, computing all the cost from the previous year
+		//costing is per year, so incur cost every year
 		if(current_month = 0){	//start of the new year
-			nursery_other_cost <- total_seedlings_replanted * 2.40;	//additional management cost per seedlings replanted is 2.40 each
-			total_seedlings_replanted <- 0;
-			total_ANR_cost <- ANR_instance * ANR_cost;
+			total_ANR_cost <- ANR_instance * ANR_COST;
 		}
 		 
 		int working_sp <- length(special_police where (each.is_servicing));
 		
-		total_management_cost <- total_ANR_cost + total_management_cost + nursery_other_cost + current_labor_cost + current_harvest_cost;	//currently working nursery labor and cost
-		total_ANR_instance <- total_ANR_instance + ANR_instance;
+		total_management_cost <- total_management_cost + total_ANR_cost + current_labor_cost + current_harvest_cost;	//currently working nursery labor and cost
 		
-		ANR_instance <- 0; 
 		current_labor_cost <- 0.0;
 		current_harvest_cost <- 0.0;
 		

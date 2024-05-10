@@ -44,42 +44,29 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 			species comm_member visible: false;
 			species special_police aspect: si;
 		}
+
+		display chart1 type: java2D{	
+			chart "Community member according to state" type: series
+			{
+				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+				list<string> states <- ["potential_partner", "labour_partner", "independent_harvesting", "independent_passive"];
+				loop i over: states{
+            		data i value: count(comm_member, each.state = i);
+            	}
+			}
+		}
 		
-//		display chart1 type: java2D{	
-//			chart "Total harvested trees" type: series
-//			{
-//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-//				ask university_si{
-//					data name value: tht;	
-//				}
-//            	loop i over: comm_member{
-//            		data i.name value: h_monitor[i];
-//            	}
-//			}
-//		}
-//
-//		display chart2 type: java2D{	
-//			chart "Community member according to state" type: series
-//			{
-//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-//				list<string> states <- ["potential_partner", "labour_partner", "independent_harvesting", "independent_passive"];
-//				loop i over: states{
-//            		data i value: count(comm_member, each.state = i);
-//            	}
-//			}
-//		}
-//		
-//		display chart5 type: java2D{	
-//			chart "Community member total earnings" type: series
-//			{
-//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-//				loop i over: comm_member{
-//            		data i.name value: i.total_earning;
-//            	}
-//			}
-//		}		
+		display chart2 type: java2D{	
+			chart "Community member total earnings" type: series
+			{
+				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+				loop i over: comm_member{
+            		data i.name value: i.total_earning;
+            	}
+			}
+		}		
 		
-		display chart4 type: java2D{	
+		display chart3 type: java2D{	
 			chart "Investor total earnings" type: series
 			{
 				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
@@ -90,7 +77,7 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 			}
 		}
 		
-		display chart5 type: java2D{	
+		display chart4 type: java2D{	
 			chart "Investor current profit" type: series
 			{
 				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
@@ -132,10 +119,10 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		
 		monitor "Total University Earning" value: total_ITP_earning;
 		monitor "Total Management Cost" value: total_management_cost;
-		monitor "Total ANR instance" value: total_ANR_instance;
+		monitor "Total ANR instance" value: ANR_instance;
 		monitor "Total Warned Independent Harvester" value: total_warned_CM;
 		monitor "Tree count" value: length(trees);
-		monitor "Closed investment" value: total_investment_count;
+		monitor "Count of investments" value: total_investments;
 	}
 		
 }

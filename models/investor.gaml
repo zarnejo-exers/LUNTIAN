@@ -17,7 +17,6 @@ global{
 	float risk_loving <- 1.0;	//type = 1
 	int investor_count <- 10 update: investor_count;
 	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.75, "Neutral"::0.5];
-	int total_investment_count <- 0 update: total_investment_count;
 	
 	init{
 		//assign risk type for each investor randomly
@@ -35,7 +34,6 @@ global{
 species investor control: fsm{
 	float total_profit <- 0.0;
 	float recent_profit <- 0.0;
-	float total_investment <- 0.0;
 	int tht <- 0;	//total harvested trees
 	
 	plot my_plot <- nil;
@@ -67,10 +65,10 @@ species investor control: fsm{
 			}
 			bool decision <- decideOnRisk(projected_profit, investment_cost, rt);
 			if(decision){
-				write "Commencing investment";
+				total_investments <- total_investments + 1;
+				write "Commencing investment #"+total_investments+": investor "+name;
 				my_plot <- investable_plot;
 				investable_plot.is_invested <- true;
-				total_investment <- total_investment + investment_cost;
 				total_ITP_earning <- total_ITP_earning + investment_cost;
 				ask university_si{
 					do harvestITP(myself, myself.my_plot);	

@@ -28,8 +28,6 @@ species labour control: fsm{
 	bool is_harvest_labour <- false;
 	bool is_planting_labour <- false;
 	bool is_nursery_labour <- false;
-	int p_t_type;	//planting tree type
-	int h_t_type;	//harvesting tree type
  	
 	comm_member com_identity <- nil;
 	list<trees> all_seedlings_gathered <- [];  

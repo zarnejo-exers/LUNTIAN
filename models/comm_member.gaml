@@ -13,9 +13,7 @@ import "university_si.gaml"
 global{
 	int member_count <- 8 update: member_count;
 	int waiting_allowance <- 12 update: waiting_allowance;
-	float max_harvest_pay <- HARVEST_LABOUR * HARVESTING_LCOST;
-	float max_planting_pay <- PLANTING_LABOUR * PLANTING_LCOST;
-	float max_nursery_pay <- NURSERY_LABOUR * NURSERY_LCOST;
+	int MAX_WAITING_COMMITMENT <- 6;	//in months
 	
 	init{
 		create comm_member number: member_count{
@@ -38,6 +36,8 @@ species comm_member control: fsm{
 	int success <- 0;
 	int caught <- 0; 
 	bool is_caught <- false;
+	
+	float max_earning <- (LABOUR_COST*MAX_WAITING_COMMITMENT);
 	
 	//int total_harvested_trees <- 0; //for independent harvesting
 		
@@ -155,16 +155,12 @@ species comm_member control: fsm{
 	    	
 	    if(instance_labour.is_harvest_labour) {		
 	    	//not satisfied when earning is less than max earn or when another independent_harvesting community member has better earning 
-	    	satisfied <- (current_earning < max_harvest_pay or hasCompetingEarner())?false: true;
+	    	satisfied <- (current_earning < max_earning or hasCompetingEarner())?false: true;
 	    }else{ //satisifaction based on wage only
-	    	if(instance_labour.is_planting_labour) {
-	    		satisfied <- (current_earning >= (0.3*max_planting_pay))?true: false;
-	    	}else{
-	    		satisfied <- (current_earning >= (0.3*max_nursery_pay))?true: false;
-	    	}	
+	    	satisfied <- (current_earning >= (0.3*max_earning))?true: false;	
 	    } 
 	    
-	    transition to: independent_harvesting when: (instance_labour.is_harvest_labour and !satisfied and month = 6);
+	    transition to: independent_harvesting when: (instance_labour.is_harvest_labour and !satisfied and month = MAX_WAITING_COMMITMENT);
 	    transition to: potential_partner when: (!satisfied);
 	 
 	 	month <- month + 1;

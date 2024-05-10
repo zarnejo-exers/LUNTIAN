@@ -371,7 +371,7 @@ species trees{
 		float prev_dbh <- dbh;
 		float prev_th <- th;
 		float ni <- 1-neighborhoodInteraction();
-		float gcoeff <- (type = NATIVE)?my_plot.growth_coeff_N:my_plot.growth_coeff_E;
+		float gcoeff <- (type = NATIVE)?my_plot.getGrowthCoeff(NATIVE):my_plot.getGrowthCoeff(EXOTIC);
 
 		diameter_increment <- computeDiameterIncrement()*ni*gcoeff;
 		dbh <- dbh + diameter_increment;	 
@@ -577,33 +577,26 @@ species trees{
 }
 
 species plot{
-	list<trees> plot_trees<- [];
-	int id;
-	climate closest_clim;
-	int is_dry; 
 	float stand_basal_area <- plot_trees sum_of (each.basal_area) update: plot_trees sum_of (each.basal_area);
 	int native_count <- plot_trees count (each.type = NATIVE) update: plot_trees count (each.type = NATIVE);
-	geometry neighborhood_shape <- nil;
 	float my_pH <- (soil closest_to location).soil_pH;
 	climate my_climate <- climate closest_to location;
-	float distance_to_river;
 	
 	float curr_precip <- my_climate.precipitation[current_month] update: my_climate.precipitation[current_month];
 	float curr_temp <- my_climate.temperature[current_month] update: my_climate.temperature[current_month];
 	
-	float growth_coeff_N;
-	float growth_coeff_E; 
+	list<trees> plot_trees<- [];
+	int id;
+	climate closest_clim;
+	int is_dry; 
 
 	bool is_near_water <- false;
 	bool is_nursery <- false;
 	bool has_road <- false;
 	bool is_invested <- false;
 	bool is_candidate_nursery <- false; //true if there exist a mother tree in one of its trees;
-	float investment_cost;
-	bool is_itp <- false;
 	bool is_policed <- false;
-	int nursery_type <- -1;
-	bool is_investable <- false;
+	float distance_to_river;
 
 	list<labour> my_laborers <- [];
 	int tree_count <- length(plot_trees) update: length(plot_trees);
@@ -611,6 +604,13 @@ species plot{
 	
 	bool is_ANR <- false;
 	bool is_harvested <- false;
+	
+	float getGrowthCoeff(int t_type){
+		float curr_water <- water_content[location];
+		float percent_precip <- curr_precip/my_climate.total_precipitation;
+		
+		return computeCoeff(curr_water, percent_precip, t_type);
+	}
 		
 	//STATUS: CHECKED
 	//per plot
@@ -691,14 +691,6 @@ species plot{
 		g_coeff <- g_coeff * reduceGrowth(my_pH, min_pH[NATIVE], max_pH[NATIVE]);			//coefficient given soil pH
 		g_coeff <- g_coeff * reduceGrowth(c_water, min_water[NATIVE]*p_precip, max_water[NATIVE]*p_precip);//coefficient given water (considering only the percentage of precipitation given current month over the total annual precipitation)
 		return g_coeff;
-	}
-	
-	reflex growthCoeff{
-		float curr_water <- water_content[location];
-		float percent_precip <- curr_precip/my_climate.total_precipitation;
-		
-		growth_coeff_N <- computeCoeff(curr_water, percent_precip, NATIVE);
-		growth_coeff_E <- computeCoeff(curr_water, percent_precip, EXOTIC);
 	}
 }
 
