@@ -107,27 +107,24 @@ species investor control: fsm{
 		enter{
 			int harvest_month_monitor <- 0;
 		}
-		
+	 	
 		//will only state transition after (investment_rotation_years*12) 
 		//harvest_month_monitor monitors how long the investor has been investing 		
-	    transition to: potential_active when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit >= promised_profit)){
-	    	write "INVESTOR INVESTING SHIFTING"; 
-	    }
-	    transition to: potential_passive when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit < promised_profit)){
-	    	write "INVESTOR INVESTING SHIFTING";	
-	    }
-	 
-	 	if(harvest_month_monitor = (investment_rotation_years*12)){
-	 		write "INVESTOR INVESTING HARVESTING";	
+	    transition to: potential_active when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit >= promised_profit));
+	    transition to: potential_passive when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit < promised_profit));
+	    
+	    harvest_month_monitor <- harvest_month_monitor + 1;
+	    if(harvest_month_monitor = (investment_rotation_years*12)){
 	 		ask university_si{
 				do harvestITP(myself, myself.my_iplot);
 			}
-			my_iplot.is_invested <- false;
+	 	}
+	 	
+	 	exit{
+	 		my_iplot.is_invested <- false;
 	        my_iplot <- nil;
 	        total_profit <- total_profit + recent_profit;
-	    	recent_profit <- 0.0;
-	 	}else{
-	 		harvest_month_monitor <- harvest_month_monitor + 1;	
+	        recent_profit <- 0.0;
 	 	}
 	}
 	
