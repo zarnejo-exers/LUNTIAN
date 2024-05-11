@@ -15,7 +15,7 @@ experiment LLG_ABM model: "llg.gaml" type: gui {
 		display llg_abm type: opengl camera:#isometric{
 			species climate;
 			species plot; 
-//			species trees;	//aspect: geom3d
+			species trees;	//aspect: geom3d
 			species river;
 			species road;
 			species special_police;

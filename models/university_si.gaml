@@ -21,10 +21,11 @@ global{
 	//fixed rate
 	float EST_MANAGEMENT_COST_PYEAR <- 17449.14;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float NURSERY_ESTABLISHMENT_COST <- 238952.35;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
-	float ANR_COST <- 10522.33; 	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf; considers the laborer already
+	float ANR_COST <- 5893.59; 	//per hahttps://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf; considers the laborer already
+	float HARVESTING_COST <- 137294.38; //https://www.mdpi.com/1999-4907/7/8/152
 	
 	float LABOUR_COST <- 406.21;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf
-	float HARVESTING_COST <- 17.04; //cost = (0.28+0.33)/2 usd per bdft, 17.04php
+	float HLABOUR_COST <- 16.21;	//https://www.mdpi.com/1999-4907/7/8/152
 	
 	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;
 	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;
@@ -93,8 +94,8 @@ species university_si{
 	
 	float labor_price <- 3.0; //per months
 	
-	float current_labor_cost <- 0.0;
 	float current_harvest_cost <- 0.0;
+	float current_ANR_cost <- 0.0;
 	
 	list<plot> my_nurseries;	//list of nurseries managed by university
 	list<trees> my_saplings <- [] update: (my_saplings where !dead(each)); //contains all saplings in the nusery, remove all the dead saplings
@@ -219,18 +220,17 @@ species university_si{
 	//everytime a community laborer completes a task, the university pays them
 	/*	float total_earning <- 0.0;		//total earning for the entire simulation
 	 *  float current_earning <- 0.0; //earning of the community at the current commitment
+	 * nursery and planter => effort in terms of mandays
+	 * harvester => effort in terms of bdft
 	 */ 
-	
-	action payLaborer(labour cl){
+	action payLaborer(labour cl, float effort){
+		float current_payable <- effort*((cl.is_harvest_labour)?HLABOUR_COST:LABOUR_COST);
 		
 		if(cl.com_identity != nil){
-			cl.com_identity.current_earning <- cl.com_identity.current_earning + LABOUR_COST;
-		}
-		if(cl.is_harvest_labour){	//track only harvest labor cost since nursery and planting has already been considered 
-			current_labor_cost <- current_labor_cost + LABOUR_COST;
+			cl.com_identity.current_earning <- cl.com_identity.current_earning + current_payable;
 		}
 	
-		cl.total_earning <- cl.total_earning + LABOUR_COST;
+		cl.total_earning <- cl.total_earning + current_payable;
 	}	
 	
 	plot getInvestablePlot{
@@ -251,9 +251,6 @@ species university_si{
 	    if(i != nil){
 	    	i.tht <- i.tht + 1;
 	    	i.recent_profit <- i.recent_profit + (c_profit*0.75);		//actual profit of investor is 75% of total profit
-		    
-		    write "CProfit: "+c_profit+" thv: "+thv;
-		    write "Investor earning... "+i.recent_profit;	
 	    }
 	    
 	    total_ITP_earning <- total_ITP_earning + (c_profit * ((i!=nil)?0.25:1.0));
@@ -266,12 +263,6 @@ species university_si{
 		list<labour> hired_harvesters <- getLaborers(int(length(tth)/LABOUR_TCAPACITY)+1);	//if there's no laborer avail, get all assigned_planter
 		 
 		float harvested_bdft <- sendHarvesters(hired_harvesters, chosen_plot, tth);	
-		
-		//4. compute total bdft harvested BF of 1 tree = volume/12, total bdft = sumofall bf
-		float i_harvesting_cost <- harvested_bdft * HARVESTING_COST;
-		current_harvest_cost <- current_harvest_cost + i_harvesting_cost;
-		
-		//TODO: 5. add forest tax per tree harvested
 		
 		return harvested_bdft;
 	}	
@@ -470,6 +461,7 @@ species university_si{
 			if(!replantPlot(pfa)){
 				break;	//once it breaks it means that there are no more laborers avaialble to conduct ANR
 			}
+			current_ANR_cost <- current_ANR_cost + ANR_COST;
 			ANR_instance <- ANR_instance + 1;
 			pfa.is_ANR <- true;
 		}
@@ -497,6 +489,7 @@ species university_si{
 	    	if(exotic_trees != []){
 	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
 	    	}
+			current_harvest_cost <- current_harvest_cost + HARVESTING_COST;
     	}else{
     		write "NOTHING to harvest";
     	}
@@ -507,19 +500,10 @@ species university_si{
 	
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
 	reflex computeTotalCost {
-		float total_ANR_cost <- 0.0;
+		total_management_cost <- total_management_cost + current_ANR_cost + current_harvest_cost;	//currently working nursery labor and cost
 		
-		//added only at the start of the start of the new year, computing all the cost from the previous year
-		//costing is per year, so incur cost every year
-		if(current_month = 0){	//start of the new year
-			total_ANR_cost <- ANR_instance * ANR_COST;
-		}
-		
-		total_management_cost <- total_management_cost + total_ANR_cost + current_labor_cost + current_harvest_cost;	//currently working nursery labor and cost
-		
-		current_labor_cost <- 0.0;
 		current_harvest_cost <- 0.0;
-		
+		current_ANR_cost <- 0.0;
 	}	
 }
 

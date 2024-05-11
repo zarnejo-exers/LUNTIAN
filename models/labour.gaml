@@ -87,7 +87,7 @@ species labour control: fsm{
 		ask university_si{
 			 available_square <- getSquareSpaces(pt_plant.shape, pt_plant.plot_trees, false, 1);	//1 is for recruitment since the plants are randomly positioned	
 		}
-		
+		write "available spaces: "+length(available_square);
 		//no need to fix neighborhood since replanting and nursery mgmt doesn't concern adult trees
 		loop tnp over: trees_to_plant{
 			if(available_square != []){
@@ -178,7 +178,7 @@ species labour control: fsm{
 	state manage_nursery{
 		
 		ask university_si{
-			do payLaborer(myself);
+			do payLaborer(myself, 8.64);	//maintenance of seedlings: 8.64 mandays
 		}
 		
 		transition to: assigned_nursery when: ((fruiting_months_N + fruiting_months_E) contains current_month){//fruiting season, go out to gather
@@ -199,7 +199,7 @@ species labour control: fsm{
 			remove current_plot from: to_visit_plot;	
 		}
 		ask university_si{
-			do payLaborer(myself);
+			do payLaborer(myself, 1.89);	//gathering and preparation of soil
 		}
 
 		transition to: manage_nursery when: !((fruiting_months_N + fruiting_months_E) contains current_month)
@@ -209,10 +209,11 @@ species labour control: fsm{
 			if(length(all_seedlings_gathered) > 0){
 				location <- any_location_in(my_assigned_plot.location);	//put laborer back to the nursery
 				current_plot <- my_assigned_plot;
+				write "Laborer: "+name+" planting in "+my_assigned_plot.name+" with "+length(all_seedlings_gathered)+" trees";
 				list<trees> planted_trees <- plantInPlot(all_seedlings_gathered, my_assigned_plot);	//put to nursery all the gathered seedlings
 				remove all: planted_trees from: all_seedlings_gathered;
 				ask university_si{
-					do payLaborer(myself);
+					do payLaborer(myself, 5.33);	//sowing of seed + potting of seedlings
 				}
 			}
 		}
@@ -224,7 +225,7 @@ species labour control: fsm{
 		do gatherSaplings();
 		do plantInSquare();
 		ask university_si{
-			do payLaborer(myself);
+			do payLaborer(myself, 12.16);
 		}
 		
 		transition to: vacant{
@@ -241,12 +242,16 @@ species labour control: fsm{
 	
 	//stays in this state for 1 step only
 	state assigned_itp_harvester{
+		float harvested_bdft <- 0.0;
+		ask market{
+			harvested_bdft <- getTotalBDFT(myself.marked_trees);	
+		}
 		do cutMarkedTrees();
 		
 		//COST: 
 		//3. pay hired harvesters 1month worth of wage
 		ask university_si{
-			do payLaborer(myself);
+			do payLaborer(myself, harvested_bdft);
 		}
 		
 		transition to: vacant{
