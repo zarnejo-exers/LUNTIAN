@@ -43,7 +43,7 @@ global{
 	
 	int harvesting_age_exotic <- 15 update: harvesting_age_exotic;	//temp
 	int harvesting_age_native <- 20 update: harvesting_age_native;	//actual 40
-	int investment_rotation_years <- 5 update: investment_rotation_years;	
+	int investment_rotation_years <- 2 update: investment_rotation_years;	
 	bool start_harvest <- false;
 	
 	int ANR_instance <- 0; 
