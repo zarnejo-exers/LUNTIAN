@@ -15,7 +15,6 @@ import "special_police.gaml"
 
 /* Insert your model definition here */
 global{
-	int NURSERY_LABOUR <- 12; //labor required per nursery, constant
 	int LABOUR_TCAPACITY <- 15;	//number of trees that the laborer can plant/manage
 	
 	//fixed rate
@@ -26,15 +25,13 @@ global{
 	
 	float LABOUR_COST <- 406.21;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf
 	float HLABOUR_COST <- 16.21;	//https://www.mdpi.com/1999-4907/7/8/152
-	
+
 	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;
 	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;
 	
 	int average_no_trees_in1ha <- 20;
 	int police_count <- 2 update: police_count;
-	int plot_size <- 1 update: plot_size;
 	int laborer_count <- 10 update: laborer_count;
-	int nlaborer_count<- 5 update: nlaborer_count;
 	float planting_space <- 1.0 update: planting_space; 
 	int nursery_count <- 2 update: nursery_count;
 	float harvest_policy <- 0.5 update: harvest_policy;
@@ -44,7 +41,6 @@ global{
 	int harvesting_age_exotic <- 15 update: harvesting_age_exotic;	//temp
 	int harvesting_age_native <- 20 update: harvesting_age_native;	//actual 40
 	int investment_rotation_years <- 2 update: investment_rotation_years;	
-	bool start_harvest <- false;
 	
 	int ANR_instance <- 0; 
 	int total_investments <- 0;
@@ -79,14 +75,6 @@ global{
 			location <- point(0,0,0);
 		}
 	}
-    
-//    reflex warnedCMReportFromSP{
-//    	int temp_count <- 0;
-//		ask special_police{
-//			temp_count <- temp_count + self.total_comm_members_reprimanded; 
-//		}
-//		total_warned_CM <- temp_count;
-//    }
 }
 
 species university_si{
@@ -352,9 +340,6 @@ species university_si{
 			basal_area <- #pi * (dbh^2)/40000;
 			my_plot <- nil;
 			location <- point(0,0,0);
-			if(name = "trees650"){
-				write "HERE!!!! 650";
-			}
 		}
 		return bought_saplings;
 	}

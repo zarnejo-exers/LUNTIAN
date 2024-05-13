@@ -38,9 +38,14 @@ species investor control: fsm{
 	
 	plot my_iplot <- nil;
 	float promised_profit; 
-	int investment_count <- 0;
 	int rt;	//risk type
 	bool waiting <- false;
+	
+	int wins <- 0;
+	int loss <- 0;
+	
+	float projected_profit;
+	float investment_cost; 
 	
 	aspect default{
 		draw pyramid(5) color: #gold; 
@@ -54,8 +59,7 @@ species investor control: fsm{
 	action decideInvestment{	////reflex startInvesting when: ((length(plot where each.is_investable) > 0) and length(my_plots) = 0){
 		
 		plot investable_plot;
-		float projected_profit;
-		float investment_cost; 
+
 		
 		ask university_si{
 			investable_plot <- getInvestablePlot();	//receives the first plot with the highest SBA
@@ -64,14 +68,14 @@ species investor control: fsm{
 		if(investable_plot != nil){
 			ask university_si{
 				int cplaces_to_fill <- length(getSquareSpaces(investable_plot.shape, investable_plot.plot_trees, true, 3));	//to support investment
-				projected_profit <- projectProfit(myself, investable_plot, cplaces_to_fill);
-				investment_cost <- computeInvestmentCost(investable_plot, cplaces_to_fill);
+				myself.projected_profit <- projectProfit(myself, investable_plot, cplaces_to_fill);
+				myself.investment_cost <- computeInvestmentCost(investable_plot, cplaces_to_fill);
 			}
-			bool decision <- decideOnRisk(projected_profit, investment_cost, rt);
+			bool decision <- decideOnRisk();
 			if(decision){
 				total_investments <- total_investments + 1;
-				write "Commencing investment #"+total_investments+": investor "+name;
 				my_iplot <- investable_plot;
+				write "Commencing investment #"+total_investments+" by "+name+" on "+my_iplot.name;
 				location <- any_location_in(my_iplot);
 				investable_plot.is_invested <- true;
 				total_ITP_earning <- total_ITP_earning + investment_cost;
@@ -84,8 +88,8 @@ species investor control: fsm{
 		}
 	}
 	
-	bool decideOnRisk(float projected_profit, float investment_cost, int risk_type){
-		string risk <- risk_types.keys[risk_type];
+	bool decideOnRisk{
+		string risk <- risk_types.keys[rt];
 		if(risk = "Neutral"){	//if risk tyep = neutral, flip what kind of risk it will be on this step
 			risk <- risk_types.keys[flip(risk_types[risk])?0:1];
 		}
@@ -94,6 +98,26 @@ species investor control: fsm{
 			return true;
 		}
 		return false; 
+	}
+	
+	action updateRisk{
+		if(recent_profit >= projected_profit){
+			wins <- wins + 1;
+			loss <- 0;
+	     }else{
+			loss <- loss + 1;
+			wins <- 0;
+		}
+		string risk <- risk_types.keys[rt];
+		write "Win: "+wins+" Loss: "+loss+" "+risk;
+	    if(risk = "Loving" and loss = 3){
+	    	rt <- 0; //where 0 = averse
+	    	write "Loving shifting to: "+risk_types.keys[rt];
+	    	loss <- 0;
+	    }else if(risk = "Averse" and wins = 3){
+	    	write "Averse shifting to: "+risk_types.keys[rt];
+	    	wins <- 0;
+	    }
 	}
 	
 	state potential_active initial: true{ 
@@ -122,8 +146,10 @@ species investor control: fsm{
 	 	
 	 	exit{
 	 		my_iplot.is_invested <- false;
+	 		write "End "+name+" commitment on "+my_iplot.name;
 	        my_iplot <- nil;
 	        total_profit <- total_profit + recent_profit;
+	        do updateRisk();
 	        recent_profit <- 0.0;
 	 	}
 	}

@@ -87,7 +87,6 @@ species labour control: fsm{
 		ask university_si{
 			 available_square <- getSquareSpaces(pt_plant.shape, pt_plant.plot_trees, false, 1);	//1 is for recruitment since the plants are randomly positioned	
 		}
-		write "available spaces: "+length(available_square);
 		//no need to fix neighborhood since replanting and nursery mgmt doesn't concern adult trees
 		loop tnp over: trees_to_plant{
 			if(available_square != []){
@@ -209,7 +208,6 @@ species labour control: fsm{
 			if(length(all_seedlings_gathered) > 0){
 				location <- any_location_in(my_assigned_plot.location);	//put laborer back to the nursery
 				current_plot <- my_assigned_plot;
-				write "Laborer: "+name+" planting in "+my_assigned_plot.name+" with "+length(all_seedlings_gathered)+" trees";
 				list<trees> planted_trees <- plantInPlot(all_seedlings_gathered, my_assigned_plot);	//put to nursery all the gathered seedlings
 				remove all: planted_trees from: all_seedlings_gathered;
 				ask university_si{

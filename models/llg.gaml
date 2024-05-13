@@ -35,11 +35,8 @@ global {
 	//note: information about the trees can be compiled in a csv	
 	float max_dbh_exotic <- 110.8 update: max_dbh_exotic;
 	float min_dbh_exotic <- 1.0 update: min_dbh_exotic;
-	//int ave_fruits_exotic <- 700 update: ave_fruits_exotic;
-	
 	float max_dbh_native <- 130.0 update: max_dbh_native;
 	float min_dbh_native <- 1.0 update: min_dbh_native;
-	//int ave_fruits_native <- 100 update: ave_fruits_native;
 
 	field elev <- field(elev_file);	
 	field water_content <- field(water_file);
@@ -70,13 +67,11 @@ global {
 	list<int> flowering_months_E <- [2,3,4,5];
 	list<int> fruiting_months_E <- [11, 0, 1, 2];
 	
-	list<point> drain_cells <- [];
-	
 	geometry shape <- envelope(plot_shapefile);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
 	list<geometry> clean_lines;
 	list<list<point>> connected_components ;
 	list<rgb> colors;
-	
+	list<point> drain_cells <- [];
 	list<plot> entrance_plots;
 	
 	init{
