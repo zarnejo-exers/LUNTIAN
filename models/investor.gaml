@@ -115,6 +115,7 @@ species investor control: fsm{
 	    	write "Loving shifting to: "+risk_types.keys[rt];
 	    	loss <- 0;
 	    }else if(risk = "Averse" and wins = 3){
+	    	rt <- 1;
 	    	write "Averse shifting to: "+risk_types.keys[rt];
 	    	wins <- 0;
 	    }
