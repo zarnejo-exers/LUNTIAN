@@ -6,12 +6,34 @@
 */
 
 //50 years simulation
-experiment parametersexp model: "university_si.gaml" type: batch keep_seed:true until:( cycle > 600) {
-    parameter "nursery count" var: nursery_count min: 0 max: 5; 
-    parameter "laborer count" var: laborer_count min: 0 max: 15; 
-//    parameter "community members" var: member_count min: 0 max: 15; 
-    parameter "count of special police" var: police_count min: 0 max: 5;
-    parameter "planting spaces" var: planting_space min: 1.0 max: 5.0;
-     
-    method sobol outputs:["total_investment_count", "total_ITP_earning", "total_management_cost", "total_warned_CM", "length(trees)"] sample:3 report:"Results/sobol_5.txt" results:"Results/sobol_raw_600_5.csv";
+experiment parametersexp model: "university_si.gaml" type: gui until:( cycle > 600) {
+	parameter "Total count of investors" category: "Investors" var: investor_count min: 0 step: 1;
+	parameter "Rotation years" category: "Investors" var: investment_rotation_years;
+	
+	parameter "Total count of community members" category: "Community Members" var: member_count min: 0 step: 1;
+	parameter "Waiting allowance" category: "Community Members" var: waiting_allowance min: 0 step: 1;
+	
+	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
+	
+	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
+	parameter "Harvesting age (E)" category: "Exotic Setup" var: harvesting_age_exotic;
+	parameter "Price per BDFT (E)" category: "Exotic Setup" var: exotic_price_per_bdft;
+	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
+	parameter "Harvesting age (N)" category: "Native Setup" var: harvesting_age_native;
+	parameter "Price per BDFT (N)" category: "Native Setup" var: native_price_per_bdft;
+	
+	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
+	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
+	parameter "DBH policy" category: "Management" var: dbh_policy min: 50.0 max: 70.0;
+	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
+	
+	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
+	
+	parameter "Growth rate (E)" category: "Exotic Setup" var:growth_rate_exotic;
+	parameter "Growth rate (N)" category: "Native Setup" var:growth_rate_native;
+	
+    reflex save_results_explo {
+	    save [cycle, "NATIVE",length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT))] rewrite: false to: "native.csv" format: "csv" header: true;
+		save [cycle, "EXOTIC",length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT))] rewrite: false to: "exotic.csv" format: "csv" header: true;		
+	}
 }

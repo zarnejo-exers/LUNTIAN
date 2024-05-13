@@ -21,7 +21,7 @@ global{
 	init{
 		//assign risk type for each investor randomly
 		create investor number: investor_count{
-			rt <- 1;// rnd(2);	
+			rt <- rnd(2);	
 		}
 	}
 	
@@ -112,14 +112,14 @@ species investor control: fsm{
 		write "Win: "+wins+" Loss: "+loss+" "+risk;
 		
 		if(loss = 3 or wins = 3){
-			if(risk != "Neutral"){
-				rt <- 2;	//where 2 = neutral
-			}else{
+			if(risk = "Neutral"){
 				if(loss = 3){
 					rt <- 0; //where 0 = averse		
 				}else{
 					rt <- 1; //where 1 = loving
 				}	
+			}else{	//otherwise, shift to Neutral
+				rt <- 2;	//where 2 = neutral
 			}
 			loss <- 0;
 			wins <- 0;
