@@ -21,7 +21,7 @@ global{
 	init{
 		//assign risk type for each investor randomly
 		create investor number: investor_count{
-			rt <- rnd(2);	
+			rt <- 1;// rnd(2);	
 		}
 	}
 	
@@ -110,15 +110,21 @@ species investor control: fsm{
 		}
 		string risk <- risk_types.keys[rt];
 		write "Win: "+wins+" Loss: "+loss+" "+risk;
-	    if(risk = "Loving" and loss = 3){
-	    	rt <- 0; //where 0 = averse
-	    	write "Loving shifting to: "+risk_types.keys[rt];
-	    	loss <- 0;
-	    }else if(risk = "Averse" and wins = 3){
-	    	rt <- 1;
-	    	write "Averse shifting to: "+risk_types.keys[rt];
-	    	wins <- 0;
-	    }
+		
+		if(loss = 3 or wins = 3){
+			if(risk != "Neutral"){
+				rt <- 2;	//where 2 = neutral
+			}else{
+				if(loss = 3){
+					rt <- 0; //where 0 = averse		
+				}else{
+					rt <- 1; //where 1 = loving
+				}	
+			}
+			loss <- 0;
+			wins <- 0;
+			write risk+" shifting to: "+risk_types.keys[rt];
+		}
 	}
 	
 	state potential_active initial: true{ 
