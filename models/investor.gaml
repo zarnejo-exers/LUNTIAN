@@ -16,12 +16,12 @@ global{
 	float risk_averse <- 0.5; 	//type = 0
 	float risk_loving <- 1.0;	//type = 1
 	int investor_count <- 10 update: investor_count;
-	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.75, "Neutral"::0.5];
+	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.80, "Neutral"::0.5];
 	
 	init{
 		//assign risk type for each investor randomly
 		create investor number: investor_count{
-			rt <- rnd(2);	
+			rt <- 1; //rnd(2);	
 		}
 	}
 	
@@ -68,7 +68,7 @@ species investor control: fsm{
 		if(investable_plot != nil){
 			ask university_si{
 				int cplaces_to_fill <- length(getSquareSpaces(investable_plot.shape, investable_plot.plot_trees, true, 3));	//to support investment
-				myself.projected_profit <- projectProfit(myself, investable_plot, cplaces_to_fill);
+				myself.projected_profit <- projectProfit(myself, investable_plot);
 				myself.investment_cost <- computeInvestmentCost(investable_plot, cplaces_to_fill);
 			}
 			bool decision <- decideOnRisk();
@@ -82,6 +82,8 @@ species investor control: fsm{
 				ask university_si{
 					do harvestITP(myself, myself.my_iplot);	
 				} 
+			}else{
+				write "Decided not to invest. Projected_profit: "+projected_profit+" investment cost: "+ investment_cost;
 			}
 		}else{
 			write "No available plot for investment";

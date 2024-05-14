@@ -243,6 +243,7 @@ global {
 
 species trees{ 
 	float dbh; //diameter at breast height
+	float temp_dbh;	//for forecasting
 	float th; //total height
 	float mh;	//merchantable height
 	float r; //distance from tree to a point 
@@ -338,26 +339,14 @@ species trees{
 		}		
 	}
 
-	//STATUS: CHECKED, but needs neighbor effect
-	//growth of tree
-	//assume: growth coefficient doesn't apply on plots for ITP 
-	//note: monthly increment 
+	//STATUS: CHECKED
+	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	//returns diameter_increment
 	float computeDiameterIncrement{
 		if(type = EXOTIC){ //mahogany 
-			switch(dbh){
-				match_between [0, 19.99] {
-					return (((1.01+(0.10*my_plot.is_dry))/12));
-				}
-				match_between [20, 29.99] {return ((0.86+(0.17*my_plot.is_dry))/12);}
-				match_between [30, 39.99] {return ((0.90+(0.10*my_plot.is_dry))/12);}
-				match_between [40, 49.99] {return ((0.75+(0.14*my_plot.is_dry))/12);}
-				match_between [50, 59.99] {return ((1.0+(0.06*my_plot.is_dry))/12);}
-				match_between [60, 69.99] {return ((1.16+(0.06*my_plot.is_dry))/12);}
-				default {return ((1.38+(0.26*my_plot.is_dry))/12);}	//>70
-			}
-		}else if(type = NATIVE){	//dipterocarp, after: anisoptera costata
-			return (((0.1726*(dbh^0.5587)) + (-0.0215*dbh) + (-0.0020*basal_area))/12); 
+			return dbh + growth_rate_exotic;
+		}else if(type = NATIVE){	//dipterocarp, after: Anisoptera thurifera 
+			return dbh + growth_rate_native; 
 		}
 	}		
 	
@@ -368,7 +357,7 @@ species trees{
 		float ni <- 1-neighborhoodInteraction();
 		float gcoeff <- (type = NATIVE)?my_plot.getGrowthCoeff(NATIVE):my_plot.getGrowthCoeff(EXOTIC);
 
-		diameter_increment <- computeDiameterIncrement()*ni*gcoeff;
+		diameter_increment <- computeDiameterIncrement()*gcoeff*ni;
 		dbh <- dbh + diameter_increment;	 
 		if(dbh > max_dbh_per_class[type][ADULT]){
 			dbh <- max_dbh_per_class[type][ADULT];
@@ -535,19 +524,23 @@ species trees{
 	
 	//ni goes from [0,1], with 1 being a very strong influence
 	float neighborhoodInteraction{
-		float ni <- 0.0;
+		float not_type <- 0.0;
+		float same_type <- 0.0;
 		ask my_neighbors{
 			float dis <- self distance_to myself;
 			if(dis > 0.0){
-				ni <- ni + ((basal_area * ((myself.type = type)?1:0.5))/dis);	
+				if(self.type = myself.type){
+					same_type <- same_type + (basal_area/dis);	
+				}else{
+					not_type <- not_type + (basal_area/dis);
+				}
 			}
 		}
 		
-		//write "NI: "+ni+" average: "+ni/length(my_neighbors);
-		if(ni > 1.0){	 
-			ni <- 1.0;
+		if(same_type > not_type){
+			return 1.5;
 		}
-		return ni;
+		return 0.5;
 	}	
 	
 	//Called when either: (1) a tree has just recently became adult; or (2) an adult tree has died

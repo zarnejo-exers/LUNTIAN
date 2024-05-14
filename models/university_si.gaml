@@ -18,16 +18,19 @@ global{
 	int LABOUR_TCAPACITY <- 15;	//number of trees that the laborer can plant/manage
 	
 	//fixed rate
-	float EST_MANAGEMENT_COST_PYEAR <- 17449.14;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
+	float INIT_ESTABLISHMENT_INVESTOR <- 7227.06;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
+	float YEARLY_MAINTENANCE_INVESTOR <- 9457.97; //https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
+	
 	float NURSERY_ESTABLISHMENT_COST <- 238952.35;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float ANR_COST <- 5893.59; 	//per hahttps://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf; considers the laborer already
-	float HARVESTING_COST <- 137294.38; //https://www.mdpi.com/1999-4907/7/8/152
+	float YEARLY_HARVESTING_COST <- 137294.38; //https://www.mdpi.com/1999-4907/7/8/152
+	float YEARLY_MANAGEMENT_COST <- 17449.14;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	
 	float LABOUR_COST <- 406.21;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf
 	float HLABOUR_COST <- 16.21;	//https://www.mdpi.com/1999-4907/7/8/152
 
-	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;
-	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;
+	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf
+	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf
 	
 	int average_no_trees_in1ha <- 20;
 	int police_count <- 2 update: police_count;
@@ -37,7 +40,7 @@ global{
 	float harvest_policy <- 0.5 update: harvest_policy; 
 	bool is_hiring <- false;
 	
-	int investment_rotation_years <- 1 update: investment_rotation_years;	
+	int investment_rotation_years <- 50 update: investment_rotation_years;	
 	
 	int ANR_instance <- 0; 
 	int total_investments <- 0;
@@ -85,7 +88,7 @@ species university_si{
 	
 	float labor_price <- 3.0; //per months
 	
-	float current_harvest_cost <- 0.0;
+	bool has_harvested <- false;
 	float current_ANR_cost <- 0.0;
 	
 	list<plot> my_nurseries;	//list of nurseries managed by university
@@ -148,22 +151,15 @@ species university_si{
 	 	float investment_cost <- 0.0;
 	 	
 	 	int needed_plaborer <- int(sapling_places/LABOUR_TCAPACITY);
-	 	float cost_to_support_investment <- 0.0; 
-	 	
-	 	ask market{	//cost of saplings to plant after harvesting
-	 		cost_to_support_investment <- sapling_places * native_sapling_price;	
-	 	}
-	 	
-	 	cost_to_support_investment <- cost_to_support_investment + (needed_plaborer*LABOUR_COST);	//cost of planters that will be hired
-	 	cost_to_support_investment <- cost_to_support_investment + (LABOUR_COST * 2);	//cost of harvesters that will be hired 
+	 	float cost_to_support_investment <- (needed_plaborer*LABOUR_COST) + (LABOUR_COST * 2);	//cost of planters that will be hired + cost of harvesters that will be hired 
 	 	
 	 	//add management cost 
-	 	cost_to_support_investment <- cost_to_support_investment + (EST_MANAGEMENT_COST_PYEAR*investment_rotation_years);
+	 	cost_to_support_investment <- cost_to_support_investment + (YEARLY_MAINTENANCE_INVESTOR*(investment_rotation_years/2))+INIT_ESTABLISHMENT_INVESTOR;
 	 	
 	 	return cost_to_support_investment;
 	 }
 			
-	float projectProfit(investor inv, plot investable_plot, int sapling_places){
+	float projectProfit(investor inv, plot investable_plot){
 		float projected_profit <- 0.0;
 		
 		//current harvestable
@@ -172,15 +168,24 @@ species university_si{
 			float total_bdft_n <- getTotalBDFT(current_harvestables where (each.type = NATIVE));
 			float total_bdft_e <- getTotalBDFT(current_harvestables where (each.type = EXOTIC));
 			projected_profit <- (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.75;
-		}	
-		
+		}
+
 		//future harvestable
-		trees sample_sapling <- first(buySaplings(1));
-		float pfuture_dbh <- (sample_sapling.age + investment_rotation_years)*growth_rate_native;
-		float pfuture_bdft <- calculateVolume(pfuture_dbh, NATIVE)/12;
+		list<trees> future_harvestables <- investable_plot.plot_trees - current_harvestables;
 		
-		ask market{
-			projected_profit <- projected_profit + (getProfit(NATIVE, pfuture_bdft*sapling_places)*0.75);	
+		ask future_harvestables{
+			temp_dbh <- dbh;
+			dbh <- (age + investment_rotation_years)*((type=NATIVE)?growth_rate_native:growth_rate_exotic);
+		}
+		
+		ask market {
+			float total_bdft_n <- getTotalBDFT(future_harvestables where (each.type = NATIVE));
+			float total_bdft_e <- getTotalBDFT(future_harvestables where (each.type = EXOTIC));
+			projected_profit <- projected_profit + (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.75;
+		}
+		
+		ask future_harvestables{
+			dbh <- temp_dbh;
 		}
 		
 		return projected_profit; 
@@ -222,7 +227,6 @@ species university_si{
 		if(cl.com_identity != nil){
 			cl.com_identity.current_earning <- cl.com_identity.current_earning + current_payable;
 		}
-		write "-- current payable: "+current_payable+" for "+effort+" effort";
 		cl.total_earning <- cl.total_earning + current_payable;
 	}	
 	
@@ -483,7 +487,7 @@ species university_si{
 	    	if(exotic_trees != []){
 	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
 	    	}
-			current_harvest_cost <- current_harvest_cost + HARVESTING_COST;
+			has_harvested <- true;
 			write "HARVESTED";
     	}else{
     		write "NOTHING to harvest";
@@ -495,9 +499,13 @@ species university_si{
 	
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
 	reflex computeTotalCost {
-		total_management_cost <- total_management_cost + current_ANR_cost + current_harvest_cost;	//currently working nursery labor and cost
+		total_management_cost <- total_management_cost + current_ANR_cost;	//currently working nursery labor and cost
 		
-		current_harvest_cost <- 0.0;
+		if(has_harvested and current_month = 0){
+			total_management_cost <- total_management_cost + YEARLY_HARVESTING_COST + YEARLY_MANAGEMENT_COST;
+		}
+		
+		has_harvested <- false;
 		current_ANR_cost <- 0.0;
 	}	
 }
