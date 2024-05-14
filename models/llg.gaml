@@ -354,10 +354,9 @@ species trees{
 	action treeGrowthIncrement{
 		float prev_dbh <- dbh;
 		float prev_th <- th;
-		float ni <- 1-neighborhoodInteraction();
 		float gcoeff <- (type = NATIVE)?my_plot.getGrowthCoeff(NATIVE):my_plot.getGrowthCoeff(EXOTIC);
 
-		diameter_increment <- computeDiameterIncrement()*gcoeff*ni;
+		diameter_increment <- computeDiameterIncrement()*gcoeff*neighborhoodInteraction();
 		dbh <- dbh + diameter_increment;	 
 		if(dbh > max_dbh_per_class[type][ADULT]){
 			dbh <- max_dbh_per_class[type][ADULT];
@@ -539,8 +538,11 @@ species trees{
 		
 		if(same_type > not_type){
 			return 1.5;
+		}else if(same_type = not_type){
+			return 1.0;
+		}else{
+			return 0.5;	
 		}
-		return 0.5;
 	}	
 	
 	//Called when either: (1) a tree has just recently became adult; or (2) an adult tree has died
