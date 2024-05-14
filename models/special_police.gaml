@@ -16,6 +16,7 @@ species special_police{
 	plot assigned_area <- nil;		//position of the sp in the environment
 	list<plot> observed_neighborhood <- [];
 	int total_comm_members_reprimanded <- 0; 	//remembers only the number, since they are not mandated to catch
+	float total_wage <- 0.0;
 	
 	aspect default{
 		draw hexagon(5) color: #yellowgreen;
@@ -56,14 +57,17 @@ species special_police{
 	} 
 	
 	reflex guardPlotNeighborhood{
+		list<labour> observed_labour <- ((comm_member where (each.state = "independent_harvesting")) collect each.instance_labour)-uni_laborers;
+		
 		loop on over: observed_neighborhood{
-			ask ((labour-uni_laborers) inside on){
-				if(com_identity!=nil and com_identity.state = "independent_harvesting"){
-					write "Special police "+name+" caught member "+com_identity.name;
-					com_identity.is_caught <- true;
-					myself.total_comm_members_reprimanded <- myself.total_comm_members_reprimanded + 1; 
-				}
+			ask (observed_labour inside on){
+				write "Special police "+name+" caught member "+com_identity.name;
+				com_identity.is_caught <- true;
+				myself.total_comm_members_reprimanded <- myself.total_comm_members_reprimanded + 1; 
 			}
+		}
+		ask university_si{
+			do payPatrol(myself, 1.33*length(myself.observed_neighborhood));
 		}
 	} 
 	

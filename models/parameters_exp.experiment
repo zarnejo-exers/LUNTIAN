@@ -16,15 +16,12 @@ experiment parametersexp model: "university_si.gaml" type: gui until:( cycle > 6
 	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
 	
 	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
-	parameter "Harvesting age (E)" category: "Exotic Setup" var: harvesting_age_exotic;
 	parameter "Price per BDFT (E)" category: "Exotic Setup" var: exotic_price_per_bdft;
 	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
-	parameter "Harvesting age (N)" category: "Native Setup" var: harvesting_age_native;
 	parameter "Price per BDFT (N)" category: "Native Setup" var: native_price_per_bdft;
 	
 	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
 	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
-	parameter "DBH policy" category: "Management" var: dbh_policy min: 50.0 max: 70.0;
 	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
 	
 	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;

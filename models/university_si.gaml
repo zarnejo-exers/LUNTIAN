@@ -34,12 +34,9 @@ global{
 	int laborer_count <- 10 update: laborer_count;
 	float planting_space <- 1.0 update: planting_space; 
 	int nursery_count <- 2 update: nursery_count;
-	float harvest_policy <- 0.5 update: harvest_policy;
-	float dbh_policy <- 50.0 update: dbh_policy; 
+	float harvest_policy <- 0.5 update: harvest_policy; 
 	bool is_hiring <- false;
 	
-	int harvesting_age_exotic <- 15 update: harvesting_age_exotic;	//temp
-	int harvesting_age_native <- 20 update: harvesting_age_native;	//actual 40
 	int investment_rotation_years <- 1 update: investment_rotation_years;	
 	
 	int ANR_instance <- 0; 
@@ -220,6 +217,10 @@ species university_si{
 	
 		cl.total_earning <- cl.total_earning + current_payable;
 	}	
+	
+	action payPatrol(special_police sp, float effort){
+		sp.total_wage <- sp.total_wage + (effort * LABOUR_COST);
+	}
 	
 	plot getInvestablePlot{
 		list<plot> investable_plots <- reverse(sort_by(plot where (!each.is_nursery and !each.is_invested), each.stand_basal_area)); 
