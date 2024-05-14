@@ -48,6 +48,12 @@ global{
 	bool investment_open;
 	list<labour> uni_laborers;
 	
+	//per hectare, mandays
+	float MD_NURSERY_MAINTENANCE <- 8.64;	//maintenance of seedlings: 8.64 mandays
+	float MD_NURSERY_PLANTING <- 5.33;		//sowing of seed + potting of seedlings: 5.33 mandays
+	float MD_NURSERY_PREPARATION <- 1.89;	//gathering and preparation of soil: 1.89 mandays
+	float MD_ITP_PLANTING <- 12.16;			//assigned planter mandays: 12.16 mandays
+	
 	/*Dipterocarp: max_dbh = [80,120]cm
 	 *Mahogany: max_dbh = 150cm
 	 *				Exotic			Native
@@ -181,10 +187,12 @@ species university_si{
 	}	
 	
 	//individual tree volume for all species
-	//http://ifmlab.for.unb.ca/People/Kershaw/Courses/For1001/Erdle_Version/TAE-Diameter&Height.pdf
+	//https://www.doc-developpement-durable.org/file/Culture/Arbres-Bois-de-Rapport-Reforestation/FICHES_ARBRES/Swietenia%20microphylla/Conversion%20Table%20for%20Sawn%20Mahogany.pdf
+	//cubic feet
 	float calculateVolume(float temp_dbh, int t_type){
-		float th <- calculateHeight(temp_dbh, t_type);
-		return (1/3) * #pi * ((temp_dbh/2)^2) * th;		
+		float th <- calculateHeight(temp_dbh, t_type) * 3.281;	// with *3.281 -> meters feet
+		float tdbh <- temp_dbh / 30.48;	//with /30.48 -> cm - feet
+		return  (th/4)*(#pi * ((tdbh/2)^2));	
 	}
 	
 	//STATUS: CHECKED
@@ -214,7 +222,7 @@ species university_si{
 		if(cl.com_identity != nil){
 			cl.com_identity.current_earning <- cl.com_identity.current_earning + current_payable;
 		}
-	
+		write "-- current payable: "+current_payable+" for "+effort+" effort";
 		cl.total_earning <- cl.total_earning + current_payable;
 	}	
 	
@@ -476,6 +484,7 @@ species university_si{
 	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
 	    	}
 			current_harvest_cost <- current_harvest_cost + HARVESTING_COST;
+			write "HARVESTED";
     	}else{
     		write "NOTHING to harvest";
     	}

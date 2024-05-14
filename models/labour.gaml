@@ -177,7 +177,7 @@ species labour control: fsm{
 	state manage_nursery{
 		
 		ask university_si{
-			do payLaborer(myself, 8.64);	//maintenance of seedlings: 8.64 mandays
+			do payLaborer(myself, MD_NURSERY_MAINTENANCE);	//maintenance of seedlings: 8.64 mandays
 		}
 		
 		transition to: assigned_nursery when: ((fruiting_months_N + fruiting_months_E) contains current_month){//fruiting season, go out to gather
@@ -198,7 +198,7 @@ species labour control: fsm{
 			remove current_plot from: to_visit_plot;	
 		}
 		ask university_si{
-			do payLaborer(myself, 1.89);	//gathering and preparation of soil
+			do payLaborer(myself, MD_NURSERY_PREPARATION);	//gathering and preparation of soil
 		}
 
 		transition to: manage_nursery when: !((fruiting_months_N + fruiting_months_E) contains current_month)
@@ -211,7 +211,7 @@ species labour control: fsm{
 				list<trees> planted_trees <- plantInPlot(all_seedlings_gathered, my_assigned_plot);	//put to nursery all the gathered seedlings
 				remove all: planted_trees from: all_seedlings_gathered;
 				ask university_si{
-					do payLaborer(myself, 5.33);	//sowing of seed + potting of seedlings
+					do payLaborer(myself, MD_NURSERY_PLANTING);	//sowing of seed + potting of seedlings
 				}
 			}
 		}
@@ -223,9 +223,8 @@ species labour control: fsm{
 		do gatherSaplings();
 		do plantInSquare();
 		ask university_si{
-			do payLaborer(myself, 12.16);
+			do payLaborer(myself, MD_ITP_PLANTING);	//assigned planter mandays
 		}
-		
 		transition to: vacant{
 			if(my_assigned_plot.is_ANR){
 				my_assigned_plot.is_ANR <- false;
@@ -241,16 +240,16 @@ species labour control: fsm{
 	//stays in this state for 1 step only
 	state assigned_itp_harvester{
 		float harvested_bdft <- 0.0;
-		ask market{
-			harvested_bdft <- getTotalBDFT(myself.marked_trees);	
-		}
-		do cutMarkedTrees();
-		
 		//COST: 
 		//3. pay hired harvesters 1month worth of wage
+		ask market {
+			harvested_bdft <- getTotalBDFT(myself.marked_trees);
+		}
 		ask university_si{
 			do payLaborer(myself, harvested_bdft);
 		}
+		
+		do cutMarkedTrees();
 		
 		transition to: vacant{
 			if(my_assigned_plot.is_harvested){

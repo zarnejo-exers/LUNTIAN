@@ -37,9 +37,7 @@ species comm_member control: fsm{
 	int caught <- 0; 
 	bool is_caught <- false;
 	
-	float max_earning <- (LABOUR_COST*MAX_WAITING_COMMITMENT);
-	
-	//int total_harvested_trees <- 0; //for independent harvesting
+	float min_earning <- 0.0; 
 	
 	aspect default{
 		if(state = "independent_harvesting"){
@@ -156,7 +154,19 @@ species comm_member control: fsm{
 		} 
 	 	
 	    transition to: independent_passive when: (lapsed_time = 0);
-	    transition to: labour_partner when: (instance_labour.my_assigned_plot != nil);
+	    transition to: labour_partner when: (instance_labour.my_assigned_plot != nil){
+	    	if(instance_labour.is_planting_labour){
+				min_earning <- (LABOUR_COST*MD_ITP_PLANTING);
+			}else if(instance_labour.is_nursery_labour){
+				min_earning <- (LABOUR_COST*MD_NURSERY_MAINTENANCE);
+			}else if(instance_labour.is_harvest_labour){
+				float min_bdft;
+				ask market{
+					min_bdft <- getMinBDFT(NATIVE);
+				}
+				min_earning <- (HLABOUR_COST*min_bdft*(LABOUR_TCAPACITY/2));
+			}
+	    }
 	 	
 	 	lapsed_time <- lapsed_time - 1;
 	} 
@@ -172,20 +182,21 @@ species comm_member control: fsm{
 	    	
 	    if(instance_labour.is_harvest_labour) {		
 	    	//not satisfied when earning is less than max earn or when another independent_harvesting community member has better earning 
-	    	satisfied <- (current_earning < max_earning or hasCompetingEarner())?false: true;
+	    	satisfied <- (current_earning < min_earning or hasCompetingEarner())?false: true;
 	    }else{ //satisifaction based on wage only
-	    	satisfied <- (current_earning >= (0.3*max_earning))?true: false;	
+	    	satisfied <- (current_earning >= min_earning)?true: false;	
 	    } 
 	    
-	    transition to: independent_harvesting when: (instance_labour.is_harvest_labour and !satisfied and month = MAX_WAITING_COMMITMENT);
-	    transition to: potential_partner when: (!satisfied);
+	    write " current_earning: "+current_earning+" "+name+" is "+(satisfied?"":"not ")+"satisfied on min_earning: "+min_earning;
+	    
+	    transition to: independent_harvesting when: (!satisfied and month = MAX_WAITING_COMMITMENT){ write "to independent harvesting";}
+	    transition to: potential_partner when: (satisfied and month=MAX_WAITING_COMMITMENT){ write "to potential partner";}
 	 
 	 	month <- month + 1;
 	    exit {
 	    	total_earning <- total_earning + current_earning;
 	    	current_earning <- 0.0;
 	    	instance_labour.total_earning <- 0.0;
-//	    	instance_labour.my_assigned_plot <- nil;	//TODO: REMOE THIS LINE
 	    } 
 	}
 	
