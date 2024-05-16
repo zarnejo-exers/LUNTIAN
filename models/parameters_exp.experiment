@@ -31,6 +31,8 @@ experiment parametersexp model: "university_si.gaml" type: gui until:( cycle > 6
 	
     reflex save_results_explo {
 	    save [cycle, "NATIVE",length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT))] rewrite: false to: "native.csv" format: "csv" header: true;
-		save [cycle, "EXOTIC",length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT))] rewrite: false to: "exotic.csv" format: "csv" header: true;		
+		save [cycle, "EXOTIC",length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT))] rewrite: false to: "exotic.csv" format: "csv" header: true;
+		save [cycle, "annual_net_earning",annual_net_earning,"total_management_cost",total_management_cost,"total_ITP_earning",total_ITP_earning] rewrite: false to: "up_cashflow.csv" format: "csv" header: true;
+		save [cycle, "community independent harvester", length(comm_member where (each.state = "independent_harvesting")), "caught harvester", length(comm_member where (each.is_caught))] rewrite: false to: "community.csv" format:"csv" header: true;		
 	}
 }

@@ -45,7 +45,9 @@ species investor control: fsm{
 	int loss <- 0;
 	
 	float projected_profit;
+	
 	float investment_cost; 
+	float total_investment <- 0.0;
 	
 	aspect default{
 		draw pyramid(5) color: #gold; 
@@ -83,7 +85,7 @@ species investor control: fsm{
 				ask university_si{
 					do harvestITP(myself, myself.my_iplot);	
 				}
-				recent_profit <- recent_profit - investment_cost; 
+				total_investment <- total_investment + investment_cost;
 			}else{
 				write "Decided not to invest. Projected_profit: "+projected_profit+" investment cost: "+ investment_cost;
 			}
@@ -157,7 +159,7 @@ species investor control: fsm{
 	 	exit{
 	 		my_iplot.is_invested <- false;
 	        my_iplot <- nil;
-	        total_profit <- total_profit + recent_profit;
+	        total_profit <- total_profit + (recent_profit - investment_cost);	//note that, I didn't considered investment cost in predicting the promised profit
 	        do updateRisk();
 	        recent_profit <- 0.0;
 	        investment_cost <- 0.0;

@@ -249,7 +249,7 @@ species university_si{
 	//compute cost
 	action harvestEarning(investor i, float thv, int type){
 		//give payment to investor
-	    float c_profit;
+	    float c_profit <- 0.0;
 	    ask market{
 	    	c_profit <- getProfit(type, thv);
 	    }
@@ -517,9 +517,11 @@ species university_si{
 		
 		if(current_month = 0){
 			if(has_harvested){
-				current_management_cost <- YEARLY_HARVESTING_COST + YEARLY_MANAGEMENT_COST+current_management_cost;
-				total_management_cost <- YEARLY_HARVESTING_COST + YEARLY_MANAGEMENT_COST+total_management_cost;
+				current_management_cost <- YEARLY_HARVESTING_COST +current_management_cost;
+				total_management_cost <- YEARLY_HARVESTING_COST +total_management_cost;
 			}
+			current_management_cost <- YEARLY_MANAGEMENT_COST +current_management_cost;
+			total_management_cost <- YEARLY_MANAGEMENT_COST +total_management_cost;
 		}
 		
 		if(current_month=11){
