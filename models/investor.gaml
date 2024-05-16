@@ -16,7 +16,7 @@ global{
 	float risk_averse <- 0.5; 	//type = 0
 	float risk_loving <- 1.0;	//type = 1
 	int investor_count <- 15 update: investor_count;
-	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.90, "Neutral"::0.5];
+	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.95, "Neutral"::0.5];
 	
 	init{
 		//assign risk type for each investor randomly
@@ -34,7 +34,6 @@ global{
 species investor control: fsm{
 	float total_profit <- 0.0;
 	float recent_profit <- 0.0;
-	int tht <- 0;	//total harvested trees
 	
 	plot my_iplot <- nil;
 	float promised_profit; 

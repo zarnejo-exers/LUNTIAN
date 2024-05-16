@@ -12,8 +12,10 @@ import "university_si.gaml"
 /* Insert your model definition here */
 
 species market{
-	float bprice_of_exotic <- 4000.0;	//php per cubic meter
-	float bprice_of_native <- 8000.0; 	//php per dbh
+	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf
+	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf
+	float current_inflation <- 3.42; //https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf
+	
 	
 	float getMinBDFT(int type){
 		float min_bdft;
@@ -21,10 +23,6 @@ species market{
 			min_bdft <- (calculateVolume(60.0, type)/12);	//https://www.montana.edu/extension/forestry/projectlearningtree/activitybooklets/Estimating%20Individual%20Tree%20Volume.pdf
 		}
 		return min_bdft;
-	}
-	
-	float getBuyingPrice(int t_type){
-		return ((t_type = 1)?bprice_of_exotic:bprice_of_native);
 	}
 	
 	//cubic feet
@@ -43,5 +41,11 @@ species market{
 	float getProfit(int type, float th_bdft){
 		return th_bdft * ((type = EXOTIC)?exotic_price_per_bdft:native_price_per_bdft);
 	}
+	
+	reflex inflation when : current_month=11{
+		float random_inflation <- rnd(-1.0, 1.0);
+		exotic_price_per_bdft <- exotic_price_per_bdft + (exotic_price_per_bdft*random_inflation);
+		native_price_per_bdft <- native_price_per_bdft + (native_price_per_bdft*random_inflation); 
+	} 
 }
 

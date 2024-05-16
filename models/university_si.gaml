@@ -28,14 +28,11 @@ global{
 	
 	float LABOUR_COST <- 406.21;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf
 	float HLABOUR_COST <- 16.21;	//https://www.mdpi.com/1999-4907/7/8/152
-
-	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf
-	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf
 	
 	int average_no_trees_in1ha <- 20;
 	int police_count <- 3 update: police_count;
 	int laborer_count <- 20 update: laborer_count; 
-	int nursery_count <- 3 update: nursery_count; 
+	int nursery_count <- 2 update: nursery_count; 
 	bool is_hiring <- false;
 	
 	int investment_rotation_years <- 25 update: investment_rotation_years;	
@@ -174,7 +171,7 @@ species university_si{
 		ask market {
 			float total_bdft_n <- getTotalBDFT(current_harvestables where (each.type = NATIVE));
 			float total_bdft_e <- getTotalBDFT(current_harvestables where (each.type = EXOTIC));
-			projected_profit <- (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.75;
+			projected_profit <- (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.70;
 		}
 
 		//future harvestable
@@ -188,7 +185,7 @@ species university_si{
 		ask market {
 			float total_bdft_n <- getTotalBDFT(future_harvestables where (each.type = NATIVE));
 			float total_bdft_e <- getTotalBDFT(future_harvestables where (each.type = EXOTIC));
-			projected_profit <- projected_profit + (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.75;
+			projected_profit <- projected_profit + (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.70;
 		}
 		
 		ask future_harvestables{
@@ -243,7 +240,6 @@ species university_si{
 	
 	plot getInvestablePlot{
 		list<plot> investable_plots <- reverse(sort_by(plot where (!each.is_nursery and !each.is_invested), each.stand_basal_area)); 
-
 		return first(investable_plots);
 	}
 	
@@ -257,12 +253,11 @@ species university_si{
 	    }
 	    
 	    if(i != nil){
-	    	i.tht <- i.tht + 1;
-	    	i.recent_profit <- i.recent_profit + (c_profit*0.75);		//actual profit of investor is 75% of total profit
+	    	i.recent_profit <- i.recent_profit + (c_profit*0.70);		//actual profit of investor is 75% of total profit
 	    }
 	    
-	    current_ITP_earning <- current_ITP_earning + (c_profit * ((i!=nil)?0.25:1.0));
-	    total_ITP_earning <- total_ITP_earning + (c_profit * ((i!=nil)?0.25:1.0));
+	    current_ITP_earning <- current_ITP_earning + (c_profit * ((i!=nil)?0.30:1.0));
+	    total_ITP_earning <- total_ITP_earning + (c_profit * ((i!=nil)?0.30:1.0));
 	}
 
 	float timberHarvesting(plot chosen_plot, list<trees> tth){
@@ -503,7 +498,10 @@ species university_si{
 	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
 	    	}
 			has_harvested <- true;
-//			write "HARVESTED";
+			
+			if(inv = nil){
+				write "University harvested with earning: "+current_ITP_earning;	
+			}
     	}else{
 //    		write "NOTHING to harvest";
     	}
