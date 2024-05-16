@@ -33,11 +33,9 @@ global{
 	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf
 	
 	int average_no_trees_in1ha <- 20;
-	int police_count <- 2 update: police_count;
-	int laborer_count <- 10 update: laborer_count;
-	float planting_space <- 1.0 update: planting_space; 
-	int nursery_count <- 2 update: nursery_count;
-	float harvest_policy <- 0.5 update: harvest_policy; 
+	int police_count <- 3 update: police_count;
+	int laborer_count <- 20 update: laborer_count; 
+	int nursery_count <- 3 update: nursery_count; 
 	bool is_hiring <- false;
 	
 	int investment_rotation_years <- 25 update: investment_rotation_years;	
@@ -158,7 +156,9 @@ species university_si{
 	 	float investment_cost <- 0.0;
 	 	
 	 	int needed_plaborer <- int(sapling_places/LABOUR_TCAPACITY);
-	 	float cost_to_support_investment <- (needed_plaborer*LABOUR_COST) + (LABOUR_COST * 2);	//cost of planters that will be hired + cost of harvesters that will be hired 
+	 	int available_laborers <- length(labour where (each.state = "vacant"));
+	 	
+	 	float cost_to_support_investment <- (((needed_plaborer>available_laborers)?available_laborers:needed_plaborer)*LABOUR_COST) + (LABOUR_COST * 2);	//cost of planters that will be hired + cost of harvesters that will be hired 
 	 	
 	 	//add management cost 
 	 	cost_to_support_investment <- cost_to_support_investment + (YEARLY_MAINTENANCE_INVESTOR*(investment_rotation_years/5))+INIT_ESTABLISHMENT_INVESTOR;
