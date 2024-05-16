@@ -34,6 +34,7 @@ species labour control: fsm{
 	list<plot> to_visit_plot <- [];
 	
 	float total_earning <- 0.0;		//total earning for the entire simulation
+	int count_of_colaborers;
 	
 	aspect default{
 		if(labor_type = OWN_LABOUR){
@@ -44,6 +45,10 @@ species labour control: fsm{
 	//when tree dies, it is removed from the plot but the laborer isn't aware yet that it has died	
 	reflex removeDeadTrees{
 		my_trees <- my_trees where !dead(each);
+	}
+	
+	reflex updateCollaborer when: my_assigned_plot != nil{
+		count_of_colaborers <- length(my_assigned_plot.my_laborers);
 	}
 	
 	//laborer gets as much tree as it can get 
@@ -175,9 +180,8 @@ species labour control: fsm{
 	}
 	
 	state manage_nursery{
-		
 		ask university_si{
-			do payLaborer(myself, MD_NURSERY_MAINTENANCE);	//maintenance of seedlings: 8.64 mandays
+			do payLaborer(myself, MD_NURSERY_MAINTENANCE/myself.count_of_colaborers);	//maintenance of seedlings: 8.64 mandays
 		}
 		
 		transition to: assigned_nursery when: ((fruiting_months_N + fruiting_months_E) contains current_month){//fruiting season, go out to gather
@@ -198,7 +202,7 @@ species labour control: fsm{
 			remove current_plot from: to_visit_plot;	
 		}
 		ask university_si{
-			do payLaborer(myself, MD_NURSERY_PREPARATION);	//gathering and preparation of soil
+			do payLaborer(myself, MD_NURSERY_PREPARATION/myself.count_of_colaborers);	//gathering and preparation of soil
 		}
 
 		transition to: manage_nursery when: !((fruiting_months_N + fruiting_months_E) contains current_month)
@@ -211,7 +215,7 @@ species labour control: fsm{
 				list<trees> planted_trees <- plantInPlot(all_seedlings_gathered, my_assigned_plot);	//put to nursery all the gathered seedlings
 				remove all: planted_trees from: all_seedlings_gathered;
 				ask university_si{
-					do payLaborer(myself, MD_NURSERY_PLANTING);	//sowing of seed + potting of seedlings
+					do payLaborer(myself, MD_NURSERY_PLANTING/myself.count_of_colaborers);	//sowing of seed + potting of seedlings
 				}
 			}
 		}
@@ -223,7 +227,7 @@ species labour control: fsm{
 		do gatherSaplings();
 		do plantInSquare();
 		ask university_si{
-			do payLaborer(myself, MD_ITP_PLANTING);	//assigned planter mandays
+			do payLaborer(myself, MD_ITP_PLANTING/myself.count_of_colaborers);	//assigned planter mandays
 		}
 		transition to: vacant{
 			if(my_assigned_plot.is_ANR){

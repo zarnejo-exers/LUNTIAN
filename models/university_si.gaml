@@ -18,13 +18,14 @@ global{
 	int LABOUR_TCAPACITY <- 15;	//number of trees that the laborer can plant/manage
 	
 	//fixed rate
+	float INIT_COST <- 45519.51; //INFRASTRUCTURE COST
+	float YEARLY_PROJ_MGMT_COST <- 2731.17;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, based on year 1 only
 	float INIT_ESTABLISHMENT_INVESTOR <- 7227.06;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
-	float YEARLY_MAINTENANCE_INVESTOR <- 9457.97; //https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
+	float MAINTENANCE_COST_PER_HA <- 9457.97; //https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float SAPLINGS_UNIT_COST <-  1.194;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, GENERIC
 	float NURSERY_ESTABLISHMENT_COST <- 238952.35;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float ANR_COST <- 5893.59; 	//per ha https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf; considers the laborer already
 	float YEARLY_HARVESTING_COST <- 137294.38; //https://www.mdpi.com/1999-4907/7/8/152
-	float YEARLY_MANAGEMENT_COST <- 17449.14;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	
 	float LABOUR_COST <- 406.21;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf
 	float HLABOUR_COST <- 16.21;	//https://www.mdpi.com/1999-4907/7/8/152
@@ -49,6 +50,7 @@ global{
 	float annual_net_earning;
 	float total_management_cost <- 0.0; 
 	float total_ITP_earning <- 0.0;
+	float current_labor_cost <- 0.0;
 	 
 	//per hectare, mandays
 	float MD_NURSERY_MAINTENANCE <- 8.64;	//maintenance of seedlings: 8.64 mandays
@@ -79,6 +81,8 @@ global{
 		create special_police number: police_count{
 			location <- point(0,0,0);
 		}
+		
+		total_management_cost <- INIT_COST;	//infrastructure cost at the beginning
 	}
 }
 
@@ -149,16 +153,10 @@ species university_si{
 		Given the current number of trees in the plot, 
         determine the cost needed to plant new trees (how many trees are to be planted)
 	 */
-	 float computeInvestmentCost(plot investable_plot, int sapling_places){
-	 	float investment_cost <- 0.0;
+	 float computeInvestmentCost(plot investable_plot){
 	 	
-	 	int needed_plaborer <- int(sapling_places/LABOUR_TCAPACITY);
-	 	int available_laborers <- length(labour where (each.state = "vacant"));
-	 	
-	 	float cost_to_support_investment <- (((needed_plaborer>available_laborers)?available_laborers:needed_plaborer)*LABOUR_COST) + (LABOUR_COST * 2);	//cost of planters that will be hired + cost of harvesters that will be hired 
-	 	
-	 	//add management cost 
-	 	cost_to_support_investment <- cost_to_support_investment + (YEARLY_MAINTENANCE_INVESTOR*(investment_rotation_years/5))+INIT_ESTABLISHMENT_INVESTOR;
+	 	//establishment + management cost => considers laborers already  
+	 	float cost_to_support_investment <- (MAINTENANCE_COST_PER_HA*(10))+INIT_ESTABLISHMENT_INVESTOR;
 	 	
 	 	return cost_to_support_investment;
 	 }
@@ -227,11 +225,11 @@ species university_si{
 	 */ 
 	action payLaborer(labour cl, float effort){
 		float current_payable <- effort*((cl.is_harvest_labour)?HLABOUR_COST:LABOUR_COST);
-		
 		if(cl.com_identity != nil){
 			cl.com_identity.current_earning <- cl.com_identity.current_earning + current_payable;
 		}
 		cl.total_earning <- cl.total_earning + current_payable;
+		current_labor_cost <- current_labor_cost + current_payable;
 	}	
 	
 	action payPatrol(special_police sp, float effort){
@@ -519,16 +517,17 @@ species university_si{
 	
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
 	reflex computeTotalCost {
-		current_management_cost <- current_management_cost + current_ANR_cost;	//currently working nursery labor and cost
-		total_management_cost <- total_management_cost + current_ANR_cost;	//currently working nursery labor and cost
+		int c_invested_plots <- length(plot where (each.is_invested));
+		current_management_cost <- current_management_cost + current_ANR_cost + current_labor_cost;	//currently working labor and cost
+		total_management_cost <- total_management_cost + current_ANR_cost + current_labor_cost;	//currently working nursery labor and cost
 		
 		if(current_month = 0){
 			if(has_harvested){
 				current_management_cost <- (YEARLY_HARVESTING_COST - (SAPLINGS_UNIT_COST * count_available_saplings_harvesting)) +current_management_cost;
 				total_management_cost <- (YEARLY_HARVESTING_COST - (SAPLINGS_UNIT_COST * count_available_saplings_harvesting)) +total_management_cost;
 			}
-			current_management_cost <- YEARLY_MANAGEMENT_COST +current_management_cost;
-			total_management_cost <- YEARLY_MANAGEMENT_COST +total_management_cost;
+			current_management_cost <- current_management_cost + (MAINTENANCE_COST_PER_HA * c_invested_plots)+YEARLY_PROJ_MGMT_COST;
+			total_management_cost <- total_management_cost + (MAINTENANCE_COST_PER_HA * c_invested_plots)+YEARLY_PROJ_MGMT_COST;
 		}
 		
 		if(current_month=11){
@@ -539,6 +538,7 @@ species university_si{
 		
 		has_harvested <- false;
 		current_ANR_cost <- 0.0;
+		current_labor_cost <- 0.0;
 		count_available_saplings_harvesting <- 0.0;
 	}	
 }

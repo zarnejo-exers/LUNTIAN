@@ -68,9 +68,8 @@ species investor control: fsm{
 		
 		if(investable_plot != nil){
 			ask university_si{
-				int cplaces_to_fill <- length(getSquareSpaces(investable_plot.shape, investable_plot.plot_trees, true, 3));	//to support investment
 				myself.projected_profit <- projectProfit(myself, investable_plot);
-				myself.investment_cost <- computeInvestmentCost(investable_plot, cplaces_to_fill);
+				myself.investment_cost <- computeInvestmentCost(investable_plot);
 			}
 			bool decision <- decideOnRisk();
 			if(decision){
@@ -79,8 +78,14 @@ species investor control: fsm{
 				write "Commencing investment #"+total_investments+" by "+name+" on "+my_iplot.name;
 				location <- any_location_in(my_iplot);
 				investable_plot.is_invested <- true;
+				
 				current_ITP_earning <- current_ITP_earning + investment_cost;
 				total_ITP_earning <- total_ITP_earning + investment_cost;
+				
+				//assumes that the land has been prepared after commencing investment by incuring the cost
+				current_management_cost <- current_management_cost + INIT_ESTABLISHMENT_INVESTOR; 
+				total_management_cost <- total_management_cost + INIT_ESTABLISHMENT_INVESTOR;	
+				
 				ask university_si{
 					do harvestITP(myself, myself.my_iplot);	
 				}
