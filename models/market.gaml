@@ -43,9 +43,14 @@ species market{
 	}
 	
 	reflex inflation when : current_month=11{
-		float random_inflation <- rnd(-1.0, 1.0);
-		exotic_price_per_bdft <- exotic_price_per_bdft + (exotic_price_per_bdft*random_inflation);
-		native_price_per_bdft <- native_price_per_bdft + (native_price_per_bdft*random_inflation); 
+		float random_fct <- rnd(-1.0, 1.0);
+		write "[prev] inflation: "+current_inflation;
+		current_inflation <- current_inflation + (current_inflation * random_fct); 
+		write "[now] inflation: "+current_inflation;
+		
+		write "[prev] vals: e-"+exotic_price_per_bdft+" n-"+native_price_per_bdft;
+		exotic_price_per_bdft <- (exotic_price_per_bdft)*((current_inflation*(10^-2))+1);
+		native_price_per_bdft <- (native_price_per_bdft)*((current_inflation*(10^-2))+1);
+		write "[now] vals: e-"+exotic_price_per_bdft+" n-"+native_price_per_bdft;
 	} 
 }
-
