@@ -36,10 +36,10 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		
 		layout #split;
 	
-		display interaction{
+		display interaction type: opengl camera:#isometric{
 			species climate;
 			species plot; 
-//			species trees;	//aspect: geom3d
+//			species trees;//aspect: geom3D;
 			species river;
 			species road;
 			species special_police;
@@ -48,83 +48,90 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 			species investor;
 //			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
 //			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
-		}		
+		}	
 		
-		display chart1 type: java2D{	
-			chart "Investor total earnings" type: series
+		display chart0 type: java2D{	
+			chart "UP cash flow" type: series
 			{
-				list<string> risks <-["Averse", "Loving", "Neutral"];
-				loop i over: investor{
-            		data i.name+"("+risks[i.rt]+")" value: i.total_profit;
-            	}
+				data "Total Management Cost" value: total_management_cost color:#red;
+				data "Total ITP Earning" value: total_ITP_earning color: #green;
+				data "Annual Net Income" value: annual_net_earning color: #blue;
 			}
-		}
+		}	
 		
-		display chart2 type: java2D{	
-			chart "Investor according to state" type: series
-			{
-				list<string> states <- ["potential_active", "investing", "potential_passive"];
-				loop i over: states{
-            		data i value: count(investor, each.state = i);
-            	}
-			}
-		}
+//		display chart1 type: java2D{	
+//			chart "Investor total earnings" type: series
+//			{
+//				list<string> risks <-["Averse", "Loving", "Neutral"];
+//				loop i over: investor{
+//            		data i.name+"("+risks[i.rt]+")" value: i.total_profit;
+//            	}
+//			}
+//		}
+//		
+//		display chart2 type: java2D{	
+//			chart "Investor according to state" type: series
+//			{
+//				list<string> states <- ["potential_active", "investing", "potential_passive"];
+//				loop i over: states{
+//            		data i value: count(investor, each.state = i);
+//            	}
+//			}
+//		}
+//		
+//		display chart3 type: java2D{	
+//			chart "Investor current profit" type: series
+//			{
+//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+//				list<string> risks <-["Averse", "Loving", "Neutral"];
+//				loop i over: investor{
+//            		data i.name+"("+risks[i.rt]+")" value: i.recent_profit;
+//            	}
+//			}
+//		}
+//
+//		display chart4 type: java2D{	
+//			chart "Community member according to state" type: series
+//			{
+//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+//				list<string> states <- ["potential_partner", "labour_partner", "independent_harvesting", "independent_passive"];
+//				loop i over: states{
+//            		data i value: count(comm_member, each.state = i);
+//            	}
+//			}
+//		}
+//		
+//		display chart5 type: java2D{	
+//			chart "Community member total earnings" type: series
+//			{
+//				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
+//				loop i over: comm_member{
+//            		data i.name value: i.total_earning;
+//            	}
+//			}
+//		}
+//		
+//		display chart6 type: java2D{	
+//			chart "Population of Trees" type: series
+//			{
+//				data "Native: Seedling" value: length(trees where (each.type = NATIVE and each.state = SEEDLING)) color:#blue;
+//				data "Native: Sapling" value: length(trees where (each.type = NATIVE and each.state = SAPLING)) color: #darkblue;
+//				data "Native: Pole" value: length(trees where (each.type = NATIVE and each.state = POLE)) color: #lightblue;
+//				data "Native: Adult" value: length(trees where (each.type = NATIVE and each.state = ADULT)) color: #blueviolet;
+//			}
+//		}		
+//		
+//		display chart7 type: java2D{	
+//			chart "Population of Trees" type: series
+//			{
+//				data "Exotic: Seedling" value: length(trees where (each.type = EXOTIC and each.state = SEEDLING)) color:#red;
+//				data "Exotic: Sapling" value: length(trees where (each.type = EXOTIC and each.state = SAPLING)) color: #darkred;
+//				data "Exotic: Pole" value: length(trees where (each.type = EXOTIC and each.state = POLE)) color: #pink;
+//				data "Exotic: Adult" value: length(trees where (each.type = EXOTIC and each.state = ADULT)) color: #yellowgreen;
+//			}
+//		}
 		
-		display chart3 type: java2D{	
-			chart "Investor current profit" type: series
-			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				list<string> risks <-["Averse", "Loving", "Neutral"];
-				loop i over: investor{
-            		data i.name+"("+risks[i.rt]+")" value: i.recent_profit;
-            	}
-			}
-		}
-
-		display chart4 type: java2D{	
-			chart "Community member according to state" type: series
-			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				list<string> states <- ["potential_partner", "labour_partner", "independent_harvesting", "independent_passive"];
-				loop i over: states{
-            		data i value: count(comm_member, each.state = i);
-            	}
-			}
-		}
 		
-		display chart5 type: java2D{	
-			chart "Community member total earnings" type: series
-			{
-				//data "Number of Laborers" value: length(labour where each.is_itp_labour) color: #blue;
-				loop i over: comm_member{
-            		data i.name value: i.total_earning;
-            	}
-			}
-		}
-		
-		display chart6 type: java2D{	
-			chart "Population of Trees" type: series
-			{
-				data "Native: Seedling" value: length(trees where (each.type = NATIVE and each.state = SEEDLING)) color:#blue;
-				data "Native: Sapling" value: length(trees where (each.type = NATIVE and each.state = SAPLING)) color: #darkblue;
-				data "Native: Pole" value: length(trees where (each.type = NATIVE and each.state = POLE)) color: #lightblue;
-				data "Native: Adult" value: length(trees where (each.type = NATIVE and each.state = ADULT)) color: #blueviolet;
-			}
-		}		
-		
-		display chart7 type: java2D{	
-			chart "Population of Trees" type: series
-			{
-				data "Exotic: Seedling" value: length(trees where (each.type = EXOTIC and each.state = SEEDLING)) color:#red;
-				data "Exotic: Sapling" value: length(trees where (each.type = EXOTIC and each.state = SAPLING)) color: #darkred;
-				data "Exotic: Pole" value: length(trees where (each.type = EXOTIC and each.state = POLE)) color: #pink;
-				data "Exotic: Adult" value: length(trees where (each.type = EXOTIC and each.state = ADULT)) color: #yellowgreen;
-			}
-		}
-		
-		
-		monitor "Total University Earning" value: total_ITP_earning;
-		monitor "Total Management Cost" value: total_management_cost;
 		monitor "Total ANR instance" value: ANR_instance;
 		monitor "Total Warned Independent Harvester" value: total_warned_CM;
 		monitor "Tree count" value: length(trees);

@@ -344,9 +344,9 @@ species trees{
 	//returns diameter_increment
 	float computeDiameterIncrement{
 		if(type = EXOTIC){ //mahogany 
-			return dbh + growth_rate_exotic;
+			return growth_rate_exotic/12;
 		}else if(type = NATIVE){	//dipterocarp, after: Anisoptera thurifera 
-			return dbh + growth_rate_native; 
+			return growth_rate_native/12; 
 		}
 	}		
 	
@@ -537,11 +537,11 @@ species trees{
 		}
 		
 		if(same_type > not_type){
-			return 1.5;
+			return 1.25;
 		}else if(same_type = not_type){
 			return 1.0;
 		}else{
-			return 0.5;	
+			return 0.75;	
 		}
 	}	
 	

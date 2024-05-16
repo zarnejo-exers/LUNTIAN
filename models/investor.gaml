@@ -16,7 +16,7 @@ global{
 	float risk_averse <- 0.5; 	//type = 0
 	float risk_loving <- 1.0;	//type = 1
 	int investor_count <- 10 update: investor_count;
-	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.80, "Neutral"::0.5];
+	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.90, "Neutral"::0.5];
 	
 	init{
 		//assign risk type for each investor randomly
@@ -78,10 +78,12 @@ species investor control: fsm{
 				write "Commencing investment #"+total_investments+" by "+name+" on "+my_iplot.name;
 				location <- any_location_in(my_iplot);
 				investable_plot.is_invested <- true;
+				current_ITP_earning <- current_ITP_earning + investment_cost;
 				total_ITP_earning <- total_ITP_earning + investment_cost;
 				ask university_si{
 					do harvestITP(myself, myself.my_iplot);	
-				} 
+				}
+				recent_profit <- recent_profit - investment_cost; 
 			}else{
 				write "Decided not to invest. Projected_profit: "+projected_profit+" investment cost: "+ investment_cost;
 			}
@@ -111,7 +113,6 @@ species investor control: fsm{
 			wins <- 0;
 		}
 		string risk <- risk_types.keys[rt];
-		write "Win: "+wins+" Loss: "+loss+" "+risk;
 		
 		if(loss = 3 or wins = 3){
 			if(risk = "Neutral"){
@@ -155,11 +156,11 @@ species investor control: fsm{
 	 	
 	 	exit{
 	 		my_iplot.is_invested <- false;
-	 		write "End "+name+" commitment on "+my_iplot.name;
 	        my_iplot <- nil;
 	        total_profit <- total_profit + recent_profit;
 	        do updateRisk();
 	        recent_profit <- 0.0;
+	        investment_cost <- 0.0;
 	 	}
 	}
 	

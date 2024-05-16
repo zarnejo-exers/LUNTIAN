@@ -22,7 +22,7 @@ global{
 	float YEARLY_MAINTENANCE_INVESTOR <- 9457.97; //https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	
 	float NURSERY_ESTABLISHMENT_COST <- 238952.35;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
-	float ANR_COST <- 5893.59; 	//per hahttps://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf; considers the laborer already
+	float ANR_COST <- 5893.59; 	//per ha https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf; considers the laborer already
 	float YEARLY_HARVESTING_COST <- 137294.38; //https://www.mdpi.com/1999-4907/7/8/152
 	float YEARLY_MANAGEMENT_COST <- 17449.14;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	
@@ -40,17 +40,21 @@ global{
 	float harvest_policy <- 0.5 update: harvest_policy; 
 	bool is_hiring <- false;
 	
-	int investment_rotation_years <- 50 update: investment_rotation_years;	
+	int investment_rotation_years <- 25 update: investment_rotation_years;	
 	
 	int ANR_instance <- 0; 
 	int total_investments <- 0;
-	float total_management_cost <- 0.0;
-	float total_ITP_earning <- 0.0;
 	int total_warned_CM <- sum(special_police collect each.total_comm_members_reprimanded) update: sum(special_police collect each.total_comm_members_reprimanded);
 	
 	bool investment_open;
 	list<labour> uni_laborers;
 	
+	float current_management_cost <- 0.0;
+	float current_ITP_earning <- 0.0;
+	float annual_net_earning;
+	float total_management_cost <- 0.0; 
+	float total_ITP_earning <- 0.0;
+	 
 	//per hectare, mandays
 	float MD_NURSERY_MAINTENANCE <- 8.64;	//maintenance of seedlings: 8.64 mandays
 	float MD_NURSERY_PLANTING <- 5.33;		//sowing of seed + potting of seedlings: 5.33 mandays
@@ -115,6 +119,7 @@ species university_si{
 				add n to: my_nurseries;
 				add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
 				write "I AM nursery: "+n.name;
+				current_management_cost <- current_management_cost + NURSERY_ESTABLISHMENT_COST;
 				total_management_cost <- total_management_cost + NURSERY_ESTABLISHMENT_COST;
 			}			
 		}
@@ -154,7 +159,7 @@ species university_si{
 	 	float cost_to_support_investment <- (needed_plaborer*LABOUR_COST) + (LABOUR_COST * 2);	//cost of planters that will be hired + cost of harvesters that will be hired 
 	 	
 	 	//add management cost 
-	 	cost_to_support_investment <- cost_to_support_investment + (YEARLY_MAINTENANCE_INVESTOR*(investment_rotation_years/2))+INIT_ESTABLISHMENT_INVESTOR;
+	 	cost_to_support_investment <- cost_to_support_investment + (YEARLY_MAINTENANCE_INVESTOR*(investment_rotation_years/5))+INIT_ESTABLISHMENT_INVESTOR;
 	 	
 	 	return cost_to_support_investment;
 	 }
@@ -254,6 +259,7 @@ species university_si{
 	    	i.recent_profit <- i.recent_profit + (c_profit*0.75);		//actual profit of investor is 75% of total profit
 	    }
 	    
+	    current_ITP_earning <- current_ITP_earning + (c_profit * ((i!=nil)?0.25:1.0));
 	    total_ITP_earning <- total_ITP_earning + (c_profit * ((i!=nil)?0.25:1.0));
 	}
 
@@ -497,12 +503,29 @@ species university_si{
 		return replantPlot(plot_to_harvest);
 	}
 	
+	/*float current_management_cost <- 0.0;
+	float current_ITP_earning <- 0.0;
+	float annual_net_earning;
+	float total_management_cost <- 0.0; 
+	float total_ITP_earning <- 0.0;
+	 */
+	
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
 	reflex computeTotalCost {
+		current_management_cost <- current_management_cost + current_ANR_cost;	//currently working nursery labor and cost
 		total_management_cost <- total_management_cost + current_ANR_cost;	//currently working nursery labor and cost
 		
-		if(has_harvested and current_month = 0){
-			total_management_cost <- total_management_cost + YEARLY_HARVESTING_COST + YEARLY_MANAGEMENT_COST;
+		if(current_month = 0){
+			if(has_harvested){
+				current_management_cost <- YEARLY_HARVESTING_COST + YEARLY_MANAGEMENT_COST+current_management_cost;
+				total_management_cost <- YEARLY_HARVESTING_COST + YEARLY_MANAGEMENT_COST+total_management_cost;
+			}
+		}
+		
+		if(current_month=11){
+			annual_net_earning <- current_ITP_earning - current_management_cost;
+			current_management_cost <- 0.0;
+			current_ITP_earning <- 0.0;
 		}
 		
 		has_harvested <- false;
