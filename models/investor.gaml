@@ -77,7 +77,7 @@ species investor control: fsm{
 			if(decision){
 				total_investments <- total_investments + 1;
 				my_iplot <- investable_plot;
-				write "Commencing investment #"+total_investments+" by "+name+" on "+my_iplot.name;
+//				write "Commencing investment #"+total_investments+" by "+name+" on "+my_iplot.name;
 				location <- any_location_in(my_iplot);
 				investable_plot.is_invested <- true;
 				current_ITP_earning <- current_ITP_earning + investment_cost;
@@ -87,10 +87,10 @@ species investor control: fsm{
 				}
 				total_investment <- total_investment + investment_cost;
 			}else{
-				write "Decided not to invest. Projected_profit: "+projected_profit+" investment cost: "+ investment_cost;
+//				write "Decided not to invest. Projected_profit: "+projected_profit+" investment cost: "+ investment_cost;
 			}
 		}else{
-			write "No available plot for investment";
+//			write "No available plot for investment";
 		}
 	}
 	
@@ -128,7 +128,7 @@ species investor control: fsm{
 			}
 			loss <- 0;
 			wins <- 0;
-			write risk+" shifting to: "+risk_types.keys[rt];
+//			write risk+" shifting to: "+risk_types.keys[rt];
 		}
 	}
 	

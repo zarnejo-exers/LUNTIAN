@@ -187,10 +187,10 @@ species comm_member control: fsm{
 	    	satisfied <- (current_earning >= min_earning)?true: false;	
 	    } 
 	    
-	    write " current_earning: "+current_earning+" "+name+" is "+(satisfied?"":"not ")+"satisfied on min_earning: "+min_earning;
+//	    write " current_earning: "+current_earning+" "+name+" is "+(satisfied?"":"not ")+"satisfied on min_earning: "+min_earning;
 	    
-	    transition to: independent_harvesting when: (!satisfied and month = MAX_WAITING_COMMITMENT){ write "to independent harvesting";}
-	    transition to: potential_partner when: (satisfied and month=MAX_WAITING_COMMITMENT){ write "to potential partner";}
+	    transition to: independent_harvesting when: (!satisfied and month = MAX_WAITING_COMMITMENT);
+	    transition to: potential_partner when: (satisfied and month=MAX_WAITING_COMMITMENT);
 	 
 	 	month <- month + 1;
 	    exit {

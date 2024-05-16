@@ -459,11 +459,11 @@ species trees{
 			match NATIVE {
 				//number of recruits is calculated per plot and recruits are assigned to tree
 				if(number_of_recruits > 0 and is_mother_tree and fruiting_months_N contains current_month){	//fruit ready to be picked during the fruiting_months_N		
-					ask recruitTree(number_of_recruits, getTreeSpaceForRecruitment()){
-						if(self.my_plot = nil){
-							write "RECRUITED TREE "+name+" has plot = nil!";
-						}
-					}	
+//					ask recruitTree(number_of_recruits, getTreeSpaceForRecruitment()){
+//						if(self.my_plot = nil){
+//							write "RECRUITED TREE "+name+" has plot = nil!";
+//						}
+//					}	
 					is_mother_tree <- false;
 					number_of_recruits <- 0;
 					counter_to_next_recruitment <- 12;
@@ -490,11 +490,11 @@ species trees{
 						float fgap <- 1- (actual_space_available.area / recruitment_space.area);
 					
 						int total_no_1yearold <- int(number_of_fruits *42.4 *0.085*fgap*0.618);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 
-						ask recruitTree(total_no_1yearold, actual_space_available){
-							if(self.my_plot = nil){
-							write "RECRUITED TREE "+name+" has plot = nil!";
-							}
-						}	
+//						ask recruitTree(total_no_1yearold, actual_space_available){
+//							if(self.my_plot = nil){
+//							write "RECRUITED TREE "+name+" has plot = nil!";
+//							}
+//						}	
 					}
 						
 					number_of_fruits <- 0;

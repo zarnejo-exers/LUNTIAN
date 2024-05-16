@@ -61,7 +61,7 @@ species special_police{
 		
 		loop on over: observed_neighborhood{
 			ask (observed_labour inside on){
-				write "Special police "+name+" caught member "+com_identity.name;
+//				write "Special police "+name+" caught member "+com_identity.name;
 				com_identity.is_caught <- true;
 				myself.total_comm_members_reprimanded <- myself.total_comm_members_reprimanded + 1; 
 			}

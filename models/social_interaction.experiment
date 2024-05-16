@@ -24,9 +24,6 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	parameter "Price per BDFT (N)" category: "Native Setup" var: native_price_per_bdft;
 	
 	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
-	parameter "Harvest policy (% harvestable/plot)" category: "Management" var: harvest_policy min: 0.0 max: 1.0;
-	parameter "Planting space" category: "Management" var: planting_space min: 1.0 max: 5.0;
-	
 	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
 	
 	parameter "Growth rate (E)" category: "Exotic Setup" var:growth_rate_exotic;

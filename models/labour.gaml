@@ -98,7 +98,7 @@ species labour control: fsm{
 				remove sq from: available_square;
 				add tnp to: planted_trees;	
 			}else{
-				write "NO SPACE LEFT in plot: "+pt_plant.name;
+//				write "NO SPACE LEFT in plot: "+pt_plant.name;
 				break;		
 			}				
 		}
@@ -158,7 +158,7 @@ species labour control: fsm{
 				remove sq from: planting_spaces;
 				add tnp to: planted_trees;
 			}else{
-				write "NO SPACE LEFT!";
+//				write "NO SPACE LEFT!";
 				break;		
 			}				
 		}

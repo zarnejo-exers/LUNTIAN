@@ -20,7 +20,7 @@ global{
 	//fixed rate
 	float INIT_ESTABLISHMENT_INVESTOR <- 7227.06;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float YEARLY_MAINTENANCE_INVESTOR <- 9457.97; //https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
-	
+	float SAPLINGS_UNIT_COST <-  1.194;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, GENERIC
 	float NURSERY_ESTABLISHMENT_COST <- 238952.35;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float ANR_COST <- 5893.59; 	//per ha https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf; considers the laborer already
 	float YEARLY_HARVESTING_COST <- 137294.38; //https://www.mdpi.com/1999-4907/7/8/152
@@ -99,6 +99,8 @@ species university_si{
 	list<trees> my_saplings <- [] update: (my_saplings where !dead(each)); //contains all saplings in the nusery, remove all the dead saplings
 	list<plot> harvestable_plot <- plot where (each.stand_basal_area > 12 and !each.is_nursery and !each.is_invested) update: plot where (each.stand_basal_area > 12  and !each.is_nursery and !each.is_invested);
 	
+	float count_available_saplings_harvesting <- 0.0; 
+	
 	reflex alertInvestment{
 		investment_open <- length(my_nurseries) >= nursery_count/2;
 	}
@@ -118,7 +120,7 @@ species university_si{
 				n.is_candidate_nursery <- false;
 				add n to: my_nurseries;
 				add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
-				write "I AM nursery: "+n.name;
+//				write "I AM nursery: "+n.name;
 				current_management_cost <- current_management_cost + NURSERY_ESTABLISHMENT_COST;
 				total_management_cost <- total_management_cost + NURSERY_ESTABLISHMENT_COST;
 			}			
@@ -368,8 +370,12 @@ species university_si{
 	 *  (ii)planting for ITP
 	 * 
 	 * This function also "hires" planters
-	 */ 
-	bool replantPlot(plot the_plot){
+	 * 
+	 * 
+	 * returns -1 if didn't get to plant
+	 * else, return the number of planted saplings
+	 */
+	int replantPlot(plot the_plot){
 		list<geometry> available_spaces <- getSquareSpaces(the_plot.shape, the_plot.plot_trees, true, 3);
 		int plot_capacity <- length(available_spaces); 	
 
@@ -393,9 +399,9 @@ species university_si{
 			list<trees> bought_saplings <- buySaplings(saplings_to_be_bought);
 			
 			do sendPlanters(available_planters, the_plot, saplings_to_be_planted + bought_saplings, available_spaces);
-			return true;			
+			return length(saplings_to_be_planted);			
 		}
-		return false;
+		return -1;
 	}
 	
 	action sendPlanters(list<labour> planters, plot ptp, list<trees> trees_to_be_planted, list<geometry> available_spaces){
@@ -459,13 +465,14 @@ species university_si{
 	//for ANR when: there's at least 1 vacant laborers, sba < 5, and plot_trees < 200
 	//1 available vacant laborer = 1 plot 
 	reflex monitorSBAforANR when: ((labour count (each.state = "vacant"))>0){
-		list<plot> plot_for_ANR <- sort_by((plot where (!each.is_ANR and !each.is_nursery and each.stand_basal_area < 5.0 and (length(each.plot_trees) < 200))), each.stand_basal_area);	
-		
+		list<plot> plot_for_ANR <- sort_by((plot where (!each.is_ANR and !each.is_nursery and each.stand_basal_area < 5.0 and (length(each.plot_trees) < 200))), each.stand_basal_area);	 
 		loop pfa over: plot_for_ANR{
-			if(!replantPlot(pfa)){
+			int count_available_saplings <- replantPlot(pfa); 
+			if(count_available_saplings = -1){
 				break;	//once it breaks it means that there are no more laborers avaialble to conduct ANR
 			}
-			current_ANR_cost <- current_ANR_cost + ANR_COST;
+			
+			current_ANR_cost <- current_ANR_cost + (ANR_COST - (SAPLINGS_UNIT_COST * count_available_saplings));
 			ANR_instance <- ANR_instance + 1;
 			pfa.is_ANR <- true;
 		}
@@ -473,14 +480,16 @@ species university_si{
 	
 	reflex startITPHarvesting when: length(my_nurseries) > (nursery_count/2){
 		loop h_plot over: harvestable_plot{
-			if(!harvestITP(nil, h_plot)){
+			int hs_count <- harvestITP(nil, h_plot);    
+			if(hs_count = -1){
 				break;
 			}
+			count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
 		}
 	}
 	
 	//returns true when it can support more harvesting, else false
-	bool harvestITP(investor inv, plot plot_to_harvest){	//will harvest only when I already have at least half of wanted nursery
+	int harvestITP(investor inv, plot plot_to_harvest){	//will harvest only when I already have at least half of wanted nursery
 		list<trees> trees_to_harvest <- getTreesToHarvestSH(plot_to_harvest);
     	
     	if(length(trees_to_harvest) > 0){
@@ -494,9 +503,9 @@ species university_si{
 	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
 	    	}
 			has_harvested <- true;
-			write "HARVESTED";
+//			write "HARVESTED";
     	}else{
-    		write "NOTHING to harvest";
+//    		write "NOTHING to harvest";
     	}
     	
     	
@@ -517,8 +526,8 @@ species university_si{
 		
 		if(current_month = 0){
 			if(has_harvested){
-				current_management_cost <- YEARLY_HARVESTING_COST +current_management_cost;
-				total_management_cost <- YEARLY_HARVESTING_COST +total_management_cost;
+				current_management_cost <- (YEARLY_HARVESTING_COST - (SAPLINGS_UNIT_COST * count_available_saplings_harvesting)) +current_management_cost;
+				total_management_cost <- (YEARLY_HARVESTING_COST - (SAPLINGS_UNIT_COST * count_available_saplings_harvesting)) +total_management_cost;
 			}
 			current_management_cost <- YEARLY_MANAGEMENT_COST +current_management_cost;
 			total_management_cost <- YEARLY_MANAGEMENT_COST +total_management_cost;
@@ -532,6 +541,7 @@ species university_si{
 		
 		has_harvested <- false;
 		current_ANR_cost <- 0.0;
+		count_available_saplings_harvesting <- 0.0;
 	}	
 }
 
