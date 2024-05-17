@@ -11,7 +11,7 @@ import "university_si.gaml"
 
 /* Insert your model definition here */
 global{
-	int member_count <- 30 update: member_count;
+	int member_count <- 20 update: member_count;
 	int waiting_allowance <- 12 update: waiting_allowance;
 	int MAX_WAITING_COMMITMENT <- 6;	//in months
 	
@@ -189,7 +189,7 @@ species comm_member control: fsm{
 	    
 //	    write " current_earning: "+current_earning+" "+name+" is "+(satisfied?"":"not ")+"satisfied on min_earning: "+min_earning;
 	    
-	    transition to: independent_harvesting when: (!satisfied and month = MAX_WAITING_COMMITMENT);
+	    transition to: independent_passive when: (!satisfied and month = MAX_WAITING_COMMITMENT);
 	    transition to: potential_partner when: (satisfied and month=MAX_WAITING_COMMITMENT);
 	 
 	 	month <- month + 1;
@@ -243,7 +243,7 @@ species comm_member control: fsm{
 			int month <- 0;
 		}
 		transition to: potential_partner when: (checkHiringProspective()); 	//if there's hiring prospective, choose to cooperate
-	    transition to: independent_harvesting when: (probaHarvest() and month = 1); 	//if there's no hiring prospective, hire on one's own
-	    month <- 1;
+	    transition to: independent_harvesting when: (probaHarvest() and month = MAX_WAITING_COMMITMENT/3); 	//if there's no hiring prospective, hire on one's own
+	    month <- month + 1;
 	}	
 }

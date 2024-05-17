@@ -15,7 +15,7 @@ import "university_si.gaml"
 global{
 	float risk_averse <- 0.5; 	//type = 0
 	float risk_loving <- 1.0;	//type = 1
-	int investor_count <- 15 update: investor_count;
+	int investor_count <- 50 update: investor_count;
 	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.95, "Neutral"::0.5];
 	
 	init{
@@ -75,7 +75,7 @@ species investor control: fsm{
 			if(decision){
 				total_investments <- total_investments + 1;
 				my_iplot <- investable_plot;
-				write "Commencing investment #"+total_investments+" by "+name+" on "+my_iplot.name;
+//				write "Commencing investment #"+total_investments+" by "+name+" on "+my_iplot.name;
 				location <- any_location_in(my_iplot);
 				investable_plot.is_invested <- true;
 				
@@ -91,10 +91,10 @@ species investor control: fsm{
 				}
 				total_investment <- total_investment + investment_cost;
 			}else{
-				write "Decided not to invest. Projected_profit: "+projected_profit+" investment cost: "+ investment_cost+" ave: "+(investment_cost / projected_profit)+" risk: "+rt;
+//				write "Decided not to invest. Projected_profit: "+projected_profit+" investment cost: "+ investment_cost+" ave: "+(investment_cost / projected_profit)+" risk: "+rt;
 			}
 		}else{
-			write "No available plot for investment";
+//			write "No available plot for investment";
 		}
 	}
 	

@@ -42,7 +42,7 @@ species special_police{
 		if(assigned_area != nil){
 			location <- any_location_in(assigned_area.location);
 			assigned_area.is_policed <- true;
-			add all: (plot where (!each.is_policed and !each.is_nursery)) closest_to (self, 8) to: observed_neighborhood;
+			add all: (plot where (!each.is_policed and !each.is_nursery)) closest_to (self, police_neighborhood) to: observed_neighborhood;
 			add assigned_area to: observed_neighborhood;
 			ask observed_neighborhood{
 				is_policed <- true;

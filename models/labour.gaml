@@ -34,7 +34,7 @@ species labour control: fsm{
 	list<plot> to_visit_plot <- [];
 	
 	float total_earning <- 0.0;		//total earning for the entire simulation
-	int count_of_colaborers;
+	int count_of_colaborers <- 0 update: (my_assigned_plot != nil)?length(my_assigned_plot.my_laborers):0;
 	
 	aspect default{
 		if(labor_type = OWN_LABOUR){
@@ -45,10 +45,6 @@ species labour control: fsm{
 	//when tree dies, it is removed from the plot but the laborer isn't aware yet that it has died	
 	reflex removeDeadTrees{
 		my_trees <- my_trees where !dead(each);
-	}
-	
-	reflex updateCollaborer when: my_assigned_plot != nil{
-		count_of_colaborers <- length(my_assigned_plot.my_laborers);
 	}
 	
 	//laborer gets as much tree as it can get 

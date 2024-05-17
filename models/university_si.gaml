@@ -32,6 +32,7 @@ global{
 	
 	int average_no_trees_in1ha <- 20;
 	int police_count <- 3 update: police_count;
+	int police_neighborhood <- 16 update: police_neighborhood;
 	int laborer_count <- 20 update: laborer_count; 
 	int nursery_count <- 2 update: nursery_count; 
 	bool is_hiring <- false;
@@ -156,7 +157,7 @@ species university_si{
 	 float computeInvestmentCost(plot investable_plot){
 	 	
 	 	//establishment + management cost => considers laborers already  
-	 	float cost_to_support_investment <- (MAINTENANCE_COST_PER_HA*(10))+INIT_ESTABLISHMENT_INVESTOR;
+	 	float cost_to_support_investment <- (MAINTENANCE_COST_PER_HA*(investment_rotation_years/4))+INIT_ESTABLISHMENT_INVESTOR;
 	 	
 	 	return cost_to_support_investment;
 	 }
@@ -497,9 +498,6 @@ species university_si{
 	    	}
 			has_harvested <- true;
 			
-			if(inv = nil){
-				write "University harvested with earning: "+current_ITP_earning;	
-			}
     	}else{
 //    		write "NOTHING to harvest";
     	}
