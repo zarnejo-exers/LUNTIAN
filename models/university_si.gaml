@@ -218,16 +218,20 @@ species university_si{
 	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
 	reflex computeTotalCost {
 		int c_invested_plots <- length(plot where (each.is_invested));
+		
+		//yearly payables: harvesting and project management 
 		if(current_month = 0){
 			if(has_harvested){
-				float harvesting_cost <- (YEARLY_HARVESTING_COST - (SAPLINGS_UNIT_COST * count_available_saplings_harvesting));
-				monthly_management_cost <- monthly_management_cost+harvesting_cost;
+				float yearly_harvesting_cost <- (YEARLY_HARVESTING_COST - (SAPLINGS_UNIT_COST * count_available_saplings_harvesting));
+				monthly_management_cost <- monthly_management_cost+yearly_harvesting_cost;
 			}
-			float maintenance_cost <- (MAINTENANCE_MATCOST_PER_HA * c_invested_plots)+YEARLY_PROJ_MGMT_COST;
-			monthly_management_cost <- monthly_management_cost + maintenance_cost;
+			monthly_management_cost <- monthly_management_cost + YEARLY_PROJ_MGMT_COST;
 		}
 		
-		monthly_management_cost <- monthly_management_cost + monthly_ANR_cost + monthly_labor_cost;	//currently working labor and cost
+		//monthly payables: ANR, labour, maintenance
+		float monthly_maintenance_cost <- (MAINTENANCE_MATCOST_PER_HA * c_invested_plots);
+		monthly_management_cost <- monthly_management_cost + monthly_ANR_cost + monthly_labor_cost+monthly_maintenance_cost;
+			
 		annual_management_cost <- annual_management_cost + monthly_management_cost;  
 		annual_ITP_earning <- annual_ITP_earning + monthly_ITP_earning;
 		

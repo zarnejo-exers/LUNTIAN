@@ -55,14 +55,14 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		}	
 		
 		display chart1 type: 2d{
-			chart "Total community earnings" type: series{
+			chart "Monthly Community Earnings" type: series{
 				data "Partners" value: sum((comm_member where (each.state = "labour_partner")) collect each.current_earning) color: #blue;
 				data "Independent" value: sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning) color: #red;
 			}
 		}
 		
 		display chart2 type: 2d{
-			chart "Community Partnership" type: series{
+			chart "Monthly Community Partnership" type: series{
 				data "Partners" value: length(comm_member where (each.state = "labour_partner")) color: #blue;
 				data "Independent" value: length(comm_member where (each.state = "independent_harvesting")) color: #red;
 				data "Caught harvesting" value: length(comm_member where (each.is_caught)) color: #violet;
@@ -70,14 +70,14 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		}
 		
 		display chart4 type: 2d{
-			chart "Total investor earnings" type: series{
+			chart "Monthly investor earnings" type: series{
 				data "Profit" value: sum((investor where (each.state = "investing")) collect each.recent_profit) color: #blue;
 				data "Investment" value: sum((investor where (each.state = "investing")) collect each.investment_cost) color: #red;
 			}
 		}
 		
 		display chart5 type: 2d{
-			chart "Investor partnership" type: series{
+			chart "Monthly investor partnership" type: series{
 				data "Investing" value: length(investor where (each.state = "investing")) color: #blue;
 				data "Passive" value: length(investor where (each.state = "potential_passive")) color: #red;
 			}
