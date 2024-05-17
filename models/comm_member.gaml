@@ -84,23 +84,6 @@ species comm_member control: fsm{
 		}	
 	}
 	
-	//determines hiring prospecti
-	//if returned true, transition to labour_partner; else, remain as competitor
-	bool checkHiringProspective{
-		ask university_si{
-			if(!is_hiring){
-				return false;		//if there's no hiring prospect, return false right away	
-			}
-		}
-		//if there is a hiring prospect, check the state of all competitors
-		//shift meaning, become labour_partner
-		int competition_count <- comm_member count (each.state = "independent_harvesting" or each.state = "independent_passive");
-		if(competition_count = 0){
-			return true;
-		} 
-		return flip(competition_count/length(comm_member));	//shift chance is a fraction dependent on total number of competition
-	}
-	
 	bool probaHarvest{
 		if(success = caught){return flip(0.5);}
 		if(success > caught){return flip(0.5+(0.5*caught/success));}	//more history of success, higher chance of harvesting
@@ -233,7 +216,9 @@ species comm_member control: fsm{
 		
 	    //before you even start to harvest, check if there are prospects of being hired
 	    //if there's hiring prospective, choose to cooperate
-	    transition to: potential_partner when: (length(instance_labour.marked_trees) = 0 or checkHiringProspective());
+	    transition to: potential_partner when: (length(instance_labour.marked_trees) = 0 or hiring_calls > 0){
+	    	hiring_calls <- hiring_calls - 1;
+	    }
 	    
 	    exit{
 	    	if(instance_labour.my_assigned_plot != nil){
@@ -249,7 +234,10 @@ species comm_member control: fsm{
 			int month <- 0;
 			instance_labour.state <- "independent";
 		}
-		transition to: potential_partner when: (checkHiringProspective()); 	//if there's hiring prospective, choose to cooperate
+		
+		transition to: potential_partner when: hiring_calls > 0{ 	//if there's hiring prospective, choose to cooperate
+	    	hiring_calls <- hiring_calls - 1;
+	    }
 	    transition to: independent_harvesting when: (probaHarvest() and month > MAX_WAITING_COMMITMENT/3); 	//if there's no hiring prospective, hire on one's own
 	    month <- month + 1;
 	}	

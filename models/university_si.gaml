@@ -36,7 +36,7 @@ global{
 	int police_neighborhood <- 16 update: police_neighborhood;
 	int laborer_count <- 20 update: laborer_count; 
 	int nursery_count <- 2 update: nursery_count; 
-	bool is_hiring <- false;
+	int hiring_calls <- 0;
 	
 	int investment_rotation_years <- 25 update: investment_rotation_years;	
 	
@@ -174,9 +174,7 @@ species university_si{
 		
 		ask for_management_plots{
 			if(length(free_laborers) < 1){	//assign while there are neighbors 
-				if(!is_hiring){
-					is_hiring <- true;	
-				}
+				hiring_calls <- hiring_calls + 1;
 				break;
 			}
 			
@@ -191,10 +189,7 @@ species university_si{
 				my_assigned_plot <- myself;
 				is_managing_labour <- true;
 			}
-			
-			write "asked "+length(my_laborers)+" they are"+my_laborers+" to manage "+name;
 		}
-		write "-- exit hire managers --";
 	}
 		
 	//for ANR when: there's at least 1 vacant laborers, sba < 5, and plot_trees < 200
@@ -415,8 +410,11 @@ species university_si{
 			}
 		}
 				
-		is_hiring <- (still_needed_laborers > 0)?true:false;	//if the total labour isn't supplied, create a call for hiring prospect
-
+		//if the total labour isn't supplied, create a call for hiring prospect				
+		if(still_needed_laborers > 0){
+			hiring_calls <- hiring_calls + 1;
+		}
+		
 		return hired_laborers;
 	}
 	
