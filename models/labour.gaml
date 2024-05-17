@@ -28,6 +28,7 @@ species labour control: fsm{
 	bool is_harvest_labour <- false;
 	bool is_planting_labour <- false;
 	bool is_nursery_labour <- false;
+	bool is_managing_labour <- false;
  	
 	comm_member com_identity <- nil;
 	list<trees> all_seedlings_gathered <- [];  
@@ -171,6 +172,7 @@ species labour control: fsm{
 	state vacant initial: true{	
 		location <- point(0,0,0);
 		transition to: manage_nursery when: is_nursery_labour;
+		transition to: management_invested_plot when: (is_managing_labour and my_assigned_plot!=nil);
 		transition to: assigned_itp_harvester when: (is_harvest_labour and my_assigned_plot != nil);	//my_assigned_plot is an ITP plot
 		transition to: assigned_planter when: is_planting_labour;
 	}
@@ -259,6 +261,26 @@ species labour control: fsm{
 			my_assigned_plot <- nil;
 			current_plot <- nil;
 			is_harvest_labour <- false;	
+		}
+	}
+	
+	//commitment granted is only 6 months, transitions to vacant after 6 months 
+	state management_invested_plot{
+		enter{
+			int month <- 0;
+		}
+		
+		ask university_si{
+			do payLaborer(myself, MD_INVESTED_MAINTENANCE/myself.count_of_colaborers);
+		}
+		
+		transition to: vacant when: month = 5;	//commitment is only 6 months
+		month <- month + 1;
+		
+		exit{
+			is_managing_labour <- false;
+			remove self from: my_assigned_plot.my_laborers;
+			my_assigned_plot <- nil;
 		}
 	}
 	

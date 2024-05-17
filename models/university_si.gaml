@@ -22,6 +22,7 @@ global{
 	float YEARLY_PROJ_MGMT_COST <- 2731.17;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, based on year 1 only
 	float INIT_ESTABLISHMENT_INVESTOR <- 7227.06;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float MAINTENANCE_COST_PER_HA <- 9457.97; //https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
+	float MAINTENANCE_MATCOST_PER_HA <- 1210.62; 	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float SAPLINGS_UNIT_COST <-  1.194;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, GENERIC
 	float NURSERY_ESTABLISHMENT_COST <- 238952.35;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float ANR_COST <- 5893.59; 	//per ha https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf; considers the laborer already
@@ -58,6 +59,7 @@ global{
 	float MD_NURSERY_PLANTING <- 5.33;		//sowing of seed + potting of seedlings: 5.33 mandays
 	float MD_NURSERY_PREPARATION <- 1.89;	//gathering and preparation of soil: 1.89 mandays
 	float MD_ITP_PLANTING <- 12.16;			//assigned planter mandays: 12.16 mandays
+	float MD_INVESTED_MAINTENANCE <- 20.647; 	//per ha required mandays 
 	
 	/*Dipterocarp: max_dbh = [80,120]cm
 	 *Mahogany: max_dbh = 150cm
@@ -88,7 +90,7 @@ global{
 }
 
 species university_si{
-	list<plot> my_invested_plots;		//list of plots invested by the university
+	list<plot> invested_plots <- [];
 	
 	float labor_price <- 3.0; //per months
 	
@@ -130,7 +132,7 @@ species university_si{
 	//once hired, nursery laborer either attends to the plot (manage_nursery) or goes out to gather seedlings (assigned_nursery)
 	reflex hireNurseryLaborer when: ((my_nurseries count ((length(each.my_laborers)) = 0)) > 0){
 		list<plot> nursery_wo_laborer <- my_nurseries where ((length(each.my_laborers)) = 0);
-		list<labour> free_laborer <- (sort_by((labour where (each.labor_type = each.OWN_LABOUR and each.state = "vacant" and each.my_assigned_plot = nil)), each.total_earning));
+		list<labour> free_laborer <- (sort_by((labour where (each.state = "vacant" and each.my_assigned_plot = nil)), each.total_earning));
 			
 		if(length(free_laborer) > 0){
 			loop i from: 0 to: length(free_laborer)-1{
@@ -524,8 +526,8 @@ species university_si{
 				current_management_cost <- (YEARLY_HARVESTING_COST - (SAPLINGS_UNIT_COST * count_available_saplings_harvesting)) +current_management_cost;
 				total_management_cost <- (YEARLY_HARVESTING_COST - (SAPLINGS_UNIT_COST * count_available_saplings_harvesting)) +total_management_cost;
 			}
-			current_management_cost <- current_management_cost + (MAINTENANCE_COST_PER_HA * c_invested_plots)+YEARLY_PROJ_MGMT_COST;
-			total_management_cost <- total_management_cost + (MAINTENANCE_COST_PER_HA * c_invested_plots)+YEARLY_PROJ_MGMT_COST;
+			current_management_cost <- current_management_cost + (MAINTENANCE_MATCOST_PER_HA * c_invested_plots)+YEARLY_PROJ_MGMT_COST;
+			total_management_cost <- total_management_cost + (MAINTENANCE_MATCOST_PER_HA * c_invested_plots)+YEARLY_PROJ_MGMT_COST;
 		}
 		
 		if(current_month=11){
@@ -538,6 +540,39 @@ species university_si{
 		current_ANR_cost <- 0.0;
 		current_labor_cost <- 0.0;
 		count_available_saplings_harvesting <- 0.0;
+	}
+	
+	//hire 4 different laborers every six months
+	//six months is ensured in the laborer state 
+	//for maintaining invested plots
+	reflex hireManagersForInvestedPlots when: ((invested_plots count ((length(each.my_laborers)) = 0)) > 0){
+		list<plot> for_management_plots <- invested_plots where (length(each.my_laborers) = 0);
+		list<labour> free_laborers <- sort_by(labour where (each.state = "vacant" and each.my_assigned_plot = nil), each.total_earning);
+		int laborer_per_plot <- 4;
+		
+		ask for_management_plots{
+			if(length(free_laborers) < 1){	//assign while there are neighbors 
+				if(!is_hiring){
+					is_hiring <- true;	
+				}
+				break;
+			}
+			
+			if(length(free_laborers) > laborer_per_plot){
+				add all: free_laborers[0::laborer_per_plot] to: my_laborers;
+			}else{	//assign all remaining
+				add all: free_laborers to: my_laborers;
+			}
+			remove all: my_laborers from: free_laborers;
+			
+			ask my_laborers{
+				my_assigned_plot <- myself;
+				is_managing_labour <- true;
+			}
+			
+			write "asked "+length(my_laborers)+" they are"+my_laborers+" to manage "+name;
+		}
+		write "-- exit hire managers --";
 	}	
 }
 

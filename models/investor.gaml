@@ -87,6 +87,7 @@ species investor control: fsm{
 				total_management_cost <- total_management_cost + INIT_ESTABLISHMENT_INVESTOR;	
 				
 				ask university_si{
+					add myself.my_iplot to: invested_plots;
 					do harvestITP(myself, myself.my_iplot);	
 				}
 				total_investment <- total_investment + investment_cost;

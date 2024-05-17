@@ -98,7 +98,7 @@ species comm_member control: fsm{
 		if(competition_count = 0){
 			return true;
 		} 
-		return flip(1/competition_count);	//shift chance is a fraction dependent on total number of competition
+		return flip(competition_count/length(comm_member));	//shift chance is a fraction dependent on total number of competition
 	}
 	
 	bool probaHarvest{
@@ -159,6 +159,8 @@ species comm_member control: fsm{
 				min_earning <- (LABOUR_COST*MD_ITP_PLANTING);
 			}else if(instance_labour.is_nursery_labour){
 				min_earning <- (LABOUR_COST*MD_NURSERY_MAINTENANCE);
+			}else if(instance_labour.is_managing_labour){
+				min_earning <- (LABOUR_COST*MD_INVESTED_MAINTENANCE);
 			}else if(instance_labour.is_harvest_labour){
 				float min_bdft;
 				ask market{
@@ -228,7 +230,7 @@ species comm_member control: fsm{
 		
 	    //before you even start to harvest, check if there are prospects of being hired
 	    //if there's hiring prospective, choose to cooperate
-	    transition to: potential_partner when: ((length(instance_labour.marked_trees) = 0) and checkHiringProspective()){
+	    transition to: potential_partner when: (length(instance_labour.marked_trees) = 0 or checkHiringProspective()){
 			if(instance_labour.my_assigned_plot != nil){
 				remove instance_labour from: instance_labour.my_assigned_plot.my_laborers;	
 			}
@@ -243,7 +245,7 @@ species comm_member control: fsm{
 			int month <- 0;
 		}
 		transition to: potential_partner when: (checkHiringProspective()); 	//if there's hiring prospective, choose to cooperate
-	    transition to: independent_harvesting when: (probaHarvest() and month = MAX_WAITING_COMMITMENT/3); 	//if there's no hiring prospective, hire on one's own
+	    transition to: independent_harvesting when: (probaHarvest() and month > MAX_WAITING_COMMITMENT/3); 	//if there's no hiring prospective, hire on one's own
 	    month <- month + 1;
 	}	
 }
