@@ -47,12 +47,16 @@ global{
 	bool investment_open;
 	list<labour> uni_laborers;
 	
-	float current_management_cost <- 0.0;
-	float current_ITP_earning <- 0.0;
-	float annual_net_earning;
-	float total_management_cost <- 0.0; 
-	float total_ITP_earning <- 0.0;
-	float current_labor_cost <- 0.0;
+	float monthly_management_cost <- 0.0;
+	float monthly_ITP_earning <- 0.0;
+	float monthly_labor_cost <- 0.0;
+	float annual_management_cost <- 0.0;
+	float annual_ITP_earning <- 0.0;
+	float annual_net_earning <- 0.0;
+	
+	float management_running_cost <- 0.0; 
+	float ITP_running_earning <- 0.0;
+	float net_running_earning <- 0.0;
 	 
 	//per hectare, mandays
 	float MD_NURSERY_MAINTENANCE <- 8.64;	//maintenance of seedlings: 8.64 mandays
@@ -85,7 +89,7 @@ global{
 			location <- point(0,0,0);
 		}
 		
-		total_management_cost <- INIT_COST;	//infrastructure cost at the beginning
+		management_running_cost <- INIT_COST;	//infrastructure cost at the beginning
 	}
 }
 
@@ -95,7 +99,7 @@ species university_si{
 	float labor_price <- 3.0; //per months
 	
 	bool has_harvested <- false;
-	float current_ANR_cost <- 0.0;
+	float monthly_ANR_cost <- 0.0;
 	
 	list<plot> my_nurseries;	//list of nurseries managed by university
 	list<trees> my_saplings <- [] update: (my_saplings where !dead(each)); //contains all saplings in the nusery, remove all the dead saplings
@@ -123,8 +127,7 @@ species university_si{
 				add n to: my_nurseries;
 				add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
 //				write "I AM nursery: "+n.name;
-				current_management_cost <- current_management_cost + NURSERY_ESTABLISHMENT_COST;
-				total_management_cost <- total_management_cost + NURSERY_ESTABLISHMENT_COST;
+				monthly_management_cost <- monthly_management_cost + NURSERY_ESTABLISHMENT_COST;
 			}			
 		}
 	}
@@ -149,8 +152,110 @@ species university_si{
 				}
 			}
 		}
-	}	
+	}		
 		
+	reflex startITPHarvesting when: length(my_nurseries) > (nursery_count/2){
+		loop h_plot over: harvestable_plot{
+			int hs_count <- harvestITP(nil, h_plot);    
+			if(hs_count = -1){
+				break;
+			}
+			count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
+		}
+	}
+		
+	//hire 4 different laborers every six months
+	//six months is ensured in the laborer state 
+	//for maintaining invested plots
+	reflex hireManagersForInvestedPlots when: ((invested_plots count ((length(each.my_laborers)) = 0)) > 0){
+		list<plot> for_management_plots <- invested_plots where (length(each.my_laborers) = 0);
+		list<labour> free_laborers <- sort_by(labour where (each.state = "vacant" and each.my_assigned_plot = nil), each.total_earning);
+		int laborer_per_plot <- 4;
+		
+		ask for_management_plots{
+			if(length(free_laborers) < 1){	//assign while there are neighbors 
+				if(!is_hiring){
+					is_hiring <- true;	
+				}
+				break;
+			}
+			
+			if(length(free_laborers) > laborer_per_plot){
+				add all: free_laborers[0::laborer_per_plot] to: my_laborers;
+			}else{	//assign all remaining
+				add all: free_laborers to: my_laborers;
+			}
+			remove all: my_laborers from: free_laborers;
+			
+			ask my_laborers{
+				my_assigned_plot <- myself;
+				is_managing_labour <- true;
+			}
+			
+			write "asked "+length(my_laborers)+" they are"+my_laborers+" to manage "+name;
+		}
+		write "-- exit hire managers --";
+	}
+		
+	//for ANR when: there's at least 1 vacant laborers, sba < 5, and plot_trees < 200
+	//1 available vacant laborer = 1 plot 
+	reflex monitorSBAforANR when: ((labour count (each.state = "vacant"))>0){
+		list<plot> plot_for_ANR <- sort_by((plot where (!each.is_ANR and !each.is_nursery and each.stand_basal_area < 5.0 and (length(each.plot_trees) < 200))), each.stand_basal_area);	 
+		loop pfa over: plot_for_ANR{
+			int count_available_saplings <- replantPlot(pfa); 
+			if(count_available_saplings = -1){
+				break;	//once it breaks it means that there are no more laborers avaialble to conduct ANR
+			}
+			
+			monthly_ANR_cost <- monthly_ANR_cost + (ANR_COST - (SAPLINGS_UNIT_COST * count_available_saplings));
+			ANR_instance <- ANR_instance + 1;
+			pfa.is_ANR <- true;
+		}
+	}	
+	
+	/*float current_management_cost <- 0.0;
+	float current_ITP_earning <- 0.0;
+	float annual_net_earning;
+	float total_management_cost <- 0.0; 
+	float total_ITP_earning <- 0.0;
+	 */
+	
+	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
+	reflex computeTotalCost {
+		int c_invested_plots <- length(plot where (each.is_invested));
+		if(current_month = 0){
+			if(has_harvested){
+				float harvesting_cost <- (YEARLY_HARVESTING_COST - (SAPLINGS_UNIT_COST * count_available_saplings_harvesting));
+				monthly_management_cost <- monthly_management_cost+harvesting_cost;
+			}
+			float maintenance_cost <- (MAINTENANCE_MATCOST_PER_HA * c_invested_plots)+YEARLY_PROJ_MGMT_COST;
+			monthly_management_cost <- monthly_management_cost + maintenance_cost;
+		}
+		
+		monthly_management_cost <- monthly_management_cost + monthly_ANR_cost + monthly_labor_cost;	//currently working labor and cost
+		annual_management_cost <- annual_management_cost + monthly_management_cost;  
+		annual_ITP_earning <- annual_ITP_earning + monthly_ITP_earning;
+		
+		//update running values
+		management_running_cost <- management_running_cost + monthly_management_cost;
+		ITP_running_earning <- ITP_running_earning + annual_ITP_earning;
+		net_running_earning <- ITP_running_earning - management_running_cost;
+		
+		if(current_month=11){	//reset annual values
+			annual_net_earning <- annual_ITP_earning - annual_management_cost;
+			annual_management_cost <- 0.0;
+			annual_ITP_earning <- 0.0;
+		}
+		
+		//reset montly values
+		monthly_management_cost <- 0.0;
+		monthly_ITP_earning <- 0.0;
+		has_harvested <- false;
+		monthly_ANR_cost <- 0.0;
+		monthly_labor_cost <- 0.0;
+		count_available_saplings_harvesting <- 0.0;
+	}
+			
 	/*
 	 * Determine amount of investment needed per hectare
 		Given the current number of trees in the plot, 
@@ -232,7 +337,7 @@ species university_si{
 			cl.com_identity.current_earning <- cl.com_identity.current_earning + current_payable;
 		}
 		cl.total_earning <- cl.total_earning + current_payable;
-		current_labor_cost <- current_labor_cost + current_payable;
+		monthly_labor_cost <- monthly_labor_cost + current_payable;
 	}	
 	
 	action payPatrol(special_police sp, float effort){
@@ -257,8 +362,7 @@ species university_si{
 	    	i.recent_profit <- i.recent_profit + (c_profit*0.70);		//actual profit of investor is 75% of total profit
 	    }
 	    
-	    current_ITP_earning <- current_ITP_earning + (c_profit * ((i!=nil)?0.30:1.0));
-	    total_ITP_earning <- total_ITP_earning + (c_profit * ((i!=nil)?0.30:1.0));
+	    monthly_ITP_earning <- monthly_ITP_earning + (c_profit * ((i!=nil)?0.30:1.0));
 	}
 
 	float timberHarvesting(plot chosen_plot, list<trees> tth){
@@ -457,32 +561,6 @@ species university_si{
 		
 		return total_bdft;
 	}
-		
-	//for ANR when: there's at least 1 vacant laborers, sba < 5, and plot_trees < 200
-	//1 available vacant laborer = 1 plot 
-	reflex monitorSBAforANR when: ((labour count (each.state = "vacant"))>0){
-		list<plot> plot_for_ANR <- sort_by((plot where (!each.is_ANR and !each.is_nursery and each.stand_basal_area < 5.0 and (length(each.plot_trees) < 200))), each.stand_basal_area);	 
-		loop pfa over: plot_for_ANR{
-			int count_available_saplings <- replantPlot(pfa); 
-			if(count_available_saplings = -1){
-				break;	//once it breaks it means that there are no more laborers avaialble to conduct ANR
-			}
-			
-			current_ANR_cost <- current_ANR_cost + (ANR_COST - (SAPLINGS_UNIT_COST * count_available_saplings));
-			ANR_instance <- ANR_instance + 1;
-			pfa.is_ANR <- true;
-		}
-	}
-	
-	reflex startITPHarvesting when: length(my_nurseries) > (nursery_count/2){
-		loop h_plot over: harvestable_plot{
-			int hs_count <- harvestITP(nil, h_plot);    
-			if(hs_count = -1){
-				break;
-			}
-			count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
-		}
-	}
 	
 	//returns true when it can support more harvesting, else false
 	int harvestITP(investor inv, plot plot_to_harvest){	//will harvest only when I already have at least half of wanted nursery
@@ -506,73 +584,6 @@ species university_si{
     	
     	
 		return replantPlot(plot_to_harvest);
-	}
-	
-	/*float current_management_cost <- 0.0;
-	float current_ITP_earning <- 0.0;
-	float annual_net_earning;
-	float total_management_cost <- 0.0; 
-	float total_ITP_earning <- 0.0;
-	 */
-	
-	//at every step, determine to overall cost of running a managed forest (in the light of ITP)
-	reflex computeTotalCost {
-		int c_invested_plots <- length(plot where (each.is_invested));
-		current_management_cost <- current_management_cost + current_ANR_cost + current_labor_cost;	//currently working labor and cost
-		total_management_cost <- total_management_cost + current_ANR_cost + current_labor_cost;	//currently working nursery labor and cost
-		
-		if(current_month = 0){
-			if(has_harvested){
-				current_management_cost <- (YEARLY_HARVESTING_COST - (SAPLINGS_UNIT_COST * count_available_saplings_harvesting)) +current_management_cost;
-				total_management_cost <- (YEARLY_HARVESTING_COST - (SAPLINGS_UNIT_COST * count_available_saplings_harvesting)) +total_management_cost;
-			}
-			current_management_cost <- current_management_cost + (MAINTENANCE_MATCOST_PER_HA * c_invested_plots)+YEARLY_PROJ_MGMT_COST;
-			total_management_cost <- total_management_cost + (MAINTENANCE_MATCOST_PER_HA * c_invested_plots)+YEARLY_PROJ_MGMT_COST;
-		}
-		
-		if(current_month=11){
-			annual_net_earning <- current_ITP_earning - current_management_cost;
-			current_management_cost <- 0.0;
-			current_ITP_earning <- 0.0;
-		}
-		
-		has_harvested <- false;
-		current_ANR_cost <- 0.0;
-		current_labor_cost <- 0.0;
-		count_available_saplings_harvesting <- 0.0;
-	}
-	
-	//hire 4 different laborers every six months
-	//six months is ensured in the laborer state 
-	//for maintaining invested plots
-	reflex hireManagersForInvestedPlots when: ((invested_plots count ((length(each.my_laborers)) = 0)) > 0){
-		list<plot> for_management_plots <- invested_plots where (length(each.my_laborers) = 0);
-		list<labour> free_laborers <- sort_by(labour where (each.state = "vacant" and each.my_assigned_plot = nil), each.total_earning);
-		int laborer_per_plot <- 4;
-		
-		ask for_management_plots{
-			if(length(free_laborers) < 1){	//assign while there are neighbors 
-				if(!is_hiring){
-					is_hiring <- true;	
-				}
-				break;
-			}
-			
-			if(length(free_laborers) > laborer_per_plot){
-				add all: free_laborers[0::laborer_per_plot] to: my_laborers;
-			}else{	//assign all remaining
-				add all: free_laborers to: my_laborers;
-			}
-			remove all: my_laborers from: free_laborers;
-			
-			ask my_laborers{
-				my_assigned_plot <- myself;
-				is_managing_labour <- true;
-			}
-			
-			write "asked "+length(my_laborers)+" they are"+my_laborers+" to manage "+name;
-		}
-		write "-- exit hire managers --";
 	}	
 }
 

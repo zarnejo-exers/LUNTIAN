@@ -48,9 +48,9 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		display chart0 type: java2D{	
 			chart "UP cash flow" type: series
 			{
-				data "Total Management Cost" value: total_management_cost color:#red;
-				data "Total ITP Earning" value: total_ITP_earning color: #green;
-				data "Annual Net Income" value: annual_net_earning color: #blue;
+				data "Total Management Cost" value: management_running_cost color:#red;
+				data "Total ITP Earning" value: ITP_running_earning color: #green;
+				data "Total Net Income" value: net_running_earning color: #blue;
 			}
 		}	
 		
@@ -158,9 +158,6 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		
 		monitor "Total ANR instance" value: ANR_instance;
 		monitor "Total Warned Independent Harvester" value: total_warned_CM;
-		monitor "Tree count" value: length(trees);
-		monitor "Count of investments" value: total_investments;
-		monitor "Total Native trees" value: trees count (each.type = NATIVE);
-		monitor "Total Exotic trees" value: trees count (each.type = EXOTIC);
+		monitor "Count of investments" value: total_investments; 
 	}
 }

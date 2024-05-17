@@ -151,6 +151,7 @@ species comm_member control: fsm{
 	state potential_partner initial: true { 
 		enter{
 			int lapsed_time <- waiting_allowance;
+			instance_labour.state <- "vacant";
 		} 
 	 	
 	    transition to: independent_passive when: (lapsed_time = 0);
@@ -205,6 +206,9 @@ species comm_member control: fsm{
 	//observe independent_harvesting community members here
 	//if their gain is more than 
 	state independent_harvesting { 
+		enter{
+			instance_labour.state <- "independent";
+		}
 
 		current_earning <- 0.0;	
 		loop i from: 0 to: 2{	//will look for plot three times then stop
@@ -212,7 +216,6 @@ species comm_member control: fsm{
 			if(instance_labour.my_assigned_plot != nil){
 				do markTrees();
 				do computeEarning();
-				instance_labour.state <- "independent";
 				break;
 			}	
 		}
@@ -230,19 +233,21 @@ species comm_member control: fsm{
 		
 	    //before you even start to harvest, check if there are prospects of being hired
 	    //if there's hiring prospective, choose to cooperate
-	    transition to: potential_partner when: (length(instance_labour.marked_trees) = 0 or checkHiringProspective()){
-			if(instance_labour.my_assigned_plot != nil){
+	    transition to: potential_partner when: (length(instance_labour.marked_trees) = 0 or checkHiringProspective());
+	    
+	    exit{
+	    	if(instance_labour.my_assigned_plot != nil){
 				remove instance_labour from: instance_labour.my_assigned_plot.my_laborers;	
+				instance_labour.my_assigned_plot <- nil;			
 			}
-			instance_labour.my_assigned_plot <- nil;
-			instance_labour.state <- "vacant";	
-	    } 	
+	    }
 
 	}
 	
 	state independent_passive{
 		enter{
 			int month <- 0;
+			instance_labour.state <- "independent";
 		}
 		transition to: potential_partner when: (checkHiringProspective()); 	//if there's hiring prospective, choose to cooperate
 	    transition to: independent_harvesting when: (probaHarvest() and month > MAX_WAITING_COMMITMENT/3); 	//if there's no hiring prospective, hire on one's own

@@ -79,12 +79,9 @@ species investor control: fsm{
 				location <- any_location_in(my_iplot);
 				investable_plot.is_invested <- true;
 				
-				current_ITP_earning <- current_ITP_earning + investment_cost;
-				total_ITP_earning <- total_ITP_earning + investment_cost;
-				
+				monthly_ITP_earning <- monthly_ITP_earning + investment_cost;
 				//assumes that the land has been prepared after commencing investment by incuring the cost
-				current_management_cost <- current_management_cost + INIT_ESTABLISHMENT_INVESTOR; 
-				total_management_cost <- total_management_cost + INIT_ESTABLISHMENT_INVESTOR;	
+				monthly_management_cost <- monthly_management_cost + INIT_ESTABLISHMENT_INVESTOR; 	
 				
 				ask university_si{
 					add myself.my_iplot to: invested_plots;
