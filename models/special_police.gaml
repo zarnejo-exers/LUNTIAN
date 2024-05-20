@@ -63,6 +63,11 @@ species special_police{
 			ask (observed_labour inside on){
 //				write "Special police "+name+" caught member "+com_identity.name;
 				com_identity.is_caught <- true;
+				
+				ask com_identity.instance_labour.marked_trees{
+					is_illegal <- false;
+				}
+				
 				myself.total_comm_members_reprimanded <- myself.total_comm_members_reprimanded + 1; 
 			}
 		}
