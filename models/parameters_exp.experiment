@@ -46,11 +46,11 @@
 //}
 
 experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 600){
-//	parameter "Total count of investors" category: "Investors" var: investor_count among: [25, 50, 75];
-//	parameter "Total count of community members" category: "Community Members" var: member_count among: [10, 20, 30];
-//	parameter "Police count" category: "Special Police" var: police_count among: [1, 3, 5];
+	parameter "Total count of investors" category: "Investors" var: investor_count among: [25, 50, 75];
+	parameter "Total count of community members" category: "Community Members" var: member_count among: [10, 20, 30];
+	parameter "Police count" category: "Special Police" var: police_count among: [1, 3, 5];
 	parameter "Number of laborers" category: "Management" var: laborer_count among: [10, 20, 30];
-//	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count among: [1, 2, 4];
+	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count among: [1, 2, 4];
 	
 	//50 years simulation	
     reflex   {   	
