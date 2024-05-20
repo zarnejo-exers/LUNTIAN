@@ -6,23 +6,23 @@
 */
 
 experiment parametersexp model: "university_si.gaml" type: gui until:( cycle > 600) {
-//	parameter "Total count of investors" category: "Investors" var: investor_count min: 0 step: 1;
-//	parameter "Rotation years" category: "Investors" var: investment_rotation_years;
-//	
-//	parameter "Total count of community members" category: "Community Members" var: member_count min: 0 step: 1;
-//	parameter "Waiting allowance" category: "Community Members" var: waiting_allowance min: 0 step: 1;
-//	
-//	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
-//	
-//	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
-//	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
-//	
-//	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
-//	
-//	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
-//	
-//	parameter "Growth rate (E)" category: "Exotic Setup" var:growth_rate_exotic;
-//	parameter "Growth rate (N)" category: "Native Setup" var:growth_rate_native;
+	parameter "Total count of investors" category: "Investors" var: investor_count min: 0 step: 1;
+	parameter "Rotation years" category: "Investors" var: investment_rotation_years;
+	
+	parameter "Total count of community members" category: "Community Members" var: member_count min: 0 step: 1;
+	parameter "Waiting allowance" category: "Community Members" var: waiting_allowance min: 0 step: 1;
+	
+	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
+	
+	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
+	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
+	
+	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
+	
+	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
+	
+	parameter "Growth rate (E)" category: "Exotic Setup" var:growth_rate_exotic;
+	parameter "Growth rate (N)" category: "Native Setup" var:growth_rate_native;
 
 ////50 years simulation	
     reflex save_results_explo {

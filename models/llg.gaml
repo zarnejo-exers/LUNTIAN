@@ -60,7 +60,7 @@ global {
 	
 	map<point, climate> cell_climate;
 	int current_month <- 0 update:(cycle mod NB_TS);
-	map<int, list<float>> max_dbh_per_class <- map<int,list>([NATIVE::[5.0,10.0,20.0,100.0],EXOTIC::[1.0,5.0,30.0,150.0]]);	
+	map<int, list<float>> max_dbh_per_class <- map<int,list>([NATIVE::[2.0,10.0,30.0,150.0],EXOTIC::[2.0,10.0,30.0,150.0]]);	//native: 5.0,10.0,20.0,100.0; exotic: 1.0,5.0,30.0,150.0	
 	
 	//Note: 0->January; 11-> December
 	list<int> fruiting_months_N <- [4,5,6];	//seeds fall to the ground, ready to be harvested
@@ -397,9 +397,9 @@ species trees{
 			}	//don't add seeds if there are no space
 
 			create trees{
-				dbh <- (type=NATIVE)?growth_rate_native:growth_rate_exotic;
 				type <- myself.type;
-				age <-1.0; 
+				dbh <- (type=NATIVE)?growth_rate_native:growth_rate_exotic;
+				age <- (type=NATIVE)?dbh/growth_rate_native:dbh/growth_rate_exotic; 
 				location <- new_location;
 				my_plot <- plot closest_to self;	//assigns the plot where the tree is located
 				shade_tolerant <- myself.shade_tolerant;
@@ -459,11 +459,7 @@ species trees{
 			match NATIVE {
 				//number of recruits is calculated per plot and recruits are assigned to tree
 				if(number_of_recruits > 0 and is_mother_tree and fruiting_months_N contains current_month){	//fruit ready to be picked during the fruiting_months_N		
-//					ask recruitTree(number_of_recruits, getTreeSpaceForRecruitment()){
-//						if(self.my_plot = nil){
-//							write "RECRUITED TREE "+name+" has plot = nil!";
-//						}
-//					}	
+					do recruitTree(number_of_recruits, getTreeSpaceForRecruitment());
 					is_mother_tree <- false;
 					number_of_recruits <- 0;
 					counter_to_next_recruitment <- 12;
@@ -489,12 +485,8 @@ species trees{
 					if(actual_space_available != nil){
 						float fgap <- 1- (actual_space_available.area / recruitment_space.area);
 					
-						int total_no_1yearold <- int(number_of_fruits *42.4 *0.085*fgap*0.618);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 
-//						ask recruitTree(total_no_1yearold, actual_space_available){
-//							if(self.my_plot = nil){
-//							write "RECRUITED TREE "+name+" has plot = nil!";
-//							}
-//						}	
+						int total_no_1yearold <- int(number_of_fruits *42.4 *0.085*fgap*0.618);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 	
+						do recruitTree(total_no_1yearold, actual_space_available);	
 					}
 						
 					number_of_fruits <- 0;
