@@ -20,7 +20,7 @@ global {
 	
 //	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
 //	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
-	file trees_shapefile <- shape_file("../includes/TREES_INIT.shp");	//mixed species
+	file trees_shapefile <- shape_file("../includes/INIT_TREES.shp");	//mixed species
 	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");

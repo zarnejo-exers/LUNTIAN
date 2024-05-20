@@ -41,12 +41,13 @@ species market{
 	float getProfit(int type, float th_bdft){
 		return th_bdft * ((type = EXOTIC)?exotic_price_per_bdft:native_price_per_bdft);
 	}
-	
-	reflex inflation when : current_month=11{
-		float random_fct <- rnd(-0.5, 0.5);
-		current_inflation <- current_inflation + (current_inflation * random_fct); 
-		
-		exotic_price_per_bdft <- (exotic_price_per_bdft)*((current_inflation*(10^-2))+1);
-		native_price_per_bdft <- (native_price_per_bdft)*((current_inflation*(10^-2))+1);
-	} 
+
+//	add as a simulation scenario 	
+//	reflex inflation when : current_month=11{
+//		float random_fct <- rnd(-0.5, 0.5);
+//		current_inflation <- current_inflation + (current_inflation * random_fct); 
+//		
+//		exotic_price_per_bdft <- (exotic_price_per_bdft)*((current_inflation*(10^-2))+1);
+//		native_price_per_bdft <- (native_price_per_bdft)*((current_inflation*(10^-2))+1);
+//	} 
 }
