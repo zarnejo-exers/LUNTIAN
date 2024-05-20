@@ -5,40 +5,60 @@
 * Tags: 
 */
 
-experiment parametersexp model: "university_si.gaml" type: gui until:( cycle > 600) {
-	parameter "Total count of investors" category: "Investors" var: investor_count min: 0 step: 1;
-	parameter "Rotation years" category: "Investors" var: investment_rotation_years;
-	
-	parameter "Total count of community members" category: "Community Members" var: member_count min: 0 step: 1;
-	parameter "Waiting allowance" category: "Community Members" var: waiting_allowance min: 0 step: 1;
-	
-	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
-	
-	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
-	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
-	
-	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
-	
-	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
-	
-	parameter "Growth rate (E)" category: "Exotic Setup" var:growth_rate_exotic;
-	parameter "Growth rate (N)" category: "Native Setup" var:growth_rate_native;
+//experiment parametersexp model: "university_si.gaml" type: gui until:( cycle > 600) {
+////	parameter "Total count of investors" category: "Investors" var: investor_count min: 0 step: 1;
+////	parameter "Rotation years" category: "Investors" var: investment_rotation_years;
+////	
+////	parameter "Total count of community members" category: "Community Members" var: member_count min: 0 step: 1;
+////	parameter "Waiting allowance" category: "Community Members" var: waiting_allowance min: 0 step: 1;
+////	
+////	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
+////	
+////	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
+////	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
+////	
+////	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
+////	
+////	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
+////	
+////	parameter "Growth rate (E)" category: "Exotic Setup" var:growth_rate_exotic;
+////	parameter "Growth rate (N)" category: "Native Setup" var:growth_rate_native;
+//
+//////50 years simulation	
+//    reflex save_results_explo {
+//	    save [cycle, "NATIVE",length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT))] rewrite: false to: "native.csv" format: "csv" header: true;
+//		save [cycle, "EXOTIC",length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT))] rewrite: false to: "exotic.csv" format: "csv" header: true;
+//		save [cycle, "Total Management Cost",management_running_cost,"Total ITP Earning",ITP_running_earning,"Total Net Income",net_running_earning] rewrite: false to: "up_cashflow.csv" format: "csv" header: true;
+//		save [cycle, "Partners earning", sum((comm_member where (each.state = "labour_partner")) collect each.current_earning), "Independent earning", sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning), "Partners count", length(comm_member where (each.state = "labour_partner")), "Independent count", length(comm_member where (each.state = "independent_harvesting")), "Caught harvesting", length(comm_member where (each.is_caught))] rewrite: false to: "community.csv" format:"csv" header: true;
+//		save [cycle, "Current profit", sum((investor where (each.state = "investing")) collect each.recent_profit), "Investment cost", sum((investor where (each.state = "investing")) collect each.investment_cost), "Investing count", length(investor where (each.state = "investing")), "Passive count", length(investor where (each.state = "potential_passive"))] rewrite: false to: "investor.csv" format:"csv" header: true;		
+//	}
+//	
+//}
 
-////50 years simulation
-//experiment parametersexp model: "university_si.gaml" type: batch repeat: 2 keep_seed: true until:( cycle > 600){
-//	parameter "Total count of investors" category: "Investors" var: investor_count among: [25, 50, 75];
+//experiment parametersexp model: "university_si.gaml" type: batch repeat: 2 keep_seed: true until: ( cycle > 600){
+//    parameter "Total count of investors" category: "Investors" var: investor_count among: [25, 50, 75];
 //	parameter "Total count of community members" category: "Community Members" var: member_count among: [10, 20, 30];
 //	parameter "Police count" category: "Special Police" var: police_count among: [1, 3, 5];
 //	parameter "Number of laborers" category: "Management" var: laborer_count among: [10, 20, 30];
 //	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count among: [1, 2, 4];
-//	
-//	int batch_num <- 1;
+//
+//    method hill_climbing iter_max: 50 maximize: annual_net_earning;
+//}
+
+experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 600){
+//	parameter "Total count of investors" category: "Investors" var: investor_count among: [25, 50, 75];
+//	parameter "Total count of community members" category: "Community Members" var: member_count among: [10, 20, 30];
+//	parameter "Police count" category: "Special Police" var: police_count among: [1, 3, 5];
+	parameter "Number of laborers" category: "Management" var: laborer_count among: [10, 20, 30];
+//	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count among: [1, 2, 4];
 	
-    reflex save_results_explo {
+	//50 years simulation	
+    reflex   {   	
+    	save [cycle, "Investor_count", investor_count, "Community count", member_count, "Police count", police_count, "Own laborer count", laborer_count, "Nursery count", nursery_count] rewrite: false to: "parameters.csv" format: "csv" header: true;
 	    save [cycle, "NATIVE",length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT))] rewrite: false to: "native.csv" format: "csv" header: true;
 		save [cycle, "EXOTIC",length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT))] rewrite: false to: "exotic.csv" format: "csv" header: true;
 		save [cycle, "Total Management Cost",management_running_cost,"Total ITP Earning",ITP_running_earning,"Total Net Income",net_running_earning] rewrite: false to: "up_cashflow.csv" format: "csv" header: true;
-		save [cycle, "Partners earning", sum((comm_member where (each.state = "labour_partner")) collect each.current_earning), "Independent earning", sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning), "Partners count", length(comm_member where (each.state = "labour_partner")), "Independent count", length(comm_member where (each.state = "independent_harvesting")), "Caught harvesting", length(comm_member where (each.is_caught))] rewrite: false to: "community.csv" format:"csv" header: true;
-		save [cycle, "Current profit", sum((investor where (each.state = "investing")) collect each.recent_profit), "Investment cost", sum((investor where (each.state = "investing")) collect each.investment_cost), "Investing count", length(investor where (each.state = "investing")), "Passive count", length(investor where (each.state = "potential_passive"))] rewrite: false to: "investor.csv" format:"csv" header: true;		
-	}	
+		save [cycle, "Partners earning", partners_earning, "Independent earning", independent_earning] rewrite: false to: "community.csv" format:"csv" header: true;
+		save [cycle, "Current profit", investor_total_profit, "Investment cost", total_investment_cost,"Total investment count", total_investments] rewrite: false to: "investor.csv" format:"csv" header: true;		
+	}
 }

@@ -77,6 +77,11 @@ global{
 	 float e_sapling_ave_DBH <- 2.5; 
 	 float n_adult_ave_DBH <- 60.0;
 	 float e_adult_ave_DBH <- 90.0;
+	 
+	 float partners_earning <- 0.0;
+	float independent_earning <- 0.0;
+	float investor_total_profit <- 0.0;
+	float total_investment_cost <- 0.0;
 	
 	init{
 		create market;
@@ -90,6 +95,13 @@ global{
 		}
 		
 		management_running_cost <- INIT_COST;	//infrastructure cost at the beginning
+	}
+	
+	reflex updateCashflow{
+    	partners_earning <- partners_earning + sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
+    	independent_earning <- independent_earning + sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
+    	investor_total_profit <- investor_total_profit + sum((investor where (each.state = "investing")) collect each.recent_profit); 
+    	total_investment_cost <- total_investment_cost + sum((investor where (each.state = "investing")) collect each.investment_cost);
 	}
 }
 
