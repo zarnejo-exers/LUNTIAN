@@ -18,10 +18,10 @@ global {
 	int POLE <- 2;
 	int ADULT <- 3;
 	
-//	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
-//	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
-	file trees_shapefile <- shape_file("../includes/INIT_TREES.shp");	//mixed species
-	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species
+	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
+//	file trees_shapefile <- shape_file("../includes/INIT_TREES.shp");	//mixed species
+//	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
@@ -67,7 +67,7 @@ global {
 	list<int> flowering_months_E <- [2,3,4,5];
 	list<int> fruiting_months_E <- [11, 0, 1, 2];
 	
-	geometry shape <- envelope(plot_shapefile);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
+	geometry shape <- envelope(Soil_Group);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
 	list<geometry> clean_lines;
 	list<list<point>> connected_components ;
 	list<rgb> colors;
@@ -384,37 +384,35 @@ species trees{
 		return flip(p_dead);	
 	}
 	
-	//put the recruit on the same plot as with the mother tree
 	list<trees> recruitTree(int total_recruits, geometry t_space){
+		list<geometry> available_square <- (to_squares(t_space, 1#m) where (each.area >= (1^2)#m));	//recruitment = 1#m
 		list<trees> recruited_trees <- [];
-		//create new trees	
-		loop i from: 0 to: total_recruits {
-			//setting location of the new tree 
-			//make sure that there is sufficient space before putting the tree in the new location
-			point new_location <- any_location_in(t_space);
-			if(new_location = nil){
+		
+		loop i from: 0 to: total_recruits{
+			if(length(available_square) = 0){
 				break;
-			}	//don't add seeds if there are no space
-
+			}
+			geometry my_square <- one_of(available_square);
+			
 			create trees{
 				type <- myself.type;
 				dbh <- (type=NATIVE)?growth_rate_native:growth_rate_exotic;
 				age <- (type=NATIVE)?dbh/growth_rate_native:dbh/growth_rate_exotic; 
-				location <- new_location;
 				my_plot <- plot closest_to self;	//assigns the plot where the tree is located
 				shade_tolerant <- myself.shade_tolerant;
 				is_new_tree <- true;
-				t_space <- t_space - circle((dbh/2)#cm);	//remove from available spaces the space occupied by new tree
-				
+				location <- my_square.location;	
 				ask university_si{
 					myself.th <- calculateHeight(myself.dbh, myself.type);	
 				}
 				basal_area <- #pi * (dbh^2)/40000;
 				add self to: my_plot.plot_trees;
-				do setState();
-				add self to: recruited_trees;	
+				do setState();	
+				add self to: recruited_trees;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	add new tree to parcel's list of trees
+			remove my_square from: available_square;	
 		}
+		
 		return recruited_trees;
 	}
 	

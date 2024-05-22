@@ -34,15 +34,15 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		display interaction type: opengl camera:#isometric{
 			species climate;
 			species plot; 
-			species trees aspect: geom3D;
+			species trees;// aspect: geom3D;
 			species river;
 			species road;
 			species special_police;
 			species labour;
 			species comm_member;
 			species investor;
-			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
-			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
+//			mesh elev scale: 2 color: palette([#white, #saddlebrown, #gray]) refresh: true triangulation: true;
+//			mesh water_content scale: 1 triangulation: true color: palette(reverse(brewer_colors("Blues"))) transparency: 0.5 no_data:400 ;
 		}	
 		
 		display chart0 type: java2D{	

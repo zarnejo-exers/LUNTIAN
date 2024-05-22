@@ -87,7 +87,7 @@ species labour control: fsm{
 		list<trees> planted_trees <- [];
 		list<geometry> available_square <- [];
 		ask university_si{
-			 available_square <- getSquareSpaces(pt_plant.shape, pt_plant.plot_trees, false, 1);	//1 is for recruitment since the plants are randomly positioned	
+			 available_square <- getSquareSpaces(pt_plant.shape, pt_plant.plot_trees, false);	
 		}
 		//no need to fix neighborhood since replanting and nursery mgmt doesn't concern adult trees
 		loop tnp over: trees_to_plant{

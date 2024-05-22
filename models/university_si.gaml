@@ -447,16 +447,16 @@ species university_si{
 	}
 
 	//the centre of the square is by default the location of the current agent in which has been called this operator.
-	list<geometry> getSquareSpaces(geometry main_space, list<trees> to_remove_space, bool is_itp, int n_space){
+	list<geometry> getSquareSpaces(geometry main_space, list<trees> to_remove_space, bool is_itp){
 		geometry t_shape <- nil; 
-		int needed_space <- (is_itp)?5:1;
+		int tree_space <- 5;
 			
 		ask to_remove_space{
-			t_shape <- t_shape + square(needed_space#m);
+			t_shape <- t_shape + square(tree_space#m);
 		}
 			
 		geometry remaining_space <- main_space - t_shape;	//remove all occupied space;
-		return (to_squares(remaining_space, n_space#m) where (each.area >= (n_space^2)#m));	//n_space, assumed space needed by the trees that will be planted		
+		return (to_squares(remaining_space, tree_space#m) where (each.area >= (tree_space^2)#m));	//n_space, assumed space needed by the trees that will be planted		
 	}	
 	
 	//buys native saplings
@@ -490,7 +490,7 @@ species university_si{
 	 * else, return the number of planted saplings
 	 */
 	int replantPlot(plot the_plot){
-		list<geometry> available_spaces <- getSquareSpaces(the_plot.shape, the_plot.plot_trees, true, 3);
+		list<geometry> available_spaces <- getSquareSpaces(the_plot.shape, the_plot.plot_trees, true);
 		int plot_capacity <- length(available_spaces); 	
 
 		int needed_planters <- int(ceil(plot_capacity/LABOUR_TCAPACITY));
