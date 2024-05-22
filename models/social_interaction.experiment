@@ -18,14 +18,14 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	
 	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
 	
-	parameter "Age for planting (E)" category: "Exotic Setup"  var:min_dbh_exotic;
-	parameter "Age for planting (N)" category: "Native Setup"  var:min_dbh_native;
+	parameter "(E) Age for planting" category: "Exotic Setup"  var:min_dbh_exotic;
+	parameter "(N) Age for planting" category: "Native Setup"  var:min_dbh_native;
 	
 	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
 	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
 	
-	parameter "Growth rate (E)" category: "Exotic Setup" var:growth_rate_exotic;
-	parameter "Growth rate (N)" category: "Native Setup" var:growth_rate_native;
+	parameter "(E) Growth rate " category: "Exotic Setup" var:growth_rate_exotic;
+	parameter "(N) Growth rate" category: "Native Setup" var:growth_rate_native;
 	
 	output {
 		
