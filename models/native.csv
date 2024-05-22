@@ -1,0 +1,8 @@
+cycle,'NATIVE',length(trees where ((each.type = NATIVE) and (each.state = SEEDLING))),length(trees where ((each.type = NATIVE) and (each.state = SAPLING))),length(trees where ((each.type = NATIVE) and (each.state = POLE))),length(trees where ((each.type = NATIVE) and (each.state = ADULT)))
+0,NATIVE,25,50,54885,7400
+1,NATIVE,24,49,54778,7398
+2,NATIVE,24,49,54651,7396
+3,NATIVE,24,48,54519,7396
+4,NATIVE,24,48,54394,7390
+5,NATIVE,9164,48,54218,7428
+6,NATIVE,16058,47,54093,7434

@@ -18,10 +18,10 @@ global {
 	int POLE <- 2;
 	int ADULT <- 3;
 	
-//	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species -> ITP PORTION
-//	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
-	file trees_shapefile <- shape_file("../includes/INIT_TREE_CONFIG.shp");	//mixed species -> ITP AREA
-	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
+	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species -> ITP PORTION
+	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
+//	file trees_shapefile <- shape_file("../includes/INIT_TREE_CONFIG.shp");	//mixed species -> ITP AREA
+//	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
@@ -67,7 +67,7 @@ global {
 	list<int> flowering_months_E <- [2,3,4,5];
 	list<int> fruiting_months_E <- [11, 0, 1, 2];
 	
-	geometry shape <- envelope(plot_shapefile);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
+	geometry shape <- envelope(Soil_Group);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
 	list<geometry> clean_lines;
 	list<list<point>> connected_components ;
 	list<rgb> colors;
@@ -385,32 +385,36 @@ species trees{
 	}
 	
 	list<trees> recruitTree(int total_recruits, geometry t_space){
-		list<geometry> available_square <- (to_squares(t_space, 1#m) where (each.area >= (1^2)#m));	//recruitment = 1#m
 		list<trees> recruited_trees <- [];
 		
 		loop i from: 0 to: total_recruits{
-			if(length(available_square) = 0){
+			geometry my_circ <- circle(3#m) at_location any_location_in(t_space);
+			if(my_circ = nil){
 				break;
 			}
-			geometry my_square <- one_of(available_square);
 			
-			create trees{
-				type <- myself.type;
-				dbh <- (type=NATIVE)?growth_rate_native:growth_rate_exotic;
-				age <- (type=NATIVE)?dbh/growth_rate_native:dbh/growth_rate_exotic; 
-				my_plot <- plot closest_to self;	//assigns the plot where the tree is located
-				shade_tolerant <- myself.shade_tolerant;
-				is_new_tree <- true;
-				location <- my_square.location;	
+			create trees number: 1 returns: created_tree;
+			
+			if(length(created_tree) > 0){
+				trees t <- first(created_tree);
+				t.type <- self.type;
+				t.dbh <-(t.type = NATIVE)?growth_rate_native:growth_rate_exotic;
+				t.age <- 1.0;
+				t.my_plot <- plot closest_to self;	//assigns the plot where the tree is located
+				t.shade_tolerant <- self.shade_tolerant;
+				t.is_new_tree <- true;
+				t.location <- my_circ.location;	
 				ask university_si{
-					myself.th <- calculateHeight(myself.dbh, myself.type);	
+					t.th <- calculateHeight(t.dbh, t.type);	
 				}
-				basal_area <- #pi * (dbh^2)/40000;
-				add self to: my_plot.plot_trees;
-				do setState();	
-				add self to: recruited_trees;
+				t.basal_area <- #pi * (t.dbh^2)/40000;
+				add t to: t.my_plot.plot_trees;
+				ask t{
+					do setState();	
+				}
+				add t to: recruited_trees;
+				t_space <- t_space - my_circ;
 			}//add treeInstance all: true to: chosenParcel.parcelTrees;	add new tree to parcel's list of trees
-			remove my_square from: available_square;	
 		}
 		
 		return recruited_trees;
@@ -423,7 +427,7 @@ species trees{
 		ask trees_inside{
 			recruitment_space <- recruitment_space - circle((dbh/2)#cm);	//remove the space occupied by tree
 		} 
-		return recruitment_space inter world.shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
+		return recruitment_space inter my_plot.shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
 	}
 	
 	//recruitment of tree
@@ -477,10 +481,10 @@ species trees{
 					has_fruit_growing <- has_fruit_growing-1;
 				}else if(number_of_fruits >0 and has_fruit_growing=0){	//fruits have matured
 					//compute for fgap
-					geometry recruitment_space <- circle((dbh/2)#cm + 20#m);	//recruitment space
+					geometry recruitment_space <- circle((dbh/2)#cm + 20#m) at_location location;	//recruitment space
 					geometry actual_space_available <- getTreeSpaceForRecruitment();
 					
-					if(actual_space_available != nil){
+					if(actual_space_available != nil and recruitment_space != nil){
 						float fgap <- 1- (actual_space_available.area / recruitment_space.area);
 					
 						int total_no_1yearold <- int(number_of_fruits *42.4 *0.085*fgap*0.618);//42.4->mean # of viable seeds per fruit, 0.085-> seeds that germinate and became 1-year old 	
