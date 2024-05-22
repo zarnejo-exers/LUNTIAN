@@ -1,8 +1,0 @@
-cycle,'EXOTIC',length(trees where ((each.type = EXOTIC) and (each.state = SEEDLING))),length(trees where ((each.type = EXOTIC) and (each.state = SAPLING))),length(trees where ((each.type = EXOTIC) and (each.state = POLE))),length(trees where ((each.type = EXOTIC) and (each.state = ADULT)))
-0,EXOTIC,0,0,35698,26732
-1,EXOTIC,0,0,35316,26685
-2,EXOTIC,0,0,34917,26651
-3,EXOTIC,0,0,34546,26606
-4,EXOTIC,0,0,34196,26564
-5,EXOTIC,0,0,33839,26516
-6,EXOTIC,0,0,33464,26469

@@ -130,6 +130,7 @@ species university_si{
 		int needed_nurseries <- nursery_count-length(my_nurseries);
 		int actual_count <- (length(candidate_plots) <= needed_nurseries)?length(candidate_plots):needed_nurseries;
 		
+		write "nursery candidate plots: "+length(candidate_plots);
 		if(actual_count > 0){
 			list<plot> nurseries <- candidate_plots[0::actual_count];
 			
@@ -138,7 +139,7 @@ species university_si{
 				n.is_candidate_nursery <- false;
 				add n to: my_nurseries;
 				add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
-//				write "I AM nursery: "+n.name;
+				write "I AM nursery: "+n.name;
 				monthly_management_cost <- monthly_management_cost + NURSERY_ESTABLISHMENT_COST;
 			}			
 		}

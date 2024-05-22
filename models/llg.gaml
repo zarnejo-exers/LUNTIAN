@@ -18,10 +18,10 @@ global {
 	int POLE <- 2;
 	int ADULT <- 3;
 	
-	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species -> ITP PORTION
-	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
-//	file trees_shapefile <- shape_file("../includes/INIT_TREE_CONFIG.shp");	//mixed species -> ITP AREA
-//	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
+//	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species -> ITP PORTION
+//	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
+	file trees_shapefile <- shape_file("../includes/INIT_TREE_CONFIG.shp");	//mixed species -> ITP AREA
+	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
@@ -67,7 +67,7 @@ global {
 	list<int> flowering_months_E <- [2,3,4,5];
 	list<int> fruiting_months_E <- [11, 0, 1, 2];
 	
-	geometry shape <- envelope(Soil_Group);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
+	geometry shape <- envelope(plot_shapefile);	//TODO: Soil_Group [for experimenting smaller area] or plot_shapefile [for the larger area]
 	list<geometry> clean_lines;
 	list<list<point>> connected_components ;
 	list<rgb> colors;
@@ -427,7 +427,7 @@ species trees{
 		ask trees_inside{
 			recruitment_space <- recruitment_space - circle((dbh/2)#cm);	//remove the space occupied by tree
 		} 
-		return recruitment_space inter my_plot.shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
+		return recruitment_space inter world.shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
 	}
 	
 	//recruitment of tree
@@ -656,9 +656,9 @@ species plot{
 	
 	//if there exist a mother tree in one of the trees inside the plot, it becomes a candidate nursery
 	//choose those with native mother trees and with no exotic mother trees
-	reflex checkifCandidateNursery when: (has_road){	// should be reflex
-		list<trees> mother_trees <- plot_trees where (each.is_mother_tree);
-		is_candidate_nursery <- (length(mother_trees) > 0 and (length(mother_trees where (each.type = EXOTIC)) = 0))?true:false;
+	reflex checkifCandidateNursery when: (has_road and !is_candidate_nursery){	// should be reflex
+		list<trees> mother_trees <- plot_trees where (each.is_mother_tree and each.type = NATIVE);
+		is_candidate_nursery <- (length(mother_trees) > 0)?true:false;
 	}
 	
 	reflex checkIsDry{
