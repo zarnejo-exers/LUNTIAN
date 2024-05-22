@@ -5,7 +5,7 @@
 * Tags: 
 */
 
-experiment parametersexp model: "university_si.gaml" type: gui until:( cycle > 600) {
+experiment parametersexp model: "university_si.gaml" type: gui until:( cycle = 1200) {
 	parameter "Total count of investors" category: "Investors" var: investor_count min: 0 step: 1;
 	parameter "Rotation years" category: "Investors" var: investment_rotation_years;
 	
@@ -28,9 +28,9 @@ experiment parametersexp model: "university_si.gaml" type: gui until:( cycle > 6
     reflex save_results_explo {
 	    save [cycle, "NATIVE",length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT))] rewrite: false to: "native.csv" format: "csv" header: true;
 		save [cycle, "EXOTIC",length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT))] rewrite: false to: "exotic.csv" format: "csv" header: true;
-		save [cycle, "Total Management Cost",management_running_cost,"Total ITP Earning",ITP_running_earning,"Total Net Income",net_running_earning] rewrite: false to: "up_cashflow.csv" format: "csv" header: true;
-		save [cycle, "Partners earning", sum((comm_member where (each.state = "labour_partner")) collect each.current_earning), "Independent earning", sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning), "Partners count", length(comm_member where (each.state = "labour_partner")), "Independent count", length(comm_member where (each.state = "independent_harvesting")), "Caught harvesting", length(comm_member where (each.is_caught))] rewrite: false to: "community.csv" format:"csv" header: true;
-		save [cycle, "Current profit", sum((investor where (each.state = "investing")) collect each.recent_profit), "Investment cost", sum((investor where (each.state = "investing")) collect each.investment_cost), "Investing count", length(investor where (each.state = "investing")), "Passive count", length(investor where (each.state = "potential_passive"))] rewrite: false to: "investor.csv" format:"csv" header: true;		
+//		save [cycle, "Total Management Cost",management_running_cost,"Total ITP Earning",ITP_running_earning,"Total Net Income",net_running_earning] rewrite: false to: "up_cashflow.csv" format: "csv" header: true;
+//		save [cycle, "Partners earning", sum((comm_member where (each.state = "labour_partner")) collect each.current_earning), "Independent earning", sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning), "Partners count", length(comm_member where (each.state = "labour_partner")), "Independent count", length(comm_member where (each.state = "independent_harvesting")), "Caught harvesting", length(comm_member where (each.is_caught))] rewrite: false to: "community.csv" format:"csv" header: true;
+//		save [cycle, "Current profit", sum((investor where (each.state = "investing")) collect each.recent_profit), "Investment cost", sum((investor where (each.state = "investing")) collect each.investment_cost), "Investing count", length(investor where (each.state = "investing")), "Passive count", length(investor where (each.state = "potential_passive"))] rewrite: false to: "investor.csv" format:"csv" header: true;		
 	}
 	
 }

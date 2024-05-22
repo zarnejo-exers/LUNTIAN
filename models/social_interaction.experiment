@@ -34,7 +34,7 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		display interaction type: opengl camera:#isometric{
 			species climate;
 			species plot; 
-			species trees;// aspect: geom3D;
+//			species trees;// aspect: geom3D;
 			species river;
 			species road;
 			species special_police;
