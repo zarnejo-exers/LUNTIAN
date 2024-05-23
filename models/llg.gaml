@@ -379,7 +379,7 @@ species trees{
 	//true = dead
 	bool checkMortality{
 		float p_dead <- 0.0;
-		float e <- exp(-2.917 - 1.897 * (shade_tolerant?1:0) - 0.079 * dbh);
+		float e <- exp(-2.917 - 1.897 * (shade_tolerant?0.75:0.25) - 0.079 * dbh);
 		p_dead <- (e/(e+1));
 		return flip(p_dead);	
 	}
@@ -422,10 +422,10 @@ species trees{
 	
 	//return unoccupied places within 20m from the mother tree
 	geometry getTreeSpaceForRecruitment{
-		geometry recruitment_space <- circle((dbh/2)#cm + 20#m);	//recruitment space
+		geometry recruitment_space <- circle((dbh/2)#cm + 20#m) at_location location;	//recruitment space
 		list<trees> trees_inside <- trees inside recruitment_space;
 		ask trees_inside{
-			recruitment_space <- recruitment_space - circle((dbh/2)#cm);	//remove the space occupied by tree
+			recruitment_space <- recruitment_space - (circle((dbh/2)#cm) at_location location);	//remove the space occupied by tree
 		} 
 		return recruitment_space inter world.shape;	//TODO: change my_plot.shape to world.shape for simulation on entire area
 	}
@@ -460,7 +460,7 @@ species trees{
 		switch type{
 			match NATIVE {
 				//number of recruits is calculated per plot and recruits are assigned to tree
-				if(number_of_recruits > 0 and is_mother_tree and fruiting_months_N contains current_month){	//fruit ready to be picked during the fruiting_months_N		
+				if(number_of_recruits > 0 and is_mother_tree){		
 					do recruitTree(number_of_recruits, getTreeSpaceForRecruitment());
 					is_mother_tree <- false;
 					number_of_recruits <- 0;
@@ -615,7 +615,7 @@ species plot{
 		//divide total number of recruits by # of adult trees
 		//turn the adult trees into mature trees and assign fruit in each
 		//has_fruit_growing = 0 ensures that the tree hasn't just bore fruit, trees that bore fruit must wait at least 1 year before they can bear fruit again
-		list<trees> adult_trees <- reverse((plot_trees select (each.state = ADULT and each.age >= 15 and each.type=NATIVE and each.counter_to_next_recruitment = 0)) sort_by (each.dbh));	//get all adult trees in the plot
+		list<trees> adult_trees <- reverse((plot_trees where (each.state = ADULT and each.age >= 15 and each.type=NATIVE and each.counter_to_next_recruitment = 0)) sort_by (each.dbh));	//get all adult trees in the plot
 		if(length(adult_trees) > 0){	//if count > 1, compute total number of recruits
 			int length_adult_trees <- length(adult_trees);
 			int total_no_of_native_recruits_in_plot <- int(4.202 + (0.017*native_count) + (-0.126*stand_basal_area));
