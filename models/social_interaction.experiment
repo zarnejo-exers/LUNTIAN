@@ -27,6 +27,10 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	parameter "(E) Growth rate " category: "Exotic Setup" var:growth_rate_exotic;
 	parameter "(N) Growth rate" category: "Native Setup" var:growth_rate_native;
 	
+	parameter "Investor's share on investment cost" category: "Experiment" var: investor_percent_share;
+	parameter "Exotic buying price per bdft" category: "Experiment" var: exotic_price_per_bdft;
+	parameter "Native buying price per bdft" category: "Experiment" var: native_price_per_bdft;
+	
 	output {
 		
 		layout #split;

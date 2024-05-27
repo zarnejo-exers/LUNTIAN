@@ -74,10 +74,14 @@ global{
 	 float n_adult_ave_DBH <- 60.0;
 	 float e_adult_ave_DBH <- 90.0;
 	 
-	 float partners_earning <- 0.0;
+	float partners_earning <- 0.0;
 	float independent_earning <- 0.0;
 	float investor_total_profit <- 0.0;
 	float total_investment_cost <- 0.0;
+	
+	float investor_percent_share <- 0.8 update: investor_percent_share;
+	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
+	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35 
 	
 	init{
 		create market;
@@ -266,7 +270,7 @@ species university_si{
 	 float computeInvestmentCost(plot investable_plot){
 	 	
 	 	//establishment + management cost => considers laborers already  
-	 	float cost_to_support_investment <- (MAINTENANCE_COST_PER_HA*(investment_rotation_years*0.75))+INIT_ESTABLISHMENT_INVESTOR;
+	 	float cost_to_support_investment <- (MAINTENANCE_COST_PER_HA*(investment_rotation_years*investor_percent_share))+INIT_ESTABLISHMENT_INVESTOR;
 	 	
 	 	return cost_to_support_investment;
 	 }
