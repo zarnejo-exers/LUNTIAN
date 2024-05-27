@@ -175,7 +175,7 @@ species university_si{
 			if(hs_count = -1){
 				break;
 			}
-			write "University harvesting";
+			write " := University harvesting";
 			count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
 		}
 	}
@@ -359,11 +359,6 @@ species university_si{
 		sp.total_wage <- sp.total_wage + (effort * LABOUR_COST);
 	}
 	
-	plot getInvestablePlot{
-		list<plot> investable_plots <- reverse(sort_by(plot where (!each.is_nursery and !each.is_invested), each.stand_basal_area)); 
-		return first(investable_plots);
-	}
-	
 	//pays the hired harvester and gives the earning to laborer
 	//compute cost
 	action harvestEarning(investor i, float thv, int type){
@@ -374,11 +369,11 @@ species university_si{
 	    }
 	    
 	    if(i != nil){
-	    	i.recent_profit <- i.recent_profit + (c_profit*0.70);		//actual profit of investor is 75% of total profit
+	    	i.recent_profit <- i.recent_profit + (c_profit*0.60);		//actual profit of investor is 75% of total profit
 	    }
-	    
-	    monthly_ITP_earning <- monthly_ITP_earning + (c_profit * ((i!=nil)?0.30:1.0));
-	    write "monthly_ITP_earning: "+monthly_ITP_earning;
+	    c_profit <- (c_profit * ((i!=nil)?0.40:1.0));
+	    monthly_ITP_earning <- monthly_ITP_earning + c_profit;
+	    write "Profit: "+c_profit;
 	}
 
 	float timberHarvesting(plot chosen_plot, list<trees> tth){

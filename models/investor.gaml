@@ -61,9 +61,8 @@ species investor control: fsm{
 		
 		plot investable_plot;
 
-		
 		ask university_si{
-			investable_plot <- getInvestablePlot();	//receives the first plot with the highest SBA
+			investable_plot <- first(harvestable_plot);	//receives the first plot with the highest SBA
 		}
 		
 		if(investable_plot != nil){

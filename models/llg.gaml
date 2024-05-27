@@ -662,7 +662,7 @@ species plot{
 		list<trees> native_trees_inside <- plot_trees where (each.type = NATIVE);
 		list<trees> mother_trees <- native_trees_inside where (each.is_mother_tree and each.type = NATIVE);
 		
-		//if((2/3) of total trees >= length(native_trees and at least 1 is mother tree) 
+		//if((1/3) of total trees >= length(native_trees with at least 1 is mother tree) 
 		// => meaning, there are a lot of exotic trees in the area  
 		is_candidate_nursery <- (length(mother_trees) > 0 and ((1/2)*count_of_trees) >= length(native_trees_inside))?true:false;
 	}
