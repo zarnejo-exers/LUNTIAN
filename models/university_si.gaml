@@ -130,7 +130,6 @@ species university_si{
 		int needed_nurseries <- nursery_count-length(my_nurseries);
 		int actual_count <- (length(candidate_plots) <= needed_nurseries)?length(candidate_plots):needed_nurseries;
 		
-		write "nursery candidate plots: "+length(candidate_plots);
 		if(actual_count > 0){
 			list<plot> nurseries <- candidate_plots[0::actual_count];
 			
@@ -139,7 +138,6 @@ species university_si{
 				n.is_candidate_nursery <- false;
 				add n to: my_nurseries;
 				add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
-				write "I AM nursery: "+n.name;
 				monthly_management_cost <- monthly_management_cost + NURSERY_ESTABLISHMENT_COST;
 				//harvest all the exotic
 				//I'm thinking if I should remove all exotic in the plot  
@@ -585,13 +583,7 @@ species university_si{
 	int harvestITP(investor inv, plot plot_to_harvest, int type_to_harvest){	//will harvest only when I already have at least half of wanted nursery
 		list<trees> trees_to_harvest <- [];
 		
-		if(type_to_harvest = BOTH){
-			trees_to_harvest <- getTreesToHarvestSH(plot_to_harvest);
-			write "1 Harvesting both";	
-		}else{
-			trees_to_harvest <- plot_to_harvest.plot_trees;
-			write "Harvesting only exotic";
-		}
+		trees_to_harvest <- (type_to_harvest = BOTH)?getTreesToHarvestSH(plot_to_harvest):plot_to_harvest.plot_trees;
     	
     	if(length(trees_to_harvest) > 0){
 
@@ -604,13 +596,16 @@ species university_si{
 		    	if(native_trees != []){
 		    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, native_trees), NATIVE);	
 		    	}	
-		    	write "2 Harvesting both";
 	    	}
 			has_harvested <- true;
-			
     	}
     	
-		return replantPlot(plot_to_harvest);
+    	if(type_to_harvest = BOTH){
+    		return replantPlot(plot_to_harvest);	
+    	}else{
+    		return 1;
+    	}
+    	
 	}	
 }
 
