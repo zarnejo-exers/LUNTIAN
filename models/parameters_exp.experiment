@@ -45,18 +45,8 @@
 //    method hill_climbing iter_max: 50 maximize: annual_net_earning;
 //}
 
-experiment parametersexp model: "university_si.gaml" type: gui repeat: 1 keep_seed: true until:( cycle > 700){
+experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 700){
 	parameter "Investor's share on investment cost" category: "Experiment" var: investor_percent_share among: [0.5, 0.65, 0.8];
 	parameter "Exotic buying price per bdft" category: "Experiment" var: exotic_price_per_bdft among: [45.06, 90.12, 135.18];
 	parameter "Native buying price per bdft" category: "Experiment" var: native_price_per_bdft among: [49.35, 98.7, 148.05];
-	
-	//50 years simulation	
-    reflex   save_results_explo{   	
-    	save [cycle, investor_percent_share, exotic_price_per_bdft, native_price_per_bdft, 
-	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-			management_running_cost,ITP_running_earning,net_running_earning,
-			partners_earning, independent_earning,
-			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "experiment.csv" format:"csv" header: true;		
-	}
 }

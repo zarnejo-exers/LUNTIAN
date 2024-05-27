@@ -103,6 +103,15 @@ global{
     	investor_total_profit <- investor_total_profit + sum((investor where (each.state = "investing")) collect each.recent_profit); 
     	total_investment_cost <- total_investment_cost + sum((investor where (each.state = "investing")) collect each.investment_cost);
 	}
+	
+	reflex save_results_explo{   	
+    	save [cycle, investor_percent_share, exotic_price_per_bdft, native_price_per_bdft, 
+	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+			management_running_cost,ITP_running_earning,net_running_earning,
+			partners_earning, independent_earning,
+			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "experiment.csv" format:"csv" header: true;		
+	}
 }
 
 species university_si{
@@ -175,7 +184,7 @@ species university_si{
 			if(hs_count = -1){
 				break;
 			}
-			write "University harvesting...";
+			//write "University harvesting...";
 			count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
 		}
 	}
