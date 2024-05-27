@@ -382,6 +382,12 @@ species trees{
 		float p_dead <- 0.0;
 		float e <- exp(-2.917 - 1.897 * (shade_tolerant?0.75:0.25) - 0.079 * dbh);
 		p_dead <- (e/(e+1));
+		
+		//if nursery or invested and with laborers, decrease the probability of dying
+		if(my_plot.is_nursery or (my_plot.is_invested and (length(my_plot.my_laborers) > 0))){
+			p_dead <- p_dead - 0.25;
+		}
+		
 		return flip(p_dead);	
 	}
 	
@@ -602,6 +608,9 @@ species plot{
 	bool is_ANR <- false;
 	bool is_harvested <- false;
 	
+	int exotic_trees <- length(plot_trees where (each.type = EXOTIC)) update: length(plot_trees where (each.type = EXOTIC));
+	int native_trees <- length(plot_trees where (each.type = NATIVE)) update: length(plot_trees where (each.type = NATIVE));
+	
 	float getGrowthCoeff(int t_type){
 		float curr_water <- water_content[location];
 		float percent_precip <- curr_precip/my_climate.total_precipitation;
@@ -658,13 +667,9 @@ species plot{
 	//if there exist a mother tree in one of the trees inside the plot, it becomes a candidate nursery
 	//choose those with native mother trees and with no exotic mother trees
 	reflex checkifCandidateNursery when: (has_road and !is_candidate_nursery){	// should be reflex
-		int count_of_trees <- length(plot_trees);
-		list<trees> native_trees_inside <- plot_trees where (each.type = NATIVE);
-		list<trees> mother_trees <- native_trees_inside where (each.is_mother_tree and each.type = NATIVE);
-		
-		//if((1/3) of total trees >= length(native_trees with at least 1 is mother tree) 
-		// => meaning, there are a lot of exotic trees in the area  
-		is_candidate_nursery <- (length(mother_trees) > 0 and ((1/2)*count_of_trees) >= length(native_trees_inside))?true:false;
+		list<trees> nmother_trees <- plot_trees where (each.type = NATIVE and each.is_mother_tree);
+		  
+		is_candidate_nursery <- (length(nmother_trees) > 0)?true:false;
 	}
 	
 	reflex checkIsDry{

@@ -12,8 +12,8 @@ import "university_si.gaml"
 /* Insert your model definition here */
 
 species market{
-	float exotic_price_per_bdft <- 85.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
-	float native_price_per_bdft <- 89.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35
+	float exotic_price_per_bdft <- 150.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
+	float native_price_per_bdft <- 200.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35
 	float current_inflation <- 3.42; //https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf
 	
 	

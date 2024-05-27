@@ -63,6 +63,7 @@ species investor control: fsm{
 
 		ask university_si{
 			investable_plot <- first(harvestable_plot);	//receives the first plot with the highest SBA
+			remove investable_plot from: harvestable_plot;
 		}
 		
 		if(investable_plot != nil){
@@ -84,7 +85,7 @@ species investor control: fsm{
 				
 				ask university_si{
 					add myself.my_iplot to: invested_plots;
-					do harvestITP(myself, myself.my_iplot, BOTH);	
+					do harvestITP(myself, myself.my_iplot, BOTH);
 				}
 				total_profit <- total_profit + recent_profit;
 				total_investment <- total_investment + investment_cost;

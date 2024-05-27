@@ -50,10 +50,6 @@ global{
 	float monthly_management_cost <- 0.0;
 	float monthly_ITP_earning <- 0.0;
 	float monthly_labor_cost <- 0.0;
-	float annual_management_cost <- 0.0;
-	float annual_ITP_earning <- 0.0;
-	float annual_net_earning <- 0.0;
-	
 	float management_running_cost <- 0.0; 
 	float ITP_running_earning <- 0.0;
 	float net_running_earning <- 0.0;
@@ -126,7 +122,7 @@ species university_si{
 	//candidate nursery are those plots with road 
 	//nursery plots are chosen based on the distance from river
 	reflex updateNurseryPlots when: length(my_nurseries)<nursery_count{
-		list<plot> candidate_plots <- (plot where (each.is_candidate_nursery)) sort_by each.distance_to_river;
+		list<plot> candidate_plots <- reverse((plot where (each.is_candidate_nursery)) sort_by (each.distance_to_river)) sort_by each.exotic_trees;
 		int needed_nurseries <- nursery_count-length(my_nurseries);
 		int actual_count <- (length(candidate_plots) <= needed_nurseries)?length(candidate_plots):needed_nurseries;
 		
@@ -175,7 +171,7 @@ species university_si{
 			if(hs_count = -1){
 				break;
 			}
-			write " := University harvesting";
+			write "University harvesting...";
 			count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
 		}
 	}
@@ -186,7 +182,7 @@ species university_si{
 	reflex hireManagersForInvestedPlots when: ((invested_plots count ((length(each.my_laborers)) = 0)) > 0){
 		list<plot> for_management_plots <- invested_plots where (length(each.my_laborers) = 0);
 		list<labour> free_laborers <- sort_by(labour where (each.state = "vacant" and each.my_assigned_plot = nil), each.total_earning);
-		int laborer_per_plot <- 4;
+		int laborer_per_plot <- 2;
 		
 		ask for_management_plots{
 			if(length(free_laborers) < 1){	//assign while there are neighbors 
@@ -247,20 +243,11 @@ species university_si{
 		//monthly payables: ANR, labour, maintenance
 		float monthly_maintenance_cost <- (MAINTENANCE_MATCOST_PER_HA * c_invested_plots);
 		monthly_management_cost <- monthly_management_cost + monthly_ANR_cost + monthly_labor_cost+monthly_maintenance_cost;
-			
-		annual_management_cost <- annual_management_cost + monthly_management_cost;  
-		annual_ITP_earning <- annual_ITP_earning + monthly_ITP_earning;
 		
 		//update running values
 		management_running_cost <- management_running_cost + monthly_management_cost;
 		ITP_running_earning <- ITP_running_earning + monthly_ITP_earning;
 		net_running_earning <- ITP_running_earning - management_running_cost;
-		
-		if(current_month=11){	//reset annual values
-			annual_net_earning <- annual_ITP_earning - annual_management_cost;
-			annual_management_cost <- 0.0;
-			annual_ITP_earning <- 0.0;
-		}
 		
 		//reset montly values
 		monthly_management_cost <- 0.0;
@@ -279,7 +266,7 @@ species university_si{
 	 float computeInvestmentCost(plot investable_plot){
 	 	
 	 	//establishment + management cost => considers laborers already  
-	 	float cost_to_support_investment <- (MAINTENANCE_COST_PER_HA*(investment_rotation_years/4))+INIT_ESTABLISHMENT_INVESTOR;
+	 	float cost_to_support_investment <- (MAINTENANCE_COST_PER_HA*(investment_rotation_years*0.75))+INIT_ESTABLISHMENT_INVESTOR;
 	 	
 	 	return cost_to_support_investment;
 	 }
@@ -373,7 +360,6 @@ species university_si{
 	    }
 	    c_profit <- (c_profit * ((i!=nil)?0.40:1.0));
 	    monthly_ITP_earning <- monthly_ITP_earning + c_profit;
-	    write "Profit: "+c_profit;
 	}
 
 	float timberHarvesting(plot chosen_plot, list<trees> tth){
