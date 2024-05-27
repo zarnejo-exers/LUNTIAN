@@ -115,7 +115,7 @@ species university_si{
 	
 	list<plot> my_nurseries;	//list of nurseries managed by university
 	list<trees> my_saplings <- [] update: (my_saplings where !dead(each)); //contains all saplings in the nusery, remove all the dead saplings
-	list<plot> harvestable_plot <- plot where (each.stand_basal_area > 12 and !each.is_nursery and !each.is_invested) update: plot where (each.stand_basal_area > 12  and !each.is_nursery and !each.is_invested);
+	list<plot> harvestable_plot <- plot where (each.stand_basal_area > 10 and !each.is_nursery and !each.is_invested) update: plot where (each.stand_basal_area > 10  and !each.is_nursery and !each.is_invested);
 	
 	float count_available_saplings_harvesting <- 0.0; 
 	
@@ -140,7 +140,8 @@ species university_si{
 				add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
 				monthly_management_cost <- monthly_management_cost + NURSERY_ESTABLISHMENT_COST;
 				//harvest all the exotic
-				//I'm thinking if I should remove all exotic in the plot  
+				//I'm thinking if I should remove all exotic in the plot
+				write "I AM a nursery: "+n.name;  
 				do harvestITP(nil, n, EXOTIC);
 			}			
 		}
@@ -169,11 +170,12 @@ species university_si{
 	}		
 		
 	reflex startITPHarvesting when: length(my_nurseries) > (nursery_count/2){
-		loop h_plot over: harvestable_plot{
+		loop h_plot over: reverse(harvestable_plot sort_by each.stand_basal_area){
 			int hs_count <- harvestITP(nil, h_plot, BOTH);    
 			if(hs_count = -1){
 				break;
 			}
+			write "University harvesting";
 			count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
 		}
 	}
@@ -251,7 +253,7 @@ species university_si{
 		
 		//update running values
 		management_running_cost <- management_running_cost + monthly_management_cost;
-		ITP_running_earning <- ITP_running_earning + annual_ITP_earning;
+		ITP_running_earning <- ITP_running_earning + monthly_ITP_earning;
 		net_running_earning <- ITP_running_earning - management_running_cost;
 		
 		if(current_month=11){	//reset annual values
@@ -586,7 +588,6 @@ species university_si{
 		trees_to_harvest <- (type_to_harvest = BOTH)?getTreesToHarvestSH(plot_to_harvest):plot_to_harvest.plot_trees;
     	
     	if(length(trees_to_harvest) > 0){
-
 	    	list<trees> exotic_trees <- (trees_to_harvest where (each.type = EXOTIC));
 	    	if(exotic_trees != []){
 	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	

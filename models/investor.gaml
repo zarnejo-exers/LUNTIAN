@@ -87,12 +87,11 @@ species investor control: fsm{
 					add myself.my_iplot to: invested_plots;
 					do harvestITP(myself, myself.my_iplot, BOTH);	
 				}
+				total_profit <- total_profit + recent_profit;
 				total_investment <- total_investment + investment_cost;
 			}else{
 				write "Decided not to invest. Projected_profit: "+projected_profit+" investment cost: "+ investment_cost+" ave: "+(investment_cost / projected_profit)+" risk: "+rt;
 			}
-		}else{
-//			write "No available plot for investment";
 		}
 	}
 	
@@ -161,7 +160,7 @@ species investor control: fsm{
 	 	exit{
 	 		my_iplot.is_invested <- false;
 	        my_iplot <- nil;
-	        total_profit <- total_profit + (recent_profit - investment_cost);	//note that, I didn't considered investment cost in predicting the promised profit
+	        total_profit <- total_profit + recent_profit;	//note that, I didn't considered investment cost in predicting the promised profit
 	        do updateRisk();
 	        recent_profit <- 0.0;
 	        investment_cost <- 0.0;

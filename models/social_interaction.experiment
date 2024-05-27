@@ -70,9 +70,9 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 		}
 		
 		display chart4 type: 2d{
-			chart "Monthly investor earnings" type: series{
-				data "Profit" value: sum((investor where (each.state = "investing")) collect each.recent_profit) color: #blue;
-				data "Investment" value: sum((investor where (each.state = "investing")) collect each.investment_cost) color: #red;
+			chart "Cumulative investor earnings" type: series{
+				data "Profit" value: sum((investor where (each.state = "investing")) collect each.total_profit) color: #blue;
+				data "Investment" value: sum((investor where (each.state = "investing")) collect each.total_investment) color: #red;
 			}
 		}
 		

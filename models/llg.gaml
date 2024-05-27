@@ -664,11 +664,7 @@ species plot{
 		
 		//if((2/3) of total trees >= length(native_trees and at least 1 is mother tree) 
 		// => meaning, there are a lot of exotic trees in the area  
-		is_candidate_nursery <- (length(mother_trees) > 0 and ((1/3)*count_of_trees) >= length(native_trees_inside))?true:false;
-	
-		if(is_candidate_nursery){
-			write "I am a candidate nursery with "+length(native_trees_inside)+" of total "+count_of_trees;
-		}
+		is_candidate_nursery <- (length(mother_trees) > 0 and ((1/2)*count_of_trees) >= length(native_trees_inside))?true:false;
 	}
 	
 	reflex checkIsDry{
