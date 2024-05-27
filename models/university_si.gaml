@@ -141,6 +141,9 @@ species university_si{
 				add all: (n.plot_trees where (each.state = SAPLING)) to: my_saplings;
 				write "I AM nursery: "+n.name;
 				monthly_management_cost <- monthly_management_cost + NURSERY_ESTABLISHMENT_COST;
+				//harvest all the exotic
+				//I'm thinking if I should remove all exotic in the plot  
+				do harvestITP(nil, n, EXOTIC);
 			}			
 		}
 	}
@@ -169,7 +172,7 @@ species university_si{
 		
 	reflex startITPHarvesting when: length(my_nurseries) > (nursery_count/2){
 		loop h_plot over: harvestable_plot{
-			int hs_count <- harvestITP(nil, h_plot);    
+			int hs_count <- harvestITP(nil, h_plot, BOTH);    
 			if(hs_count = -1){
 				break;
 			}
@@ -375,6 +378,7 @@ species university_si{
 	    }
 	    
 	    monthly_ITP_earning <- monthly_ITP_earning + (c_profit * ((i!=nil)?0.30:1.0));
+	    write "monthly_ITP_earning: "+monthly_ITP_earning;
 	}
 
 	float timberHarvesting(plot chosen_plot, list<trees> tth){
@@ -578,25 +582,33 @@ species university_si{
 	}
 	
 	//returns true when it can support more harvesting, else false
-	int harvestITP(investor inv, plot plot_to_harvest){	//will harvest only when I already have at least half of wanted nursery
-		list<trees> trees_to_harvest <- getTreesToHarvestSH(plot_to_harvest);
+	int harvestITP(investor inv, plot plot_to_harvest, int type_to_harvest){	//will harvest only when I already have at least half of wanted nursery
+		list<trees> trees_to_harvest <- [];
+		
+		if(type_to_harvest = BOTH){
+			trees_to_harvest <- getTreesToHarvestSH(plot_to_harvest);
+			write "1 Harvesting both";	
+		}else{
+			trees_to_harvest <- plot_to_harvest.plot_trees;
+			write "Harvesting only exotic";
+		}
     	
     	if(length(trees_to_harvest) > 0){
-    		list<trees> native_trees <- (trees_to_harvest where (each.type = NATIVE));
-	    	list<trees> exotic_trees <- trees_to_harvest - native_trees;
-	    		
-	    	if(native_trees != []){
-	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, native_trees), NATIVE);	
-	    	}
+
+	    	list<trees> exotic_trees <- (trees_to_harvest where (each.type = EXOTIC));
 	    	if(exotic_trees != []){
 	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
 	    	}
+	    	if(type_to_harvest = BOTH){
+	    		list<trees> native_trees <- (trees_to_harvest where (each.type = NATIVE));
+		    	if(native_trees != []){
+		    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, native_trees), NATIVE);	
+		    	}	
+		    	write "2 Harvesting both";
+	    	}
 			has_harvested <- true;
 			
-    	}else{
-//    		write "NOTHING to harvest";
     	}
-    	
     	
 		return replantPlot(plot_to_harvest);
 	}	

@@ -13,6 +13,7 @@ global {
 	int NB_TS <- 12; //monthly timestep, constant
 	int NATIVE <- 0;
 	int EXOTIC <- 1;
+	int BOTH <- -1;
 	int SEEDLING <- 0;
 	int SAPLING <- 1;
 	int POLE <- 2;
@@ -657,8 +658,17 @@ species plot{
 	//if there exist a mother tree in one of the trees inside the plot, it becomes a candidate nursery
 	//choose those with native mother trees and with no exotic mother trees
 	reflex checkifCandidateNursery when: (has_road and !is_candidate_nursery){	// should be reflex
-		list<trees> mother_trees <- plot_trees where (each.is_mother_tree and each.type = NATIVE);
-		is_candidate_nursery <- (length(mother_trees) > 0)?true:false;
+		int count_of_trees <- length(plot_trees);
+		list<trees> native_trees_inside <- plot_trees where (each.type = NATIVE);
+		list<trees> mother_trees <- native_trees_inside where (each.is_mother_tree and each.type = NATIVE);
+		
+		//if((2/3) of total trees >= length(native_trees and at least 1 is mother tree) 
+		// => meaning, there are a lot of exotic trees in the area  
+		is_candidate_nursery <- (length(mother_trees) > 0 and ((1/3)*count_of_trees) >= length(native_trees_inside))?true:false;
+	
+		if(is_candidate_nursery){
+			write "I am a candidate nursery with "+length(native_trees_inside)+" of total "+count_of_trees;
+		}
 	}
 	
 	reflex checkIsDry{
