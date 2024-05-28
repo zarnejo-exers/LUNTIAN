@@ -67,6 +67,7 @@ species special_police{
 				ask com_identity.instance_labour.marked_trees{
 					is_illegal <- false;
 				}
+				com_identity.instance_labour.marked_trees <- []; 
 				
 				myself.total_comm_members_reprimanded <- myself.total_comm_members_reprimanded + 1; 
 			}

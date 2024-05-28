@@ -290,6 +290,9 @@ species labour control: fsm{
 		}
 		if(my_assigned_plot != nil and length(marked_trees) > 0 and month = 1){
 			location <- any_location_in(my_assigned_plot.location);
+			ask com_identity{
+				do computeEarning();
+			}
 			do cutMarkedTrees();
 		}else{
 			month <- 1;

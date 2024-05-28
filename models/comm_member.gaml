@@ -162,26 +162,31 @@ species comm_member control: fsm{
 	state labour_partner {
 		enter{
 			int month <- 0;
+			float commitment_earning <- 0.0;	//laborer expects certain earning within commitment period, resets at the start of the commitment period
 		}
 		 
 	    bool satisfied; 
-	    	
+	    commitment_earning <- commitment_earning + current_earning;
+	    total_earning <- total_earning + current_earning;
+	 	current_earning <- 0.0;
+	 	
+	 	if(month = MAX_WAITING_COMMITMENT){
+	 		month <- 0;
+	 		commitment_earning <- 0.0;
+	 	}	
 	    if(instance_labour.is_harvest_labour) {		
 	    	//not satisfied when earning is less than max earn or when another independent_harvesting community member has better earning 
-	    	satisfied <- (current_earning < min_earning or hasCompetingEarner())?false: true;
+	    	satisfied <- (commitment_earning < min_earning or hasCompetingEarner())?false: true;
 	    }else{ //satisifaction based on wage only
-	    	satisfied <- (current_earning >= min_earning)?true: false;	
+	    	satisfied <- (commitment_earning >= min_earning)?true: false;	
 	    } 
-	    
-//	    write " current_earning: "+current_earning+" "+name+" is "+(satisfied?"":"not ")+"satisfied on min_earning: "+min_earning;
 	    
 	    transition to: independent_passive when: (!satisfied and month = MAX_WAITING_COMMITMENT);
 	    transition to: potential_partner when: (satisfied and month=MAX_WAITING_COMMITMENT);
 	 
 	 	month <- month + 1;
+	 	
 	    exit {
-	    	total_earning <- total_earning + current_earning;
-	    	current_earning <- 0.0;
 	    	instance_labour.total_earning <- 0.0;
 	    } 
 	}
@@ -198,7 +203,6 @@ species comm_member control: fsm{
 			do findPlot();	//find the plot where to harvest
 			if(instance_labour.my_assigned_plot != nil){
 				do markTrees();
-				do computeEarning();
 				break;
 			}	
 		}
@@ -217,7 +221,7 @@ species comm_member control: fsm{
 	    //before you even start to harvest, check if there are prospects of being hired
 	    //if there's hiring prospective, choose to cooperate
 	    transition to: potential_partner when: (length(instance_labour.marked_trees) = 0 or hiring_calls > 0){
-	    	hiring_calls <- hiring_calls - 1;
+	    	if(hiring_calls > 0) {hiring_calls <- hiring_calls - 1;}
 	    }
 	    
 	    exit{
