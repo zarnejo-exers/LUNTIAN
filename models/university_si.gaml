@@ -38,7 +38,7 @@ global{
 	int nursery_count <- 2 update: nursery_count; 
 	int hiring_calls <- 0;
 	
-	int investment_rotation_years <- 25 update: investment_rotation_years;	
+	int investment_rotation_years <- 15 update: investment_rotation_years;	
 	
 	int ANR_instance <- 0; 
 	int total_investments <- 0;
@@ -69,14 +69,19 @@ global{
 	 * pole			[5,30)			[10,20)
 	 * adult 		[30,150)		[20,100)
 	*/
-	float n_sapling_ave_DBH <- 7.5;
- 	float e_sapling_ave_DBH <- 2.5; 
-	float n_adult_ave_DBH <- 60.0;
-	float e_adult_ave_DBH <- 90.0;
+	 float n_sapling_ave_DBH <- 7.5;
+	 float e_sapling_ave_DBH <- 2.5; 
+	 float n_adult_ave_DBH <- 60.0;
+	 float e_adult_ave_DBH <- 90.0;
+	 
+	float partners_earning <- 0.0;
+	float independent_earning <- 0.0;
+	float investor_total_profit <- 0.0;
+	float total_investment_cost <- 0.0;
 	
 	float investor_percent_share <- 0.8 update: investor_percent_share;
-	float exotic_price_per_bdft <- 135.18 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
-	float native_price_per_bdft <- 148.05 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35 
+	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
+	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35 
 	
 	init{
 		create market;
@@ -91,19 +96,21 @@ global{
 		
 		management_running_cost <- INIT_COST;	//infrastructure cost at the beginning
 	}
-
-	reflex save_results_explo{
-		float partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
-		float independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
-		float investor_total_profit <- sum((investor where (each.state = "investing")) collect each.total_profit);
-		float total_investment_value <- sum((investor where (each.state = "investing")) collect each.total_investment);
-		   	
+	
+	reflex updateCashflow{
+    	partners_earning <- partners_earning + sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
+    	independent_earning <- independent_earning + sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
+    	investor_total_profit <- investor_total_profit + sum(investor collect each.total_profit); 
+    	total_investment_cost <- total_investment_cost + sum( investor collect each.total_investment);
+	}
+	
+	reflex save_results_explo{   	
     	save [cycle, investor_percent_share, exotic_price_per_bdft, native_price_per_bdft, 
 	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
 			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
 			management_running_cost,ITP_running_earning,net_running_earning,
 			partners_earning, independent_earning,
-			investor_total_profit, total_investment_value, total_investments] rewrite: false to: "experiment.csv" format:"csv" header: true;		
+			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "experiment.csv" format:"csv" header: true;		
 	}
 }
 

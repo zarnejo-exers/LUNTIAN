@@ -120,23 +120,27 @@ species labour control: fsm{
 	}	
 	//gather all seedlings from the current plot
 	//randomly choose from its neighbor where it will gather seedlings 
-	list<trees> gatherSeedlings(plot c_plot){
-		location <- any_location_in(c_plot.location);
-		
-		list<trees> all_seedlings <- c_plot.plot_trees where (each.state = SEEDLING);
-		//get only what it can carry
-		if(length(all_seedlings) > carrying_capacity){
-			all_seedlings <- all_seedlings[0::carrying_capacity];
+	list<trees> gatherSeedlings(plot c_plot, int current_seedlings_count){
+		int space_for_new_seedlings <- (carrying_capacity > current_seedlings_count)?(carrying_capacity-current_seedlings_count): 0;
+		if(space_for_new_seedlings > 0){
+			location <- any_location_in(c_plot.location);
+			
+			list<trees> all_seedlings <- c_plot.plot_trees where (each.state = SEEDLING);
+			//get only what it can carry
+			if(length(all_seedlings) > space_for_new_seedlings){
+				all_seedlings <- all_seedlings[0::space_for_new_seedlings];
+			}
+			
+			//remove the seedlings from the plot
+			ask all_seedlings{
+				remove self from: my_plot.plot_trees;	//remove it from where it is currently planted
+				add self to: myself.my_trees;	//my_trees is the bag of the laborer to hold the trees it had gathered
+				location <- point(0,0,0);	//no location, meaning the tree is currenltly held by laborer
+			}
+			
+			return all_seedlings;	
 		}
-		
-		//remove the seedlings from the plot
-		ask all_seedlings{
-			remove self from: my_plot.plot_trees;	//remove it from where it is currently planted
-			add self to: myself.my_trees;	//my_trees is the bag of the laborer to hold the trees it had gathered
-			location <- point(0,0,0);	//no location, meaning the tree is currenltly held by laborer
-		}
-		
-		return all_seedlings;
+		return nil;
 	}
 	
 	action gatherSaplings{
@@ -195,7 +199,7 @@ species labour control: fsm{
 		if(coverage != []){
 			current_plot <- one_of(coverage);	//get a random location
 			location <- any_location_in(current_plot.location);
-			list<trees> seedlings_in_plot <- gatherSeedlings(current_plot);
+			list<trees> seedlings_in_plot <- gatherSeedlings(current_plot, length(all_seedlings_gathered));
 			all_seedlings_gathered <<+ seedlings_in_plot;
 			remove current_plot from: to_visit_plot;	
 		}
