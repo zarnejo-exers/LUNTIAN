@@ -79,7 +79,7 @@ global{
 	float investor_total_profit <- 0.0;
 	float total_investment_cost <- 0.0;
 	
-	float investor_percent_share <- 0.8 update: investor_percent_share;
+	float investor_percent_share <- 0.75 update: investor_percent_share;
 	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
 	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35 
 	
@@ -98,10 +98,10 @@ global{
 	}
 	
 	reflex updateCashflow{
-    	partners_earning <- partners_earning + sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
-    	independent_earning <- independent_earning + sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
-    	investor_total_profit <- investor_total_profit + sum(investor collect each.total_profit); 
-    	total_investment_cost <- total_investment_cost + sum( investor collect each.total_investment);
+    	partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
+    	independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
+    	investor_total_profit <- sum(investor collect each.total_profit); 
+    	total_investment_cost <- sum( investor collect each.total_investment);
 	}
 	
 	reflex save_results_explo{   	

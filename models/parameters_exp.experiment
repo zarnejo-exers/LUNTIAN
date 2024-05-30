@@ -45,8 +45,9 @@
 //    method hill_climbing iter_max: 50 maximize: annual_net_earning;
 //}
 
-experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 700){
-	parameter "Investor's share on investment cost" category: "Experiment" var: investor_percent_share among: [0.5, 0.65, 0.8];
-	parameter "Exotic buying price per bdft" category: "Experiment" var: exotic_price_per_bdft among: [45.06, 90.12, 135.18];
-	parameter "Native buying price per bdft" category: "Experiment" var: native_price_per_bdft among: [49.35, 98.7, 148.05];
+//55years, 660/12
+experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 660){
+	parameter "Investor's share on investment cost" category: "Experiment" var: investor_percent_share among: [0.5, 0.75];
+	parameter "Exotic buying price per bdft" category: "Experiment" var: exotic_price_per_bdft among: [135.18, 45.06, 90.12];
+	parameter "Native buying price per bdft" category: "Experiment" var: native_price_per_bdft among: [148.05, 49.35, 98.7];
 }
