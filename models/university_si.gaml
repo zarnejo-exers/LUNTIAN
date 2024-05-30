@@ -110,7 +110,7 @@ global{
 			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
 			management_running_cost,ITP_running_earning,net_running_earning,
 			partners_earning, independent_earning,
-			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "experiment.csv" format:"csv" header: true;		
+			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "../results/experiment.csv" format:"csv" header: true;		
 	}
 }
 
