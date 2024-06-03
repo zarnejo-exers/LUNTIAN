@@ -78,9 +78,11 @@ global{
 	float independent_earning <- 0.0;
 	float investor_total_profit <- 0.0;
 	float total_investment_cost <- 0.0;
+	float total_partners_earning <- 0.0;
+	float total_independent_earning <- 0.0;
 	
 	float investor_percent_share <- 0.75 update: investor_percent_share;
-	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
+	float exotic_price_per_bdft <- 135.18 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
 	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35 
 	
 	init{
@@ -102,16 +104,18 @@ global{
     	independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
     	investor_total_profit <- sum(investor collect each.total_profit); 
     	total_investment_cost <- sum( investor collect each.total_investment);
+    	total_partners_earning <- total_partners_earning + partners_earning;
+    	total_independent_earning <- total_independent_earning + independent_earning;
 	}
 	
-	reflex save_results_explo{   	
-    	save [cycle, investor_percent_share, exotic_price_per_bdft, native_price_per_bdft, 
-	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-			management_running_cost,ITP_running_earning,net_running_earning,
-			partners_earning, independent_earning,
-			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "../results/experiment.csv" format:"csv" header: true;		
-	}
+//	reflex save_results_explo{   	
+//    	save [cycle, investor_percent_share, exotic_price_per_bdft, native_price_per_bdft, 
+//	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+//			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+//			management_running_cost,ITP_running_earning,net_running_earning,
+//			partners_earning, independent_earning,
+//			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "../results/experiment.csv" format:"csv" header: true;		
+//	}
 }
 
 species university_si{
