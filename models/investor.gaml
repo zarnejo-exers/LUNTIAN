@@ -71,6 +71,8 @@ species investor control: fsm{
 				myself.investment_cost <- computeInvestmentCost(investable_plot);
 			}
 			bool decision <- decideOnRisk();
+			write "deciding on investment - projected_profit:"+projected_profit+" investment_cost:"+investment_cost;
+			write "	rt:"+rt+" decision: "+decision;
 			if(decision){
 				total_investments <- total_investments + 1;
 				my_iplot <- investable_plot;
@@ -85,8 +87,8 @@ species investor control: fsm{
 				ask university_si{
 					add myself.my_iplot to: invested_plots;
 					do harvestITP(myself, myself.my_iplot, BOTH);
+					write "harvested!";
 				}
-				total_profit <- total_profit + recent_profit;
 				total_investment <- total_investment + investment_cost;
 			}else{
 				projected_profit <- 0.0;
@@ -146,23 +148,28 @@ species investor control: fsm{
 		}
 	 	
 		//will only state transition after (investment_rotation_years*12) 
-		//harvest_month_monitor monitors how long the investor has been investing 		
+		//harvest_month_monitor monitors how long the investor has been investing 	
 	    transition to: potential_active when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit >= projected_profit)){
-	    	write "transitioning to potential active with recent_profit="+recent_profit+" promised_profit="+projected_profit;
+	    	write "transitioning to potential active... ";
 	    }
 	    transition to: potential_passive when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit < projected_profit)){
-	    	write "transitioning to potential passive with recent_profit="+recent_profit+" promised_profit="+projected_profit;
+	    	write "transitioning to potential passive... ";
 	    }
 	    
+	    write "before transitioning with recent_profit="+recent_profit+" promised_profit="+projected_profit+" total_profit="+total_profit;
 	    harvest_month_monitor <- harvest_month_monitor + 1;
 	    if(harvest_month_monitor = (investment_rotation_years*12)){
 	 		ask university_si{
 				do harvestITP(myself, myself.my_iplot, BOTH);
+				write "last harvest!";
 			}
+			write "after last harvest with recent_profit="+recent_profit+" promised_profit="+projected_profit+" total_profit="+total_profit;
 			total_profit <- total_profit + recent_profit;	//note that, I didn't considered investment cost in predicting the promised profit
 	 	}
 	 	
 	 	exit{
+	 		total_profit <- total_profit + recent_profit;
+	 		write  "with recent_profit="+recent_profit+" promised_profit="+projected_profit+" total_profit="+total_profit;
 	 		my_iplot.is_invested <- false;
 	        my_iplot <- nil;
 	        do updateRisk();

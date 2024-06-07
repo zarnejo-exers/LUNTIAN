@@ -292,11 +292,11 @@ species university_si{
 		float projected_profit <- 0.0;
 		
 		//current harvestable
-		list<trees> current_harvestables <- getTreesToHarvestSH(investable_plot);
+		list<trees> current_harvestables <- getTreesToHarvestSH(investable_plot.plot_trees);
 		ask market {
 			float total_bdft_n <- getTotalBDFT(current_harvestables where (each.type = NATIVE));
 			float total_bdft_e <- getTotalBDFT(current_harvestables where (each.type = EXOTIC));
-			projected_profit <- (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.70;
+			projected_profit <- (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.80;
 		}
 
 		//future harvestable
@@ -306,11 +306,12 @@ species university_si{
 			temp_dbh <- dbh;
 			dbh <- (age + investment_rotation_years)*((type=NATIVE)?growth_rate_native:growth_rate_exotic);
 		}
+		future_harvestables <- getTreesToHarvestSH(future_harvestables);
 		
 		ask market {
 			float total_bdft_n <- getTotalBDFT(future_harvestables where (each.type = NATIVE));
 			float total_bdft_e <- getTotalBDFT(future_harvestables where (each.type = EXOTIC));
-			projected_profit <- projected_profit + (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.70;
+			projected_profit <- projected_profit + (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*0.80;
 		}
 		
 		ask future_harvestables{
@@ -373,9 +374,9 @@ species university_si{
 	    }
 	    
 	    if(i != nil){
-	    	i.recent_profit <- i.recent_profit + (c_profit*0.60);		//actual profit of investor is 75% of total profit
+	    	i.recent_profit <- i.recent_profit + (c_profit*0.80);		//actual profit of investor is 75% of total profit
 	    }
-	    c_profit <- (c_profit * ((i!=nil)?0.40:1.0));
+	    c_profit <- (c_profit * ((i!=nil)?0.20:1.0));
 	    monthly_ITP_earning <- monthly_ITP_earning + c_profit;
 	}
 
@@ -392,14 +393,14 @@ species university_si{
 
 	//harvests upto capacity
 	//only returns what can be harvested in the plot
-	list<trees> getTreesToHarvestSH(plot pth){
-		list<trees> trees_above_th <- pth.plot_trees where (each.dbh >= 60);
+	list<trees> getTreesToHarvestSH(list<trees> pth_plot_trees){
+		list<trees> trees_above_th <- pth_plot_trees where (each.dbh >= 30);	//init 60
 		
-		list<trees> tree60to70 <- trees_above_th where (each.dbh >= 60 and each.dbh < 70);	//25% of trees with dbh[60,70)
+		list<trees> tree60to70 <- reverse((trees_above_th where (each.dbh >= 30 and each.dbh < 40)) sort_by each.dbh);	//25% of trees with dbh[60,70)
 		trees_above_th <- trees_above_th - tree60to70;
 		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
 		
-		list<trees> tree70to80 <- trees_above_th where (each.dbh >= 70 and each.dbh < 80);	//75% of trees with dbh[70, 80)
+		list<trees> tree70to80 <- reverse((trees_above_th where (each.dbh >= 40 and each.dbh < 50)) sort_by each.dbh);	//75% of trees with dbh[70, 80)
 		trees_above_th <- trees_above_th - tree70to80;
 		tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
 		
@@ -584,7 +585,7 @@ species university_si{
 	int harvestITP(investor inv, plot plot_to_harvest, int type_to_harvest){	//will harvest only when I already have at least half of wanted nursery
 		list<trees> trees_to_harvest <- [];
 		
-		trees_to_harvest <- (type_to_harvest = BOTH)?getTreesToHarvestSH(plot_to_harvest):plot_to_harvest.plot_trees;
+		trees_to_harvest <- (type_to_harvest = BOTH)?getTreesToHarvestSH(plot_to_harvest.plot_trees):plot_to_harvest.plot_trees;
     	
     	if(length(trees_to_harvest) > 0){
 	    	list<trees> exotic_trees <- (trees_to_harvest where (each.type = EXOTIC and !each.is_marked));
@@ -595,7 +596,7 @@ species university_si{
 	    		list<trees> native_trees <- (trees_to_harvest where (each.type = NATIVE and !each.is_marked));
 		    	if(native_trees != []){
 		    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, native_trees), NATIVE);	
-		    	}	
+		    	}
 	    	}
 			has_harvested <- true;
     	}
