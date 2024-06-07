@@ -12,7 +12,7 @@ experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_
 	parameter "Total count of community members" category: "Community Members" var: member_count among: [10, 20, 30];
 	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count among: [1, 2, 4];
 	
-	reflex save_results_explo{   	
+	reflex  {   	
     	save [cycle, investor_count, member_count, nursery_count, 
 	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
 			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),

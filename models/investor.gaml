@@ -35,8 +35,7 @@ species investor control: fsm{
 	float total_profit <- 0.0;
 	float recent_profit <- 0.0;
 	
-	plot my_iplot <- nil;
-	float promised_profit; 
+	plot my_iplot <- nil; 
 	int rt;	//risk type
 	bool waiting <- false;
 	
@@ -148,8 +147,12 @@ species investor control: fsm{
 	 	
 		//will only state transition after (investment_rotation_years*12) 
 		//harvest_month_monitor monitors how long the investor has been investing 		
-	    transition to: potential_active when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit >= promised_profit));
-	    transition to: potential_passive when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit < promised_profit));
+	    transition to: potential_active when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit >= projected_profit)){
+	    	write "transitioning to potential active with recent_profit="+recent_profit+" promised_profit="+projected_profit;
+	    }
+	    transition to: potential_passive when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit < projected_profit)){
+	    	write "transitioning to potential passive with recent_profit="+recent_profit+" promised_profit="+projected_profit;
+	    }
 	    
 	    harvest_month_monitor <- harvest_month_monitor + 1;
 	    if(harvest_month_monitor = (investment_rotation_years*12)){

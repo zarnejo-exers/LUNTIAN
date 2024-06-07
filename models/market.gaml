@@ -27,7 +27,7 @@ species market{
 	float getTotalBDFT(list<trees> tth){
 		float total_bdft <- 0.0;
 		
-		ask (tth where !dead(each)){
+		ask tth{
 			ask university_si{
 				total_bdft <- total_bdft + (calculateVolume(myself.dbh, myself.type)/12);	//https://www.montana.edu/extension/forestry/projectlearningtree/activitybooklets/Estimating%20Individual%20Tree%20Volume.pdf
 			}

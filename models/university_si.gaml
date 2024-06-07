@@ -559,15 +559,16 @@ species university_si{
 		loop while:(length(trees_to_harvest) > 0 and length(hh) > 0){
 			labour labour_instance <- first(hh);
 			list<trees> to_harvest <- trees_to_harvest[0::((length(trees_to_harvest)>=LABOUR_TCAPACITY)?LABOUR_TCAPACITY:length(trees_to_harvest))];
-			ask to_harvest{
-				is_marked <- true;
-			}
 			//put the labour_instance on the plot where the trees to be harvested are
 			ask labour_instance{
 				is_harvest_labour <- true;
 				current_plot <- pth;
 				my_assigned_plot <- pth;
 				add self to: my_assigned_plot.my_laborers;
+				ask to_harvest{
+					location <- point(0,0,0);
+					is_marked <- true;
+				}
 				add all: to_harvest to: marked_trees;
 				state <- "assigned_itp_harvester";	
 				location <- current_plot.location;
@@ -586,12 +587,12 @@ species university_si{
 		trees_to_harvest <- (type_to_harvest = BOTH)?getTreesToHarvestSH(plot_to_harvest):plot_to_harvest.plot_trees;
     	
     	if(length(trees_to_harvest) > 0){
-	    	list<trees> exotic_trees <- (trees_to_harvest where (each.type = EXOTIC));
+	    	list<trees> exotic_trees <- (trees_to_harvest where (each.type = EXOTIC and !each.is_marked));
 	    	if(exotic_trees != []){
 	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
 	    	}
 	    	if(type_to_harvest = BOTH){
-	    		list<trees> native_trees <- (trees_to_harvest where (each.type = NATIVE));
+	    		list<trees> native_trees <- (trees_to_harvest where (each.type = NATIVE and !each.is_marked));
 		    	if(native_trees != []){
 		    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, native_trees), NATIVE);	
 		    	}	
