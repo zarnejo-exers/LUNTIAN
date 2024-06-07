@@ -53,6 +53,8 @@ global{
 	float management_running_cost <- 0.0; 
 	float ITP_running_earning <- 0.0;
 	float net_running_earning <- 0.0;
+	int uni_ITP_limit <- 10;
+	int itp_count <- 0;
 	 
 	//per hectare, mandays
 	float MD_NURSERY_MAINTENANCE <- 8.64;	//maintenance of seedlings: 8.64 mandays
@@ -182,15 +184,26 @@ species university_si{
 		}
 	}		
 		
-	reflex startITPHarvesting when: length(my_nurseries) > (nursery_count/2){
-		loop h_plot over: reverse(harvestable_plot sort_by each.stand_basal_area){
-			int hs_count <- harvestITP(nil, h_plot, BOTH);    
-			if(hs_count = -1){
-				break;
-			}
-			//write "University harvesting...";
-			count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
+	reflex startITPHarvesting when: (length(my_nurseries) > (nursery_count/2)){
+		
+		if(current_month = 0){	//new month
+			itp_count <- 0;
 		}
+		
+		if(((length(investor where (each.state = "potential_active"))) < (length(investor)/2)) or itp_count < uni_ITP_limit){
+			write "UNI is harvesting since potential active = "+length(investor where (each.state = "potential_active"))+" itp_count: "+itp_count;
+			loop h_plot over: reverse(harvestable_plot sort_by each.stand_basal_area){
+				int hs_count <- harvestITP(nil, h_plot, BOTH);    
+				if(hs_count = -1){
+					break;
+				}
+				//write "University harvesting...";
+				count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
+				itp_count <- itp_count + 1;
+			}	
+		}
+		
+		
 	}
 		
 	//hire 4 different laborers every six months
