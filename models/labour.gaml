@@ -35,7 +35,7 @@ species labour control: fsm{
 	list<plot> to_visit_plot <- [];
 	
 	float total_earning <- 0.0;		//total earning for the entire simulation
-	int count_of_colaborers <- 0 update: (my_assigned_plot != nil)?length(my_assigned_plot.my_laborers):0;
+	int count_of_colaborers <- 1 update: (my_assigned_plot != nil)?length(my_assigned_plot.my_laborers):1;
 	
 	aspect default{
 		if(labor_type = OWN_LABOUR){

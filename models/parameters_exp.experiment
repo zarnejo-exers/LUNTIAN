@@ -7,24 +7,24 @@
 
 
 //TODO: add experimentation on the rotation years. currently, it is set at 10years.
-experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until: ( cycle > 660){
-    parameter "Total count of investors" category: "Investors" var: investor_count among: [15, 30, 50];
-	parameter "Total count of community members" category: "Community Members" var: member_count among: [10, 20, 30];
-	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count among: [1, 2, 4];
-	
-	reflex  {   	
-    	save [cycle, investor_count, member_count, nursery_count, 
-	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-			management_running_cost,ITP_running_earning,net_running_earning,
-			total_partners_earning, total_independent_earning,
-			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "../results/batch_experiment.csv" format:"csv" header: true;		
-	}
-}
+//experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until: ( cycle > 660){
+//    parameter "Total count of investors" category: "Investors" var: investor_count among: [15, 30, 50];
+//	parameter "Total count of community members" category: "Community Members" var: member_count among: [10, 20, 30];
+//	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count among: [1, 2, 4];
+//	
+//	reflex  {   	
+//    	save [cycle, investor_count, member_count, nursery_count, 
+//	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+//			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+//			management_running_cost,ITP_running_earning,net_running_earning,
+//			total_partners_earning, total_independent_earning,
+//			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "../results/batch_experiment.csv" format:"csv" header: true;		
+//	}
+//}
 
 //55years, 660/12
-//experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 660){
-//	parameter "Investor's share on investment cost" category: "Experiment" var: investor_percent_share among: [0.5, 0.75];
-//	parameter "Exotic buying price per bdft" category: "Experiment" var: exotic_price_per_bdft among: [135.18, 45.06];
-//	parameter "Native buying price per bdft" category: "Experiment" var: native_price_per_bdft among: [148.05, 49.35];
-//}
+experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 660){
+	parameter "Investor's share on investment cost" category: "Experiment" var: investor_percent_share among: [0.5, 0.75];
+	parameter "Exotic buying price per bdft" category: "Experiment" var: exotic_price_per_bdft among: [135.18];
+	parameter "Native buying price per bdft" category: "Experiment" var: native_price_per_bdft among: [148.05, 49.35];
+}
