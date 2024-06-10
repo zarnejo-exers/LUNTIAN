@@ -125,6 +125,7 @@ species comm_member control: fsm{
 			int capacity <- int(LABOUR_TCAPACITY/2); //reduce the capacity of individual harvester			
 			instance_labour.marked_trees <- chosen_trees[0::((length(chosen_trees) < capacity)?length(chosen_trees):capacity)];
 			ask instance_labour.marked_trees{
+				location <- point(0,0,0);
 				is_illegal <- true;
 			}		
 		}
@@ -148,7 +149,7 @@ species comm_member control: fsm{
 			}else if(instance_labour.is_harvest_labour){
 				float min_bdft;
 				ask market{
-					min_bdft <- getMinBDFT(NATIVE);
+					min_bdft <- getBDFT(60.0, NATIVE);	//mean harvestable dbh = 60
 				}
 				min_earning <- (HLABOUR_COST*min_bdft*(LABOUR_TCAPACITY/2));
 			}

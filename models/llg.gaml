@@ -258,7 +258,7 @@ species trees{
 	
 	float cr <- 1/5;	//by default 
 	float crown_diameter <- (cr*dbh) update: (cr*dbh);	//crown diameter
-	float basal_area <- #pi * (dbh^2)/40000 update: #pi * (dbh^2)/40000;	//http://ifmlab.for.unb.ca/People/Kershaw/Courses/For1001/Erdle_Version/TAE-BasalArea&Volume.pdf in m2
+	float basal_area <- #pi * (dbh^2)/40000 update: #pi * (dbh^2)/40000;	//http://ifmlab.for.unb.ca/People/Kershaw/Courses/For1001/Erdle_Version/TAE-BasalArea&`.pdf in m2
 	
 	int counter_to_next_recruitment <- 0;	//ensures that tree only recruits once a year
 	int number_of_recruits <- 0;

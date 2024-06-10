@@ -79,7 +79,6 @@ species investor control: fsm{
 				//write "Commencing investment #"+total_investments+" by "+name+" on "+my_iplot.name;
 				location <- any_location_in(my_iplot);
 				investable_plot.is_invested <- true;
-				
 				monthly_ITP_earning <- monthly_ITP_earning + investment_cost;
 				//assumes that the land has been prepared after commencing investment by incuring the cost
 				monthly_management_cost <- monthly_management_cost + INIT_ESTABLISHMENT_INVESTOR; 	

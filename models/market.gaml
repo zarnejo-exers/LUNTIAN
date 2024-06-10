@@ -14,25 +14,44 @@ import "university_si.gaml"
 species market{
 	float current_inflation <- 3.42; //https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf
 	
-	
-	float getMinBDFT(int type){
-		float min_bdft;
-		ask university_si{
-			min_bdft <- (calculateVolume(60.0, type)/12);	//https://www.montana.edu/extension/forestry/projectlearningtree/activitybooklets/Estimating%20Individual%20Tree%20Volume.pdf
+	//https://erc.cals.wisc.edu/woodlandinfo/files/2017/09/G3332.pdf
+	/* The rule of thumb is about 5 bdft per cubic foot of roundwood when DBH is 7 inches;
+	 * about 6.5boardfeet per cubic foot when the DBH is about 26 inches. 
+	 * However, when the tree is so small products cannot be manufactured.
+	 * */
+	float getMultiplier(float dbh){
+		float multiplier <- 0.0;
+		dbh <- dbh/2.54;	//2.54 is to convert cm to inch
+		if(dbh > 26){	
+			multiplier <- 6.5;						
+		}else if(dbh >= 7 and dbh < 26){
+			multiplier <- 5.0;
 		}
-		return min_bdft;
+		return multiplier;
 	}
+	
+	float getBDFT(float dbh, int type){
+		float bdft;
+		float multiplier <- getMultiplier(dbh);
+//		write " >dbh: "+dbh; 
+		ask university_si{
+//			write " >> round wood volume: "+getRoundwoodVolume(dbh, type);
+			bdft <- getRoundwoodVolume(dbh, type)*multiplier;	//https://www.montana.edu/extension/forestry/projectlearningtree/activitybooklets/Estimating%20Individual%20Tree%20Volume.pdf
+//			write " >> with multiplier: "+multiplier;
+		}
+		return bdft;
+	}
+	
 	
 	//cubic feet
 	float getTotalBDFT(list<trees> tth){
 		float total_bdft <- 0.0;
 		
-		ask tth{
-			ask university_si{
-				total_bdft <- total_bdft + (calculateVolume(myself.dbh, myself.type)/12);	//https://www.montana.edu/extension/forestry/projectlearningtree/activitybooklets/Estimating%20Individual%20Tree%20Volume.pdf
-			}
+		loop t over: tth{
+			total_bdft <- total_bdft + getBDFT(t.dbh, t.type);
 		}
 		
+//		write "total_bdft: "+total_bdft;
 		return total_bdft;
 	}	
 	

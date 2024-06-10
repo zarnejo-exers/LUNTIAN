@@ -83,8 +83,8 @@ global{
 	float total_partners_earning <- 0.0;
 	float total_independent_earning <- 0.0;
 	
-	float investor_percent_share <- 0.75 update: investor_percent_share;
-	float exotic_price_per_bdft <- 135.18 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
+	float investor_percent_share <- 1.0 update: investor_percent_share;
+	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
 	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35 
 	
 	init{
@@ -101,23 +101,23 @@ global{
 		management_running_cost <- INIT_COST;	//infrastructure cost at the beginning
 	}
 	
-	reflex updateCashflow{
-    	partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
-    	independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
-    	investor_total_profit <- sum(investor collect each.total_profit); 
-    	total_investment_cost <- sum( investor collect each.total_investment);
-    	total_partners_earning <- total_partners_earning + partners_earning;
-    	total_independent_earning <- total_independent_earning + independent_earning;
-	}
-	
-	reflex save_results_explo{   	
-    	save [cycle, investor_percent_share, exotic_price_per_bdft, native_price_per_bdft, 
-	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-			management_running_cost,ITP_running_earning,net_running_earning,
-			partners_earning, independent_earning,
-			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "../results/experiment.csv" format:"csv" header: true;		
-	}
+//	reflex updateCashflow{
+//    	partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
+//    	independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
+//    	investor_total_profit <- sum(investor collect each.total_profit); 
+//    	total_investment_cost <- sum( investor collect each.total_investment);
+//    	total_partners_earning <- total_partners_earning + partners_earning;
+//    	total_independent_earning <- total_independent_earning + independent_earning;
+//	}
+//	
+//	reflex save_results_explo{   	
+//    	save [cycle, investor_percent_share, exotic_price_per_bdft, native_price_per_bdft, 
+//	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+//			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+//			management_running_cost,ITP_running_earning,net_running_earning,
+//			partners_earning, independent_earning,
+//			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "../results/experiment.csv" format:"csv" header: true;		
+//	}
 }
 
 species university_si{
@@ -157,7 +157,7 @@ species university_si{
 				//harvest all the exotic
 				//I'm thinking if I should remove all exotic in the plot
 				write "I AM a nursery: "+n.name;  
-				do harvestITP(nil, n, EXOTIC);
+				do harvestITP(nil, n, EXOTIC);	//NOTE: when a nursery is built, automatically some trees get harvested :) 
 			}			
 		}
 	}
@@ -184,27 +184,25 @@ species university_si{
 		}
 	}		
 		
-	reflex startITPHarvesting when: (length(my_nurseries) > (nursery_count/2)){
-		
-		if(current_month = 0){	//new month
-			itp_count <- 0;
-		}
-		
-		if(((length(investor where (each.state = "potential_active"))) < (length(investor)/2)) or itp_count < uni_ITP_limit){
-			write "UNI is harvesting since potential active = "+length(investor where (each.state = "potential_active"))+" itp_count: "+itp_count;
-			loop h_plot over: reverse(harvestable_plot sort_by each.stand_basal_area){
-				int hs_count <- harvestITP(nil, h_plot, BOTH);    
-				if(hs_count = -1){
-					break;
-				}
-				//write "University harvesting...";
-				count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
-				itp_count <- itp_count + 1;
-			}	
-		}
-		
-		
-	}
+//	reflex startITPHarvesting when: (length(my_nurseries) > (nursery_count/2)){
+//		
+//		if(current_month = 0){	//new month
+//			itp_count <- 0;
+//		}
+//		
+//		if(((length(investor where (each.state = "potential_active"))) < (length(investor)/2)) or itp_count < uni_ITP_limit){
+////			write "UNI is harvesting since potential active = "+length(investor where (each.state = "potential_active"))+" itp_count: "+itp_count;
+//			loop h_plot over: reverse(harvestable_plot sort_by each.stand_basal_area){
+//				int hs_count <- harvestITP(nil, h_plot, BOTH);    
+//				if(hs_count = -1){
+//					break;
+//				}
+//				//write "University harvesting...";
+//				count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
+//				itp_count <- itp_count + 1;
+//			}	
+//		}
+//	}
 		
 	//hire 4 different laborers every six months
 	//six months is ensured in the laborer state 
@@ -334,15 +332,6 @@ species university_si{
 		return projected_profit; 
 	}	
 	
-	//individual tree volume for all species
-	//https://www.doc-developpement-durable.org/file/Culture/Arbres-Bois-de-Rapport-Reforestation/FICHES_ARBRES/Swietenia%20microphylla/Conversion%20Table%20for%20Sawn%20Mahogany.pdf
-	//cubic feet
-	float calculateVolume(float temp_dbh, int t_type){
-		float th <- calculateHeight(temp_dbh, t_type) * 3.281;	// with *3.281 -> meters feet
-		float tdbh <- temp_dbh / 30.48;	//with /30.48 -> cm - feet
-		return  (th/4)*(#pi * ((tdbh/2)^2));	
-	}
-	
 	//STATUS: CHECKED
 	float calculateHeight(float temp_dbh, int t_type){
 		float height; 
@@ -356,6 +345,16 @@ species university_si{
 		}
 		
 		return height;	//in meters	
+	}
+	
+	//https://www.doc-developpement-durable.org/file/Culture/Arbres-Bois-de-Rapport-Reforestation/FICHES_ARBRES/Swietenia%20microphylla/Conversion%20Table%20for%20Sawn%20Mahogany.pdf
+	//in cubic foot
+	float getRoundwoodVolume(float th_dbh, int th_type){
+		float rvolume <- 0.0;
+		
+		rvolume <- (#pi/4)*(((th_dbh+(th_dbh/2))/2)/100)*(calculateHeight(th_dbh, th_type)*0.75);	// dbh/100 is for cm to meters
+		
+		return rvolume* 35.315;
 	}	 	
 	 
 	//everytime a community laborer completes a task, the university pays them
@@ -390,7 +389,7 @@ species university_si{
 	    	i.recent_profit <- i.recent_profit + (c_profit*0.80);		//actual profit of investor is 75% of total profit
 	    }
 	    c_profit <- (c_profit * ((i!=nil)?0.20:1.0));
-	    monthly_ITP_earning <- monthly_ITP_earning + c_profit;
+	   	monthly_ITP_earning <- monthly_ITP_earning + c_profit;
 	}
 
 	float timberHarvesting(plot chosen_plot, list<trees> tth){
@@ -407,13 +406,13 @@ species university_si{
 	//harvests upto capacity
 	//only returns what can be harvested in the plot
 	list<trees> getTreesToHarvestSH(list<trees> pth_plot_trees){
-		list<trees> trees_above_th <- pth_plot_trees where (each.dbh >= 30);	//init 60
+		list<trees> trees_above_th <- pth_plot_trees where (each.dbh >= 60);	//init 60
 		
-		list<trees> tree60to70 <- reverse((trees_above_th where (each.dbh >= 30 and each.dbh < 40)) sort_by each.dbh);	//25% of trees with dbh[60,70)
+		list<trees> tree60to70 <- reverse((trees_above_th where (each.dbh >= 60 and each.dbh < 70)) sort_by each.dbh);	//25% of trees with dbh[60,70)
 		trees_above_th <- trees_above_th - tree60to70;
 		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
 		
-		list<trees> tree70to80 <- reverse((trees_above_th where (each.dbh >= 40 and each.dbh < 50)) sort_by each.dbh);	//75% of trees with dbh[70, 80)
+		list<trees> tree70to80 <- reverse((trees_above_th where (each.dbh >= 70 and each.dbh < 80)) sort_by each.dbh);	//75% of trees with dbh[70, 80)
 		trees_above_th <- trees_above_th - tree70to80;
 		tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
 		
