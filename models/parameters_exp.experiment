@@ -24,7 +24,7 @@
 
 //55years, 660/12
 experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 660){
-	parameter "Investor's share on investment cost" category: "Experiment" var: investor_percent_share among: [0.5, 1.0];
-//	parameter "Exotic buying price per bdft" category: "Experiment" var: exotic_price_per_bdft among: [135.18];
-//	parameter "Native buying price per bdft" category: "Experiment" var: native_price_per_bdft among: [148.05, 49.35];
+	parameter "Rotation years" var: investment_rotation_years among: [10, 20];
+	parameter "Total count of investors" category: "Investors" var: investor_count among: [10, 20];
+	parameter "Total count of community members" category: "Community Members" var: member_count among: [15, 30];
 }

@@ -22,7 +22,7 @@ global{
 	float YEARLY_PROJ_MGMT_COST <- 2731.17;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, based on year 1 only
 	float INIT_ESTABLISHMENT_INVESTOR <- 7227.06;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float MAINTENANCE_COST_PER_HA <- 9457.97; //https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
-	float MAINTENANCE_MATCOST_PER_HA <- 1210.62/12; 	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already, divide by 12 since applied per month
+	float MAINTENANCE_MATCOST_PER_HA <- 1210.62; 	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already, divide by 12 since applied per month
 	float SAPLINGS_UNIT_COST <-  1.194;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, GENERIC
 	float NURSERY_ESTABLISHMENT_COST <- 238952.35;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float ANR_COST <- 5893.59; 	//per ha https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf; considers the laborer already
@@ -38,7 +38,7 @@ global{
 	int nursery_count <- 2 update: nursery_count; 
 	int hiring_calls <- 0;
 	
-	int investment_rotation_years <- 15 update: investment_rotation_years;	
+	int investment_rotation_years <- 10 update: investment_rotation_years;	
 	
 	int ANR_instance <- 0; 
 	int total_investments <- 0;
@@ -101,23 +101,23 @@ global{
 		management_running_cost <- INIT_COST;	//infrastructure cost at the beginning
 	}
 	
-//	reflex updateCashflow{
-//    	partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
-//    	independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
-//    	investor_total_profit <- sum(investor collect each.total_profit); 
-//    	total_investment_cost <- sum( investor collect each.total_investment);
-//    	total_partners_earning <- total_partners_earning + partners_earning;
-//    	total_independent_earning <- total_independent_earning + independent_earning;
-//	}
-//	
-//	reflex save_results_explo{   	
-//    	save [cycle, investor_percent_share, exotic_price_per_bdft, native_price_per_bdft, 
-//	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-//			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-//			management_running_cost,ITP_running_earning,net_running_earning,
-//			partners_earning, independent_earning,
-//			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "../results/experiment.csv" format:"csv" header: true;		
-//	}
+	reflex updateCashflow{
+    	partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
+    	independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
+    	investor_total_profit <- sum(investor collect each.total_profit); 
+    	total_investment_cost <- sum( investor collect each.total_investment);
+    	total_partners_earning <- total_partners_earning + partners_earning;
+    	total_independent_earning <- total_independent_earning + independent_earning;
+	}
+	
+	reflex save_results_explo{   	
+    	save [cycle, investor_percent_share, exotic_price_per_bdft, native_price_per_bdft, 
+	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+			management_running_cost,ITP_running_earning,net_running_earning,
+			partners_earning, independent_earning,
+			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "../results/experiment.csv" format:"csv" header: true;		
+	}
 }
 
 species university_si{
@@ -157,7 +157,7 @@ species university_si{
 				//harvest all the exotic
 				//I'm thinking if I should remove all exotic in the plot
 				write "I AM a nursery: "+n.name;  
-				do harvestITP(nil, n, EXOTIC);	//NOTE: when a nursery is built, automatically some trees get harvested :) 
+				do harvestITP(nil, n, EXOTIC, 0.0);	//NOTE: when a nursery is built, automatically some trees get harvested :) 
 			}			
 		}
 	}
@@ -269,7 +269,7 @@ species university_si{
 		}
 		
 		//monthly payables: ANR, labour, maintenance
-		float monthly_maintenance_cost <- (MAINTENANCE_MATCOST_PER_HA * c_invested_plots);
+		float monthly_maintenance_cost <- ((MAINTENANCE_MATCOST_PER_HA/12) * c_invested_plots);
 		monthly_management_cost <- monthly_management_cost + monthly_ANR_cost + monthly_labor_cost+monthly_maintenance_cost;
 		
 		//update running values
@@ -294,7 +294,7 @@ species university_si{
 	 float computeInvestmentCost(plot investable_plot){
 	 	
 	 	//establishment + management cost => considers laborers already  
-	 	float cost_to_support_investment <- (MAINTENANCE_COST_PER_HA*(investment_rotation_years*investor_percent_share))+INIT_ESTABLISHMENT_INVESTOR;
+	 	float cost_to_support_investment <- ((MAINTENANCE_COST_PER_HA+ MAINTENANCE_MATCOST_PER_HA)*(investment_rotation_years*investor_percent_share))+INIT_ESTABLISHMENT_INVESTOR;
 	 	
 	 	return cost_to_support_investment;
 	 }
@@ -347,12 +347,15 @@ species university_si{
 		return height;	//in meters	
 	}
 	
-	//https://www.doc-developpement-durable.org/file/Culture/Arbres-Bois-de-Rapport-Reforestation/FICHES_ARBRES/Swietenia%20microphylla/Conversion%20Table%20for%20Sawn%20Mahogany.pdf
+	//https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/harvest-billing/timber-scaling/scale_ch4.pdf
 	//in cubic foot
 	float getRoundwoodVolume(float th_dbh, int th_type){
 		float rvolume <- 0.0;
 		
-		rvolume <- (#pi/4)*(((th_dbh+(th_dbh/2))/2)/100)*(calculateHeight(th_dbh, th_type)*0.75);	// dbh/100 is for cm to meters
+		rvolume <-(((#pi*((th_dbh/2)^2))/10000) + ((#pi*(((th_dbh*0.5)/2)^2))/10000))/2; 
+		rvolume <- rvolume * (calculateHeight(th_dbh, th_type)*0.6);
+//		write "round volume in m^3: "+rvolume;
+//		write "round volume in f^3: "+rvolume*35.315; 
 		
 		return rvolume* 35.315;
 	}	 	
@@ -378,17 +381,20 @@ species university_si{
 	
 	//pays the hired harvester and gives the earning to laborer
 	//compute cost
-	action harvestEarning(investor i, float thv, int type){
+	action harvestEarning(investor i, float thv, int type, float i_share){
 		//give payment to investor
 	    float c_profit <- 0.0;
 	    ask market{
 	    	c_profit <- getProfit(type, thv);
 	    }
+	    write "Earning profit: "+c_profit;
 	    
 	    if(i != nil){
-	    	i.recent_profit <- i.recent_profit + (c_profit*0.80);		//actual profit of investor is 75% of total profit
+	    	i.recent_profit <- i.recent_profit + (c_profit*i_share);		//actual profit of investor is 60% of total profit
+	    	write ">>investor profit: "+(c_profit*i_share);
 	    }
-	    c_profit <- (c_profit * ((i!=nil)?0.20:1.0));
+	    c_profit <- (c_profit * ((i!=nil)?(1-i_share):1.0));
+	    write ">>uni profit: "+c_profit;
 	   	monthly_ITP_earning <- monthly_ITP_earning + c_profit;
 	}
 
@@ -406,15 +412,16 @@ species university_si{
 	//harvests upto capacity
 	//only returns what can be harvested in the plot
 	list<trees> getTreesToHarvestSH(list<trees> pth_plot_trees){
-		list<trees> trees_above_th <- pth_plot_trees where (each.dbh >= 60);	//init 60
+		list<trees> trees_above_th <- reverse(pth_plot_trees where (each.dbh >= 60) sort_by each.dbh);	//init 60
 		
-		list<trees> tree60to70 <- reverse((trees_above_th where (each.dbh >= 60 and each.dbh < 70)) sort_by each.dbh);	//25% of trees with dbh[60,70)
+		list<trees> tree60to70 <- (trees_above_th where (each.dbh >= 60 and each.dbh < 70));	//25% of trees with dbh[60,70)
 		trees_above_th <- trees_above_th - tree60to70;
 		tree60to70 <- (tree60to70[0::int(length(tree60to70)*0.25)]);
 		
-		list<trees> tree70to80 <- reverse((trees_above_th where (each.dbh >= 70 and each.dbh < 80)) sort_by each.dbh);	//75% of trees with dbh[70, 80)
+		list<trees> tree70to80 <- (trees_above_th where (each.dbh >= 70 and each.dbh < 80));	//75% of trees with dbh[70, 80)
 		trees_above_th <- trees_above_th - tree70to80;
-		tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
+		tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.50)]);
+		trees_above_th <- trees_above_th[0::int(length(trees_above_th)*0.75)];
 		
 		return tree60to70 + tree70to80 + trees_above_th;
 	}
@@ -594,7 +601,7 @@ species university_si{
 	}
 	
 	//returns true when it can support more harvesting, else false
-	int harvestITP(investor inv, plot plot_to_harvest, int type_to_harvest){	//will harvest only when I already have at least half of wanted nursery
+	int harvestITP(investor inv, plot plot_to_harvest, int type_to_harvest, float i_share){	//will harvest only when I already have at least half of wanted nursery
 		list<trees> trees_to_harvest <- [];
 		
 		trees_to_harvest <- (type_to_harvest = BOTH)?getTreesToHarvestSH(plot_to_harvest.plot_trees):plot_to_harvest.plot_trees;
@@ -602,12 +609,12 @@ species university_si{
     	if(length(trees_to_harvest) > 0){
 	    	list<trees> exotic_trees <- (trees_to_harvest where (each.type = EXOTIC and !each.is_marked));
 	    	if(exotic_trees != []){
-	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC);	
+	    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, exotic_trees), EXOTIC, i_share);	
 	    	}
 	    	if(type_to_harvest = BOTH){
 	    		list<trees> native_trees <- (trees_to_harvest where (each.type = NATIVE and !each.is_marked));
 		    	if(native_trees != []){
-		    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, native_trees), NATIVE);	
+		    		do harvestEarning(inv, timberHarvesting(plot_to_harvest, native_trees), NATIVE, i_share);	
 		    	}
 	    	}
 			has_harvested <- true;

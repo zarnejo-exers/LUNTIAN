@@ -85,7 +85,7 @@ species investor control: fsm{
 				
 				ask university_si{
 					add myself.my_iplot to: invested_plots;
-					do harvestITP(myself, myself.my_iplot, BOTH);
+					do harvestITP(myself, myself.my_iplot, BOTH, 0.0);
 //					write "harvested!";
 				}
 				total_investment <- total_investment + investment_cost;
@@ -155,7 +155,7 @@ species investor control: fsm{
 	    harvest_month_monitor <- harvest_month_monitor + 1;
 	    if(harvest_month_monitor = (investment_rotation_years*12)){
 	 		ask university_si{
-				do harvestITP(myself, myself.my_iplot, BOTH);
+				do harvestITP(myself, myself.my_iplot, BOTH, 0.6);
 //				write "last harvest!";
 			}
 //			write "after last harvest with recent_profit="+recent_profit+" promised_profit="+projected_profit+" total_profit="+total_profit;
