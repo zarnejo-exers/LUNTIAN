@@ -43,7 +43,7 @@ species investor control: fsm{
 	int loss <- 0;
 	
 	float projected_profit;
-	
+	int total_tree_harvested <- 0;
 	float investment_cost; 
 	float total_investment <- 0.0;
 	
@@ -67,7 +67,7 @@ species investor control: fsm{
 		
 		if(investable_plot != nil){
 			ask university_si{
-				myself.projected_profit <- projectProfit(myself, investable_plot);
+				myself.projected_profit <- projectProfit(myself, investable_plot, 0.4);
 				myself.investment_cost <- computeInvestmentCost(investable_plot);
 			}
 			bool decision <- decideOnRisk();
@@ -155,7 +155,7 @@ species investor control: fsm{
 	    harvest_month_monitor <- harvest_month_monitor + 1;
 	    if(harvest_month_monitor = (investment_rotation_years*12)){
 	 		ask university_si{
-				do harvestITP(myself, myself.my_iplot, BOTH, 0.6);
+				do harvestITP(myself, myself.my_iplot, BOTH, 0.4);
 //				write "last harvest!";
 			}
 //			write "after last harvest with recent_profit="+recent_profit+" promised_profit="+projected_profit+" total_profit="+total_profit;
