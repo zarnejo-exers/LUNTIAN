@@ -32,10 +32,10 @@ global{
 	float HLABOUR_COST <- 16.21;	//https://www.mdpi.com/1999-4907/7/8/152
 	
 	int average_no_trees_in1ha <- 20;
-	int police_count <- 3 update: police_count;
+	int police_count <- 1 update: police_count;
 	int police_neighborhood <- 16 update: police_neighborhood;
 	int laborer_count <- 20 update: laborer_count; 
-	int nursery_count <- 2 update: nursery_count; 
+	int nursery_count <- 1 update: nursery_count; 
 	int hiring_calls <- 0;
 	
 	int investment_rotation_years <- 10 update: investment_rotation_years;	
@@ -82,6 +82,7 @@ global{
 	float total_investment_cost <- 0.0;
 	float total_partners_earning <- 0.0;
 	float total_independent_earning <- 0.0;
+	int inv_harvested_trees <- 0; 
 	
 	float investor_percent_share <- 1.0 update: investor_percent_share;
 	//(2" x 4" x 8")
@@ -102,23 +103,24 @@ global{
 		management_running_cost <- INIT_COST;	//infrastructure cost at the beginning
 	}
 	
-//	reflex updateCashflow{
-//    	partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
-//    	independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
-//    	investor_total_profit <- sum(investor collect each.total_profit); 
-//    	total_investment_cost <- sum( investor collect each.total_investment);
-//    	total_partners_earning <- total_partners_earning + partners_earning;
-//    	total_independent_earning <- total_independent_earning + independent_earning;
-//	}
-//	
-//	reflex save_results_explo{   	
-//    	save [cycle, investor_percent_share, exotic_price_per_bdft, native_price_per_bdft, 
-//	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-//			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-//			management_running_cost,ITP_running_earning,net_running_earning,
-//			partners_earning, independent_earning,
-//			investor_total_profit, total_investment_cost, total_investments, total_tree_harvested] rewrite: false to: "../results/experiment.csv" format:"csv" header: true;		
-//	}
+	reflex updateCashflow{
+    	partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
+    	independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
+    	investor_total_profit <- sum(investor collect each.total_profit); 
+    	total_investment_cost <- sum( investor collect each.total_investment);
+    	total_partners_earning <- total_partners_earning + partners_earning;
+    	total_independent_earning <- total_independent_earning + independent_earning;
+    	inv_harvested_trees <- sum(investor collect each.total_tree_harvested);
+	}
+	
+	reflex save_results_explo{   	
+    	save [cycle, investor_percent_share, exotic_price_per_bdft, native_price_per_bdft, 
+	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+			management_running_cost,ITP_running_earning,net_running_earning,
+			partners_earning, independent_earning,
+			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees] rewrite: false to: "../results/experiment.csv" format:"csv" header: true;		
+	}
 }
 
 species university_si{
