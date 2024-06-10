@@ -22,7 +22,7 @@ global{
 	float YEARLY_PROJ_MGMT_COST <- 2731.17;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, based on year 1 only
 	float INIT_ESTABLISHMENT_INVESTOR <- 7227.06;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float MAINTENANCE_COST_PER_HA <- 9457.97; //https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
-	float MAINTENANCE_MATCOST_PER_HA <- 1210.62; 	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
+	float MAINTENANCE_MATCOST_PER_HA <- 1210.62/12; 	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already, divide by 12 since applied per month
 	float SAPLINGS_UNIT_COST <-  1.194;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, GENERIC
 	float NURSERY_ESTABLISHMENT_COST <- 238952.35;	//https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf, considers the laborers already
 	float ANR_COST <- 5893.59; 	//per ha https://forestry.denr.gov.ph/pdf/ref/dmc2000-19.pdf; considers the laborer already
