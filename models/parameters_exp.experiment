@@ -23,8 +23,8 @@
 //}
 
 //55years, 660/12
-experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 660){
-	parameter "Rotation years" var: investment_rotation_years among: [10, 20];
-	parameter "Total count of investors" category: "Investors" var: investor_count among: [10, 20];
-	parameter "Total count of community members" category: "Community Members" var: member_count among: [15, 30];
+experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 264){
+	parameter "Rotation years" var: investment_rotation_years among: [5, 15];
+	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count among: [1, 4];
+	parameter "Special police" var: police_count among: [1,3];
 }
