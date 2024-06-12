@@ -23,8 +23,15 @@
 //}
 
 //55years, 660/12
-experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 264){
-	parameter "Rotation years" var: investment_rotation_years among: [5, 15];
-	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count among: [1, 4];
-	parameter "Special police" var: police_count among: [1,3];
+experiment parametersexp model: "university_si.gaml" type: batch repeat: 2 keep_seed: true until:( cycle > 264){
+	parameter "Special police" var: police_count among: [1,3, 5];
+	
+		reflex save_results_explo{   	
+    	save [cycle, investor_count, police_count, 
+	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+			management_running_cost,ITP_running_earning,net_running_earning,
+			partners_earning, independent_earning,
+			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees] rewrite: false to: "../results/batch4-experiment.csv" format:"csv" header: true;		
+	}
 }

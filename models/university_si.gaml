@@ -80,8 +80,6 @@ global{
 	float independent_earning <- 0.0;
 	float investor_total_profit <- 0.0;
 	float total_investment_cost <- 0.0;
-	float total_partners_earning <- 0.0;
-	float total_independent_earning <- 0.0;
 	int inv_harvested_trees <- 0; 
 	
 	float investor_percent_share <- 1.0 update: investor_percent_share;
@@ -104,23 +102,21 @@ global{
 	}
 	
 	reflex updateCashflow{
-    	partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
-    	independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
+    	partners_earning <- partners_earning+sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
+    	independent_earning <- independent_earning+sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
     	investor_total_profit <- sum(investor collect each.total_profit); 
     	total_investment_cost <- sum( investor collect each.total_investment);
-    	total_partners_earning <- total_partners_earning + partners_earning;
-    	total_independent_earning <- total_independent_earning + independent_earning;
     	inv_harvested_trees <- sum(investor collect each.total_tree_harvested);
 	}
 	
-	reflex save_results_explo{   	
-    	save [cycle, investment_rotation_years, nursery_count, police_count, 
-	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-			management_running_cost,ITP_running_earning,net_running_earning,
-			partners_earning, independent_earning,
-			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees] rewrite: false to: "../results/batch2-experiment.csv" format:"csv" header: true;		
-	}
+//	reflex save_results_explo{   	
+//    	save [cycle, investment_rotation_years, nursery_count, police_count, 
+//	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+//			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+//			management_running_cost,ITP_running_earning,net_running_earning,
+//			partners_earning, independent_earning,
+//			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees] rewrite: false to: "../results/batch2-experiment.csv" format:"csv" header: true;		
+//	}
 }
 
 species university_si{
