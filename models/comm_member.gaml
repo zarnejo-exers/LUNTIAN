@@ -102,17 +102,14 @@ species comm_member control: fsm{
 		float temp_earning <- 0.0;
 		float thv_n <- 0.0;
 		float thv_e <- 0.0; 
+		float profit <- 0.0;
 
 		ask market{
 			thv_n <- getTotalBDFT((myself.instance_labour.marked_trees where (each.type = NATIVE)));	
-			thv_e <- getTotalBDFT((myself.instance_labour.marked_trees where (each.type = EXOTIC)));	
+			thv_e <- getTotalBDFT((myself.instance_labour.marked_trees where (each.type = EXOTIC)));
+			profit <- getProfit(NATIVE, thv_n) + getProfit(EXOTIC, thv_e);	
 		}
 		
-		float profit <- 0.0;
-		
-	    ask market{
-	    	profit <- getProfit(NATIVE, thv_n) + getProfit(EXOTIC, thv_e);	
-	    }
 	    return profit;
 	}
 	
@@ -123,7 +120,7 @@ species comm_member control: fsm{
 		if(length(chosen_trees) > 0){
 			chosen_trees <- reverse(chosen_trees sort_by each.dbh);
 			int capacity <- int(LABOUR_TCAPACITY/2); //reduce the capacity of individual harvester			
-			instance_labour.marked_trees <- chosen_trees[0::((length(chosen_trees) < capacity)?length(chosen_trees):capacity)];
+			add all: chosen_trees[0::((length(chosen_trees) < capacity)?length(chosen_trees):capacity)] to: instance_labour.marked_trees;
 			ask instance_labour.marked_trees{
 				location <- point(0,0,0);
 				is_illegal <- true;

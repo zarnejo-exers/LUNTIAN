@@ -109,8 +109,7 @@ global {
 		
 		create trees from: trees_shapefile{
 			dbh <- float(read("Book2_DBH"));
-			mh <- float(read("Book2_MH"));		
-			th <- float(read("Book2_TH"));		
+			mh <- float(read("Book2_MH"));				
 			r <- float(read("Book2_R"));		
 			type <- (string(read("Book2_Clas")) = "Native")? NATIVE:EXOTIC;	
 			
