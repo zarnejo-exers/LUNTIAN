@@ -24,15 +24,16 @@
 
 //55years, 660/12
 experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 264){
-	parameter "Investor count" var: investor_count among: [10,40];
-	parameter "Special police" var: police_count among: [0, 3];
-	
-	reflex save_results_explo{   	
-    	save [cycle, police_count, investor_count, member_count, nursery_count
-	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-			management_running_cost,ITP_running_earning,net_running_earning,
-			partners_earning, independent_earning,
-			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees] rewrite: false to: "../results/batch5-experiment.csv" format:"csv" header: true;		
-	}
+	parameter "Investment rotation years" var: investment_rotation_years among: [10];
+	parameter "Special police" var: police_count among: [1];
+	parameter "Investor count" var: investor_count among: [10];
+	parameter "Community members" var: member_count among: [15];
+//	reflex save_results_explo{   	
+//    	save [cycle, police_count, investor_count, member_count, nursery_count
+//	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+//			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+//			management_running_cost,ITP_running_earning,net_running_earning,
+//			partners_earning, independent_earning,
+//			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees] rewrite: false to: "../results/batch5-experiment.csv" format:"csv" header: true;		
+//	}
 }

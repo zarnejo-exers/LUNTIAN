@@ -32,13 +32,13 @@ global{
 	float HLABOUR_COST <- 16.21;	//https://www.mdpi.com/1999-4907/7/8/152
 	
 	int average_no_trees_in1ha <- 20;
-	int police_count <- 0 update: police_count;
+	int police_count <- 1 update: police_count;
 	int police_neighborhood <- 16 update: police_neighborhood;
 	int laborer_count <- 20 update: laborer_count; 
 	int nursery_count <- 1 update: nursery_count; 
 	int hiring_calls <- 0;
 	
-	int investment_rotation_years <- 5 update: investment_rotation_years;	
+	int investment_rotation_years <- 10 update: investment_rotation_years;	
 	
 	int ANR_instance <- 0; 
 	int total_investments <- 0;
@@ -82,7 +82,7 @@ global{
 	float total_investment_cost <- 0.0;
 	int inv_harvested_trees <- 0; 
 	
-	float investor_percent_share <- 1.0 update: investor_percent_share;
+	float investor_percent_share <- 0.75 update: investor_percent_share;
 	//(2" x 4" x 8")
 	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
 	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35 
@@ -101,52 +101,52 @@ global{
 		management_running_cost <- INIT_COST;	//infrastructure cost at the beginning
 	}
 	
-//	reflex updateCashflow{
-//    	partners_earning <- partners_earning+sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
-//    	independent_earning <- independent_earning+sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
-//    	investor_total_profit <- sum(investor collect each.total_profit); 
-//    	total_investment_cost <- sum( investor collect each.total_investment);
-//    	inv_harvested_trees <- sum(investor collect each.total_tree_harvested);
-//	}
-	
-	reflex collectTreeInformation{
-		list<trees> temp;
-		list<trees> native <- trees where (each.type = NATIVE);
-		list<trees> exotic <- trees where (each.type = EXOTIC);
-		
-		list<float> native_dbh_cm <- [];
-		list<float> native_th_m <- [];
-		list<float> exotic_dbh_cm <- [];
-		list<float> exotic_th_m <- [];
-		  
-		temp <- (native where (each.state = SEEDLING));
-		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;		
-		temp <- (native where (each.state = SAPLING));
-		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
-		temp <- (native where (each.state = POLE));
-		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
-		temp <- (native where (each.state = ADULT));
-		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
-		
-		temp <- (exotic where (each.state = SEEDLING));
-		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-		temp <- (exotic where (each.state = SAPLING));
-		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-		temp <- (exotic where (each.state = POLE));
-		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-		temp <- (exotic where (each.state = ADULT));
-		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-		
-		save [cycle, native_dbh_cm[0], native_dbh_cm[1], native_dbh_cm[2], native_dbh_cm[3], native_th_m[0], native_th_m[1], native_th_m[2], native_th_m[3], exotic_dbh_cm[0], exotic_dbh_cm[1], exotic_dbh_cm[2], exotic_dbh_cm[3], exotic_th_m[0], exotic_th_m[1], exotic_th_m[2], exotic_th_m[3]] rewrite: false to: "../results/tree-verification.csv" format:"csv" header: true;
+	reflex updateCashflow{
+    	partners_earning <- partners_earning+sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
+    	independent_earning <- independent_earning+sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
+    	investor_total_profit <- sum(investor collect each.total_profit); 
+    	total_investment_cost <- sum( investor collect each.total_investment);
+    	inv_harvested_trees <- sum(investor collect each.total_tree_harvested);
 	}
+	
+//	reflex collectTreeInformation{
+//		list<trees> temp;
+//		list<trees> native <- trees where (each.type = NATIVE);
+//		list<trees> exotic <- trees where (each.type = EXOTIC);
+//		
+//		list<float> native_dbh_cm <- [];
+//		list<float> native_th_m <- [];
+//		list<float> exotic_dbh_cm <- [];
+//		list<float> exotic_th_m <- [];
+//		  
+//		temp <- (native where (each.state = SEEDLING));
+//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
+//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;		
+//		temp <- (native where (each.state = SAPLING));
+//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
+//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
+//		temp <- (native where (each.state = POLE));
+//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
+//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
+//		temp <- (native where (each.state = ADULT));
+//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
+//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
+//		
+//		temp <- (exotic where (each.state = SEEDLING));
+//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
+//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
+//		temp <- (exotic where (each.state = SAPLING));
+//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
+//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
+//		temp <- (exotic where (each.state = POLE));
+//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
+//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
+//		temp <- (exotic where (each.state = ADULT));
+//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
+//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
+//		
+//		save [cycle, native_dbh_cm[0], native_dbh_cm[1], native_dbh_cm[2], native_dbh_cm[3], native_th_m[0], native_th_m[1], native_th_m[2], native_th_m[3], exotic_dbh_cm[0], exotic_dbh_cm[1], exotic_dbh_cm[2], exotic_dbh_cm[3], exotic_th_m[0], exotic_th_m[1], exotic_th_m[2], exotic_th_m[3]] rewrite: false to: "../results/tree-verification.csv" format:"csv" header: true;
+//	}
 	
 //	reflex save_results_explo{   	
 //    	save [cycle, investment_rotation_years, nursery_count, police_count, member_count, investor_count,
@@ -332,7 +332,7 @@ species university_si{
 	 float computeInvestmentCost(plot investable_plot){
 	 	
 	 	//establishment + management cost => considers laborers already  
-	 	float cost_to_support_investment <- ((MAINTENANCE_COST_PER_HA+ MAINTENANCE_MATCOST_PER_HA)*(investment_rotation_years*investor_percent_share))+INIT_ESTABLISHMENT_INVESTOR;
+	 	float cost_to_support_investment <- ((MAINTENANCE_COST_PER_HA)*(investment_rotation_years*investor_percent_share))+INIT_ESTABLISHMENT_INVESTOR;
 	 	
 	 	return cost_to_support_investment;
 	 }
@@ -375,7 +375,7 @@ species university_si{
 		float height; 
 		switch t_type{
 			match EXOTIC {
-				height <- (1.3 + 12.39916 * (1 - exp(-0.105*temp_dbh))^1.79);	//https://www.cifor-icraf.org/publications/pdf_files/Books/BKrisnawati1110.pdf 
+				height <- 1.3 + 12.39916 * (1 - exp(-0.105*temp_dbh))^1.79;	//https://www.cifor-icraf.org/publications/pdf_files/Books/BKrisnawati1110.pdf 
 			}
 			match NATIVE {
 				height <- 1.3+(temp_dbh/(1.5629+0.3461*temp_dbh))^3;	//https://d-nb.info/1002231884/34		
@@ -389,7 +389,7 @@ species university_si{
 	float getRoundwoodVolume(float th_dbh, int th_type, float th_th){
 		float rvolume <- 0.0; 
 		
-		rvolume <- ((th_th*0.4)*3.281);	//meters to feet 1m = 3.281foot
+		rvolume <- th_th*3.281;	//meters to feet 1m = 3.281foot
 		th_dbh <- th_dbh / 30.48;	//cm to feet 1cm =  0.0328084 foot
 		rvolume <- (((#pi*((th_dbh/2)^2)) + (#pi*(((th_dbh*0.5)/2)^2)))/2) * rvolume; 
 		

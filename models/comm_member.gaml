@@ -11,7 +11,7 @@ import "university_si.gaml"
 
 /* Insert your model definition here */
 global{
-	int member_count <- 30 update: member_count;
+	int member_count <- 15 update: member_count;
 	int waiting_allowance <- 12 update: waiting_allowance;
 	int MAX_WAITING_COMMITMENT <- 6;	//in months
 	

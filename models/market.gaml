@@ -48,10 +48,7 @@ species market{
 		float total_bdft <- 0.0;
 		
 		loop t over: tth{
-			//write "Tree dbh: "+t.dbh+" removed with bdft: "+getBDFT(t.dbh, t.type);
-			if(!dead(t)){
-				total_bdft <- total_bdft + getBDFT(t.dbh, t.type, t.th);	
-			}
+			total_bdft <- total_bdft + getBDFT(t.dbh, t.type, t.th);	
 		}
 		
 //		write "total_bdft: "+total_bdft;

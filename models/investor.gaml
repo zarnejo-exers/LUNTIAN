@@ -71,12 +71,12 @@ species investor control: fsm{
 				myself.investment_cost <- computeInvestmentCost(investable_plot);
 			}
 			bool decision <- decideOnRisk();
-//			write "deciding on investment - projected_profit:"+projected_profit+" investment_cost:"+investment_cost;
-//			write "	rt:"+rt+" decision: "+decision;
+			write "deciding on investment - projected_profit:"+projected_profit+" investment_cost:"+investment_cost;
+			write "	rt:"+rt+" decision: "+decision;
 			if(decision){
 				total_investments <- total_investments + 1;
 				my_iplot <- investable_plot;
-				//write "Commencing investment #"+total_investments+" by "+name+" on "+my_iplot.name;
+//				write "Commencing investment #"+total_investments+" by "+name+" on "+my_iplot.name;
 				location <- any_location_in(my_iplot);
 				investable_plot.is_invested <- true;
 				monthly_ITP_earning <- monthly_ITP_earning + investment_cost;

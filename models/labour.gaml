@@ -295,9 +295,7 @@ species labour control: fsm{
 		if(my_assigned_plot != nil and length(marked_trees) > 0 and month = 1){
 			location <- any_location_in(my_assigned_plot.location);
 			ask com_identity{
-				write "before independent harvesting computeEarning()";
 				do computeEarning();
-				write "after independent harvesting computeEarning()";
 			}
 			do cutMarkedTrees();
 		}else{
