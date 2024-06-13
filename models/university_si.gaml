@@ -332,7 +332,7 @@ species university_si{
 	 float computeInvestmentCost(plot investable_plot){
 	 	
 	 	//establishment + management cost => considers laborers already  
-	 	float cost_to_support_investment <- ((MAINTENANCE_COST_PER_HA)*(investment_rotation_years*investor_percent_share))+INIT_ESTABLISHMENT_INVESTOR;
+	 	float cost_to_support_investment <- ((MAINTENANCE_COST_PER_HA + MAINTENANCE_MATCOST_PER_HA)*(investment_rotation_years*investor_percent_share))+INIT_ESTABLISHMENT_INVESTOR;
 	 	
 	 	return cost_to_support_investment;
 	 }
@@ -453,8 +453,7 @@ species university_si{
 		
 		list<trees> tree70to80 <- (trees_above_th where (each.dbh >= 70 and each.dbh < 80));	//75% of trees with dbh[70, 80)
 		trees_above_th <- trees_above_th - tree70to80;
-		tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.50)]);
-		trees_above_th <- trees_above_th[0::int(length(trees_above_th)*0.75)];
+		tree70to80 <- (tree70to80[0::int(length(tree70to80)*0.75)]);
 		
 		return tree60to70 + tree70to80 + trees_above_th;
 	}
