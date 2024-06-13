@@ -15,7 +15,7 @@ import "university_si.gaml"
 global{
 	float risk_averse <- 0.5; 	//type = 0
 	float risk_loving <- 1.0;	//type = 1
-	int investor_count <- 10 update: investor_count;
+	int investor_count <- 15 update: investor_count;
 	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.95, "Neutral"::0.5];
 	
 	init{
@@ -67,7 +67,7 @@ species investor control: fsm{
 		
 		if(investable_plot != nil){
 			ask university_si{
-				myself.projected_profit <- projectProfit(myself, investable_plot, 0.15);
+				myself.projected_profit <- projectProfit(myself, investable_plot, 0.30);
 				myself.investment_cost <- computeInvestmentCost(investable_plot);
 			}
 			bool decision <- decideOnRisk();
@@ -155,7 +155,7 @@ species investor control: fsm{
 	    harvest_month_monitor <- harvest_month_monitor + 1;
 	    if(harvest_month_monitor = (investment_rotation_years*12)){
 	 		ask university_si{
-				do harvestITP(myself, myself.my_iplot, BOTH, 0.15);
+				do harvestITP(myself, myself.my_iplot, BOTH, 0.30);
 //				write "last harvest!";
 			}
 //			write "after last harvest with recent_profit="+recent_profit+" promised_profit="+projected_profit+" total_profit="+total_profit;

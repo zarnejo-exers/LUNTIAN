@@ -82,7 +82,7 @@ global{
 	float total_investment_cost <- 0.0;
 	int inv_harvested_trees <- 0; 
 	
-	float investor_percent_share <- 0.75 update: investor_percent_share;
+	float investor_percent_share <- 1.0 update: investor_percent_share;
 	//(2" x 4" x 8")
 	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
 	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35 
@@ -332,7 +332,7 @@ species university_si{
 	 float computeInvestmentCost(plot investable_plot){
 	 	
 	 	//establishment + management cost => considers laborers already  
-	 	float cost_to_support_investment <- ((MAINTENANCE_COST_PER_HA + MAINTENANCE_MATCOST_PER_HA)*(investment_rotation_years*investor_percent_share))+INIT_ESTABLISHMENT_INVESTOR;
+	 	float cost_to_support_investment <- (((MAINTENANCE_COST_PER_HA + MAINTENANCE_MATCOST_PER_HA)*(investment_rotation_years*investor_percent_share))+INIT_ESTABLISHMENT_INVESTOR)*1.5;
 	 	
 	 	return cost_to_support_investment;
 	 }

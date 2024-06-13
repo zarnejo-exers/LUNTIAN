@@ -26,7 +26,7 @@
 experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:( cycle > 264){
 	parameter "Investment rotation years" var: investment_rotation_years among: [10];
 	parameter "Special police" var: police_count among: [1];
-	parameter "Investor count" var: investor_count among: [10];
+	parameter "Investor count" var: investor_count among: [15];
 	parameter "Community members" var: member_count among: [15];
 //	reflex save_results_explo{   	
 //    	save [cycle, police_count, investor_count, member_count, nursery_count
