@@ -105,16 +105,8 @@ species comm_member control: fsm{
 		float profit <- 0.0;
 
 		ask market{
-			try{
-				thv_n <- getTotalBDFT((harvested_trees where (each.type = NATIVE)));
-			}catch{
-				write "in com_member line 109";
-			}
-			try{
-				thv_e <- getTotalBDFT((harvested_trees where (each.type = EXOTIC)));
-			}catch{
-				write "in com_member line 114";
-			}
+			thv_n <- getTotalBDFT((harvested_trees where (each.type = NATIVE)));
+			thv_e <- getTotalBDFT((harvested_trees where (each.type = EXOTIC)));
 			profit <- getProfit(NATIVE, thv_n) + getProfit(EXOTIC, thv_e);	
 		}
 		
@@ -155,12 +147,8 @@ species comm_member control: fsm{
 			}else if(instance_labour.is_harvest_labour){
 				float min_bdft;
 				float temp_height; 
-				
-				ask university_si{
-					temp_height <- calculateHeight(60.0, NATIVE);
-				}
 				ask market{
-					min_bdft <- getBDFT(60.0, NATIVE, temp_height);	//mean harvestable dbh = 60
+					min_bdft <- getBDFT(60.0, NATIVE, 20.0);	//mean harvestable dbh = 60
 				}
 				min_earning <- (HLABOUR_COST*min_bdft*(LABOUR_TCAPACITY/2));
 			}

@@ -84,8 +84,8 @@ global{
 	
 	float investor_percent_earning_share <- 0.4 update: investor_percent_earning_share;
 	//(2" x 4" x 8")
-	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
-	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35 
+	float exotic_price_per_bdft <- (45.06)*(2) update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
+	float native_price_per_bdft <- (49.35)*(2) update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35 
 	
 	init{
 		create market;
@@ -101,61 +101,60 @@ global{
 		management_running_cost <- INIT_COST;	//infrastructure cost at the beginning
 	}
 	
-	reflex updateCashflow{
-    	m_partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
-    	m_independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
-    	investor_total_profit <- sum(investor collect each.total_profit); 
-    	total_investment_cost <- sum( investor collect each.total_investment);
-    	inv_harvested_trees <- sum(investor collect each.total_tree_harvested);
-	}
-	
-//	reflex collectTreeInformation{
-//		list<trees> temp;
-//		list<trees> native <- trees where (each.type = NATIVE);
-//		list<trees> exotic <- trees where (each.type = EXOTIC);
-//		
-//		list<float> native_dbh_cm <- [];
-//		list<float> native_th_m <- [];
-//		list<float> exotic_dbh_cm <- [];
-//		list<float> exotic_th_m <- [];
-//		  
-//		temp <- (native where (each.state = SEEDLING));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;		
-//		temp <- (native where (each.state = SAPLING));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
-//		temp <- (native where (each.state = POLE));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
-//		temp <- (native where (each.state = ADULT));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
-//		
-//		temp <- (exotic where (each.state = SEEDLING));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-//		temp <- (exotic where (each.state = SAPLING));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-//		temp <- (exotic where (each.state = POLE));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-//		temp <- (exotic where (each.state = ADULT));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-//		
-//		save [cycle, native_dbh_cm[0], native_dbh_cm[1], native_dbh_cm[2], native_dbh_cm[3], native_th_m[0], native_th_m[1], native_th_m[2], native_th_m[3], exotic_dbh_cm[0], exotic_dbh_cm[1], exotic_dbh_cm[2], exotic_dbh_cm[3], exotic_th_m[0], exotic_th_m[1], exotic_th_m[2], exotic_th_m[3]] rewrite: false to: "../results/tree-verification.csv" format:"csv" header: true;
+//	reflex updateCashflow{
+//    	m_partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
+//    	m_independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
+//    	investor_total_profit <- sum(investor collect each.total_profit); 
+//    	total_investment_cost <- sum( investor collect each.total_investment);
+//    	inv_harvested_trees <- sum(investor collect each.total_tree_harvested);
 //	}
 	
+	reflex collectTreeInformation{
+		list<trees> temp;
+		list<trees> native <- trees where (each.type = NATIVE);
+		list<trees> exotic <- trees where (each.type = EXOTIC);
+		
+		list<float> native_dbh_cm <- [];
+		list<float> native_th_m <- [];
+		list<float> exotic_dbh_cm <- [];
+		list<float> exotic_th_m <- [];
+		  
+		temp <- (native where (each.state = SEEDLING));
+		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
+		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;		
+		temp <- (native where (each.state = SAPLING));
+		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
+		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
+		temp <- (native where (each.state = POLE));
+		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
+		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
+		temp <- (native where (each.state = ADULT));
+		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
+		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
+		
+		temp <- (exotic where (each.state = SEEDLING));
+		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
+		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
+		temp <- (exotic where (each.state = SAPLING));
+		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
+		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
+		temp <- (exotic where (each.state = POLE));
+		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
+		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
+		temp <- (exotic where (each.state = ADULT));
+		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
+		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
+		
+		save [cycle, native_dbh_cm[0], native_dbh_cm[1], native_dbh_cm[2], native_dbh_cm[3], native_th_m[0], native_th_m[1], native_th_m[2], native_th_m[3], exotic_dbh_cm[0], exotic_dbh_cm[1], exotic_dbh_cm[2], exotic_dbh_cm[3], exotic_th_m[0], exotic_th_m[1], exotic_th_m[2], exotic_th_m[3]] rewrite: false to: "../results/[s]tree-verification.csv" format:"csv" header: true;
+	}
+	
 //	reflex save_results_explo{   	
-//		/*length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-//		 *	length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-//		 */
-//    	save [cycle, investment_rotation_years, nursery_count, police_count, member_count, investor_count, investor_percent_earning_share,
+//    	save [cycle, investment_rotation_years, nursery_count, police_count, member_count, investor_count, investor_percent_earning_share, exotic_price_per_bdft, native_price_per_bdft,
+//    		length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)),
+//    		length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
 //			management_running_cost,ITP_running_earning,net_running_earning,
 //			m_partners_earning, m_independent_earning,
-//			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees] rewrite: false to: "../results/percent_earning.csv" format:"csv" header: true;		
+//			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees] rewrite: false to: "../results/0-4*2_percent_earning.csv" format:"csv" header: true;		
 //	}
 }
 
@@ -333,7 +332,7 @@ species university_si{
 	 float computeInvestmentCost(plot investable_plot){
 	 	
 	 	//establishment + management cost => considers laborers already  
-	 	float cost_to_support_investment <- (((MAINTENANCE_COST_PER_HA + MAINTENANCE_MATCOST_PER_HA)*(investment_rotation_years))+INIT_ESTABLISHMENT_INVESTOR)*1.5;
+	 	float cost_to_support_investment <- (((MAINTENANCE_COST_PER_HA + MAINTENANCE_MATCOST_PER_HA)*(investment_rotation_years))+INIT_ESTABLISHMENT_INVESTOR);
 	 	
 	 	return cost_to_support_investment;
 	 }
@@ -344,18 +343,9 @@ species university_si{
 		//current harvestable
 		list<trees> current_harvestables <- getTreesToHarvestSH(investable_plot.plot_trees);
 		ask market {
-			float total_bdft_n;
-			try{
-				total_bdft_n <- getTotalBDFT(current_harvestables where (each.type = NATIVE));	
-			}catch{
-				write "in uni_si, line 348";
-			}
-			float total_bdft_e;
-			try{
-				total_bdft_e <- getTotalBDFT(current_harvestables where (each.type = EXOTIC));
-			}catch{
-				write "in uni_si, line 355";
-			}
+			float total_bdft_n <- getTotalBDFT(current_harvestables where (each.type = NATIVE));	
+			float total_bdft_e <- getTotalBDFT(current_harvestables where (each.type = EXOTIC));
+			
 			projected_profit <- (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*i_share;
 		}
 
@@ -369,18 +359,9 @@ species university_si{
 		future_harvestables <- getTreesToHarvestSH(future_harvestables);
 		
 		ask market {
-			float total_bdft_n;
-			try{
-				total_bdft_n <- getTotalBDFT(future_harvestables where (each.type = NATIVE));
-			}catch{
-				write "in uni_si, line 374";
-			}
-			float total_bdft_e;
-			try{
-				total_bdft_e <- getTotalBDFT(future_harvestables where (each.type = EXOTIC));
-			}catch{
-				write "in uni_si, line 374";
-			}
+			float total_bdft_n <- getTotalBDFT(future_harvestables where (each.type = NATIVE));
+			float total_bdft_e <- getTotalBDFT(future_harvestables where (each.type = EXOTIC));
+			
 			projected_profit <- projected_profit + (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*i_share;
 		}
 		
@@ -390,21 +371,6 @@ species university_si{
 		
 		return projected_profit; 
 	}	
-	
-	//STATUS: CHECKED
-	float calculateHeight(float temp_dbh, int t_type){
-		float height; 
-		switch t_type{
-			match EXOTIC {
-				height <- 1.3 + 12.39916 * (1 - exp(-0.105*temp_dbh))^1.79;	//https://www.cifor-icraf.org/publications/pdf_files/Books/BKrisnawati1110.pdf 
-			}
-			match NATIVE {
-				height <- 1.3+(temp_dbh/(1.5629+0.3461*temp_dbh))^3;	//https://d-nb.info/1002231884/34		
-			}
-		}
-		
-		return height;	//in m
-	}
 	
 	//https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/harvest-billing/timber-scaling/scale_ch4.pdf
 	float getRoundwoodVolume(float th_dbh, int th_type, float th_th){
@@ -545,9 +511,7 @@ species university_si{
 			is_new_tree <- true; 
 			shade_tolerant <- true;
 			state <- SAPLING;
-			ask university_si{
-				myself.th <- calculateHeight(myself.dbh, myself.type);	
-			}
+			do calculateHeight;
 			basal_area <- #pi * (dbh^2)/40000;
 			my_plot <- nil;
 			location <- point(0,0,0);
@@ -642,11 +606,7 @@ species university_si{
 				state <- "assigned_itp_harvester";	
 				location <- current_plot.location;
 				ask market{
-					try{
-						total_bdft <- total_bdft + getTotalBDFT(myself.marked_trees);
-					}catch{
-						write "in uni_si line 646";
-					}
+					total_bdft <- total_bdft + getTotalBDFT(myself.marked_trees);
 				}
 			}
 			remove labour_instance from: hh;

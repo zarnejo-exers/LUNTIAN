@@ -108,22 +108,12 @@ global {
 		
 		
 		create trees from: trees_shapefile{
-			dbh <- float(read("Book2_DBH"));
-			mh <- float(read("Book2_MH"));				
+			dbh <- float(read("Book2_DBH"));				
 			r <- float(read("Book2_R"));		
 			type <- (string(read("Book2_Clas")) = "Native")? NATIVE:EXOTIC;	
 			
-			ask university_si{
-				myself.th <- calculateHeight(myself.dbh, myself.type);	
-			}
 			basal_area <- #pi * (dbh^2)/40000;
 			do setState();
-			
-			if(mh > th){
-				float temp_ <- mh;
-				mh <- th;
-				th <- temp_;
-			}
 			
 			if(type = EXOTIC){ //exotic trees, mahogany
 				age <- self.dbh/growth_rate_exotic;
@@ -132,6 +122,9 @@ global {
 				age <- self.dbh/growth_rate_native;
 				shade_tolerant <- true;
 			}
+			do calculateHeight;
+			
+			write "dbh: "+dbh+" th: "+th;
 		}
 		write "Done reading trees...";
 		
@@ -245,7 +238,6 @@ species trees{
 	float dbh; //diameter at breast height
 	float temp_dbh;	//for forecasting
 	float th; //total height
-	float mh;	//merchantable height
 	float r; //distance from tree to a point 
 	int type;  //0-palosapis; 1-mahogany
 	float age;
@@ -350,6 +342,20 @@ species trees{
 		}
 	}		
 	
+	//STATUS: CHECKED
+	// in m
+	action calculateHeight{
+		switch type{
+			match EXOTIC {
+				th <- 1.3 + 12.39916 * (1 - exp(-0.105*dbh))^1.79;	//https://www.cifor-icraf.org/publications/pdf_files/Books/BKrisnawati1110.pdf 
+			}
+			match NATIVE {
+				th <- 1.3+(dbh/(1.5629+0.3461*dbh))^3;	//https://d-nb.info/1002231884/34		
+			}
+		}
+		
+	}
+	
 	//doesn't yet inhibit growth of tree
 	action treeGrowthIncrement{
 		float prev_dbh <- dbh;
@@ -362,9 +368,8 @@ species trees{
 			dbh <- max_dbh_per_class[type][ADULT];
 		}
 		
-		ask university_si{
-			myself.th <- calculateHeight(myself.dbh, myself.type);	
-		}
+		do calculateHeight;	
+
 		do setState();
 	}
 	
@@ -410,9 +415,7 @@ species trees{
 				t.shade_tolerant <- self.shade_tolerant;
 				t.is_new_tree <- true;
 				t.location <- my_circ.location;	
-				ask university_si{
-					t.th <- calculateHeight(t.dbh, t.type);	
-				}
+				do calculateHeight;
 				t.basal_area <- #pi * (t.dbh^2)/40000;
 				add t to: t.my_plot.plot_trees;
 				ask t{
