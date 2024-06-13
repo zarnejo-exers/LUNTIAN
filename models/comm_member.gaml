@@ -148,8 +148,13 @@ species comm_member control: fsm{
 				min_earning <- (LABOUR_COST*MD_INVESTED_MAINTENANCE);
 			}else if(instance_labour.is_harvest_labour){
 				float min_bdft;
+				float temp_height; 
+				
+				ask university_si{
+					temp_height <- calculateHeight(60.0, NATIVE);
+				}
 				ask market{
-					min_bdft <- getBDFT(60.0, NATIVE);	//mean harvestable dbh = 60
+					min_bdft <- getBDFT(60.0, NATIVE, temp_height);	//mean harvestable dbh = 60
 				}
 				min_earning <- (HLABOUR_COST*min_bdft*(LABOUR_TCAPACITY/2));
 			}

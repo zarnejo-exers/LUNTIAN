@@ -30,26 +30,26 @@ species market{
 		return multiplier;
 	}
 	
-	float getBDFT(float dbh, int type){
+	float getBDFT(float dbh, int type, float th){
 		float bdft;
 		float multiplier <- getMultiplier(dbh);
-//		write " >dbh: "+dbh; 
 		ask university_si{
 //			write " >> round wood volume: "+getRoundwoodVolume(dbh, type);
-			bdft <- getRoundwoodVolume(dbh, type)*multiplier;	//https://www.montana.edu/extension/forestry/projectlearningtree/activitybooklets/Estimating%20Individual%20Tree%20Volume.pdf
+			bdft <- getRoundwoodVolume(dbh, type, th)*multiplier;	//https://www.montana.edu/extension/forestry/projectlearningtree/activitybooklets/Estimating%20Individual%20Tree%20Volume.pdf
 //			write " >> with multiplier: "+multiplier;
 		}
+		
+		//write "current: "+bdft;
 		return bdft;
 	}
-	
-	
+
 	//cubic feet
 	float getTotalBDFT(list<trees> tth){
 		float total_bdft <- 0.0;
 		
 		loop t over: tth{
 			//write "Tree dbh: "+t.dbh+" removed with bdft: "+getBDFT(t.dbh, t.type);
-			total_bdft <- total_bdft + getBDFT(t.dbh, t.type);
+			total_bdft <- total_bdft + getBDFT(t.dbh, t.type, t.th);
 		}
 		
 //		write "total_bdft: "+total_bdft;

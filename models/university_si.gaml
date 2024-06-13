@@ -32,7 +32,7 @@ global{
 	float HLABOUR_COST <- 16.21;	//https://www.mdpi.com/1999-4907/7/8/152
 	
 	int average_no_trees_in1ha <- 20;
-	int police_count <- 1 update: police_count;
+	int police_count <- 0 update: police_count;
 	int police_neighborhood <- 16 update: police_neighborhood;
 	int laborer_count <- 20 update: laborer_count; 
 	int nursery_count <- 1 update: nursery_count; 
@@ -347,14 +347,12 @@ species university_si{
 	}
 	
 	//https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/harvest-billing/timber-scaling/scale_ch4.pdf
-	float getRoundwoodVolume(float th_dbh, int th_type){
+	float getRoundwoodVolume(float th_dbh, int th_type, float th_th){
 		float rvolume <- 0.0; 
-		rvolume <- ((calculateHeight(th_dbh, th_type)*0.4)*3.281);	//meters to feet 1m = 3.281foot
 		
+		rvolume <- ((th_th*0.4)*3.281);	//meters to feet 1m = 3.281foot
 		th_dbh <- th_dbh / 30.48;	//cm to feet 1cm =  0.0328084 foot
-		rvolume <- (((#pi*((th_dbh/2)^2)) + (#pi*(((th_dbh*0.5)/2)^2)))/2) * rvolume;
-//		write "round volume in m^3: "+rvolume;
-//		write "round volume in f^3: "+rvolume*35.315; 
+		rvolume <- (((#pi*((th_dbh/2)^2)) + (#pi*(((th_dbh*0.5)/2)^2)))/2) * rvolume; 
 		
 		return rvolume;	//in cubic foot
 	}	 	
