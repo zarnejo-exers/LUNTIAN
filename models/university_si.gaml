@@ -76,13 +76,13 @@ global{
 	 float n_adult_ave_DBH <- 60.0;
 	 float e_adult_ave_DBH <- 90.0;
 	 
-	float partners_earning <- 0.0;
-	float independent_earning <- 0.0;
+	float m_partners_earning <- 0.0;
+	float m_independent_earning <- 0.0;
 	float investor_total_profit <- 0.0;
 	float total_investment_cost <- 0.0;
 	int inv_harvested_trees <- 0; 
 	
-	float investor_percent_share <- 1.0 update: investor_percent_share;
+	float investor_percent_earning_share <- 0.4 update: investor_percent_earning_share;
 	//(2" x 4" x 8")
 	float exotic_price_per_bdft <- 45.06 update: exotic_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
 	float native_price_per_bdft <- 49.35 update: native_price_per_bdft;	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35 
@@ -102,8 +102,8 @@ global{
 	}
 	
 	reflex updateCashflow{
-    	partners_earning <- partners_earning+sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
-    	independent_earning <- independent_earning+sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
+    	m_partners_earning <- sum((comm_member where (each.state = "labour_partner")) collect each.current_earning);
+    	m_independent_earning <- sum((comm_member where (each.state = "independent_harvesting")) collect each.current_earning);
     	investor_total_profit <- sum(investor collect each.total_profit); 
     	total_investment_cost <- sum( investor collect each.total_investment);
     	inv_harvested_trees <- sum(investor collect each.total_tree_harvested);
@@ -149,12 +149,13 @@ global{
 //	}
 	
 //	reflex save_results_explo{   	
-//    	save [cycle, investment_rotation_years, nursery_count, police_count, member_count, investor_count,
-//	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-//			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+//		/*length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+//		 *	length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+//		 */
+//    	save [cycle, investment_rotation_years, nursery_count, police_count, member_count, investor_count, investor_percent_earning_share,
 //			management_running_cost,ITP_running_earning,net_running_earning,
-//			partners_earning, independent_earning,
-//			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees] rewrite: false to: "../results/new_height-experiment.csv" format:"csv" header: true;		
+//			m_partners_earning, m_independent_earning,
+//			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees] rewrite: false to: "../results/percent_earning.csv" format:"csv" header: true;		
 //	}
 }
 
@@ -332,7 +333,7 @@ species university_si{
 	 float computeInvestmentCost(plot investable_plot){
 	 	
 	 	//establishment + management cost => considers laborers already  
-	 	float cost_to_support_investment <- (((MAINTENANCE_COST_PER_HA + MAINTENANCE_MATCOST_PER_HA)*(investment_rotation_years*investor_percent_share))+INIT_ESTABLISHMENT_INVESTOR)*1.5;
+	 	float cost_to_support_investment <- (((MAINTENANCE_COST_PER_HA + MAINTENANCE_MATCOST_PER_HA)*(investment_rotation_years))+INIT_ESTABLISHMENT_INVESTOR)*1.5;
 	 	
 	 	return cost_to_support_investment;
 	 }
@@ -343,8 +344,18 @@ species university_si{
 		//current harvestable
 		list<trees> current_harvestables <- getTreesToHarvestSH(investable_plot.plot_trees);
 		ask market {
-			float total_bdft_n <- getTotalBDFT(current_harvestables where (each.type = NATIVE));
-			float total_bdft_e <- getTotalBDFT(current_harvestables where (each.type = EXOTIC));
+			float total_bdft_n;
+			try{
+				total_bdft_n <- getTotalBDFT(current_harvestables where (each.type = NATIVE));	
+			}catch{
+				write "in uni_si, line 348";
+			}
+			float total_bdft_e;
+			try{
+				total_bdft_e <- getTotalBDFT(current_harvestables where (each.type = EXOTIC));
+			}catch{
+				write "in uni_si, line 355";
+			}
 			projected_profit <- (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*i_share;
 		}
 
@@ -358,8 +369,18 @@ species university_si{
 		future_harvestables <- getTreesToHarvestSH(future_harvestables);
 		
 		ask market {
-			float total_bdft_n <- getTotalBDFT(future_harvestables where (each.type = NATIVE));
-			float total_bdft_e <- getTotalBDFT(future_harvestables where (each.type = EXOTIC));
+			float total_bdft_n;
+			try{
+				total_bdft_n <- getTotalBDFT(future_harvestables where (each.type = NATIVE));
+			}catch{
+				write "in uni_si, line 374";
+			}
+			float total_bdft_e;
+			try{
+				total_bdft_e <- getTotalBDFT(future_harvestables where (each.type = EXOTIC));
+			}catch{
+				write "in uni_si, line 374";
+			}
 			projected_profit <- projected_profit + (getProfit(NATIVE, total_bdft_n) + getProfit(EXOTIC, total_bdft_e))*i_share;
 		}
 		
@@ -599,10 +620,6 @@ species university_si{
 	//marked the trees and harvests
 	float sendHarvesters(list<labour> hh, plot pth, list<trees> trees_to_harvest){
 		float total_bdft;
-		ask market{
-			total_bdft <- getTotalBDFT(trees_to_harvest);	
-		}
-		
 		remove trees_to_harvest from: pth.plot_trees;
 		
 		pth.is_harvested <- true;
@@ -624,6 +641,13 @@ species university_si{
 				add all: to_harvest to: marked_trees;
 				state <- "assigned_itp_harvester";	
 				location <- current_plot.location;
+				ask market{
+					try{
+						total_bdft <- total_bdft + getTotalBDFT(myself.marked_trees);
+					}catch{
+						write "in uni_si line 646";
+					}
+				}
 			}
 			remove labour_instance from: hh;
 			remove all: to_harvest from: trees_to_harvest;

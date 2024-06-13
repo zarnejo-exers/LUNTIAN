@@ -105,8 +105,16 @@ species comm_member control: fsm{
 		float profit <- 0.0;
 
 		ask market{
-			thv_n <- getTotalBDFT((myself.instance_labour.marked_trees where (each.type = NATIVE)));	
-			thv_e <- getTotalBDFT((myself.instance_labour.marked_trees where (each.type = EXOTIC)));
+			try{
+				thv_n <- getTotalBDFT((harvested_trees where (each.type = NATIVE)));
+			}catch{
+				write "in com_member line 109";
+			}
+			try{
+				thv_e <- getTotalBDFT((harvested_trees where (each.type = EXOTIC)));
+			}catch{
+				write "in com_member line 114";
+			}
 			profit <- getProfit(NATIVE, thv_n) + getProfit(EXOTIC, thv_e);	
 		}
 		
@@ -115,7 +123,7 @@ species comm_member control: fsm{
 	
 	action markTrees{
 		
-		list<trees> chosen_trees <- instance_labour.my_assigned_plot.plot_trees where (each.dbh > 10);
+		list<trees> chosen_trees <- instance_labour.my_assigned_plot.plot_trees where (each.dbh > 10 and !each.is_marked and !each.is_illegal);
 		 
 		if(length(chosen_trees) > 0){
 			chosen_trees <- reverse(chosen_trees sort_by each.dbh);
@@ -124,6 +132,7 @@ species comm_member control: fsm{
 			ask instance_labour.marked_trees{
 				location <- point(0,0,0);
 				is_illegal <- true;
+				is_marked <- true;
 			}		
 		}
 	}	
