@@ -168,6 +168,7 @@ species comm_member control: fsm{
 	    bool satisfied; 
 	    commitment_earning <- commitment_earning + current_earning;
 	    total_earning <- total_earning + current_earning;
+	    m_partners_earning <- m_partners_earning + current_earning;
 	 	current_earning <- 0.0;
 	 	
 	 	if(month = MAX_WAITING_COMMITMENT){
@@ -217,6 +218,8 @@ species comm_member control: fsm{
 	        total_earning <- total_earning - current_earning;
 	        current_earning <- 0.0; 
 	    } 	
+	    
+	    m_independent_earning <- m_independent_earning + current_earning;
 		
 	    //before you even start to harvest, check if there are prospects of being hired
 	    //if there's hiring prospective, choose to cooperate
