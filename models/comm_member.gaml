@@ -95,6 +95,7 @@ species comm_member control: fsm{
 		current_earning <- estimateValue(instance_labour.marked_trees);	//compute earning of community member"
 		success <- success + 1;
 		total_earning <- total_earning + current_earning;
+		m_independent_earning <- m_independent_earning + current_earning;
 	}
 
 	//uses the same metrics as with the university in terms of determining the cost per harvested tree
@@ -197,9 +198,9 @@ species comm_member control: fsm{
 	state independent_harvesting { 
 		enter{
 			instance_labour.state <- "independent";
+			current_earning <- 0.0;	
 		}
 
-		current_earning <- 0.0;	
 		loop i from: 0 to: 2{	//will look for plot three times then stop
 			do findPlot();	//find the plot where to harvest
 			if(instance_labour.my_assigned_plot != nil){
@@ -207,26 +208,26 @@ species comm_member control: fsm{
 				break;
 			}	
 		}
-
+		 
  	 	//after harvesting, gets alerted of being caught 
  	 	transition to: independent_passive when: (is_caught) { 	//if caught 
 	        success <- success - 1;
 	        caught <- caught + 1; 
 	        is_caught <- false;
 	        
-	        //when caught 
+	        //when caught
 	        total_earning <- total_earning - current_earning;
+	        m_independent_earning <- m_independent_earning - current_earning;
 	        current_earning <- 0.0; 
-	    } 	
-		
-		m_independent_earning <- m_independent_earning + current_earning;
-		
+	    }
+	    
+
 	    //before you even start to harvest, check if there are prospects of being hired
 	    //if there's hiring prospective, choose to cooperate
 	    transition to: potential_partner when: (length(instance_labour.marked_trees) = 0 or hiring_calls > 0){
 	    	if(hiring_calls > 0) {hiring_calls <- hiring_calls - 1;}
 	    }
-	    
+
 	    exit{
 	    	if(instance_labour.my_assigned_plot != nil){
 				remove instance_labour from: instance_labour.my_assigned_plot.my_laborers;	

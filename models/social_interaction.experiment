@@ -10,26 +10,13 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	/** Insert here the definition of the inputs and outputs of the model */
 	
 	/** Parameters can be used to input values to the model **/
-	parameter "Total count of investors" category: "Investors" var: investor_count min: 0 step: 1;
-	parameter "Rotation years" category: "Investors" var: investment_rotation_years;
-	
-	parameter "Total count of community members" category: "Community Members" var: member_count min: 0 step: 1;
-	parameter "Waiting allowance" category: "Community Members" var: waiting_allowance min: 0 step: 1;
-	
-	parameter "Initial police count" category: "Special Police" var: police_count min: 0 step: 1;
-	
-	parameter "(E) Age for planting" category: "Exotic Setup"  var:min_dbh_exotic;
-	parameter "(N) Age for planting" category: "Native Setup"  var:min_dbh_native;
-	
-	parameter "Number of laborers" category: "Management" var: laborer_count min: 0 step: 1;
-	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count min: 0 step: 1;
-	
-	parameter "(E) Growth rate " category: "Exotic Setup" var:growth_rate_exotic;
-	parameter "(N) Growth rate" category: "Native Setup" var:growth_rate_native;
-	
-	parameter "Investor's share on investment cost" category: "Experiment" var: investor_percent_earning_share;
-	parameter "Exotic buying price per bdft" category: "Experiment" var: exotic_price_per_bdft;
-	parameter "Native buying price per bdft" category: "Experiment" var: native_price_per_bdft;
+	parameter "Investor percent earning share" var: investor_percent_earning_share among: [0.3, 0.4];
+	parameter "Investment rotation years" var: investment_rotation_years among: [10, 20];
+	parameter "Investor count" var: investor_count among: [10, 30];
+ 	parameter "Nursery count" var: nursery_count among: [1, 4];	
+	parameter "Special police" var: police_count among: [1, 3, 10];
+	parameter "Community members" var: member_count among: [30, 15, 50];
+	parameter "Price multiplier" var: price_multiplier among: [1.0, 2.0];	
 	
 	output {
 		
