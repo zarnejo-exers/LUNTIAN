@@ -29,14 +29,14 @@ experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_
 	parameter "Investor count" var: investor_count among: [10, 30];
  	parameter "Nursery count" var: nursery_count among: [1, 4];	
 	parameter "Special police" var: police_count among: [1, 3];
-	parameter "Community members" var: member_count among: [15, 30];
+	parameter "Community members" var: member_count among: [30, 15];
 	parameter "Price multiplier" var: price_multiplier among: [1.0, 2.0];
 	reflex save_results_explo{   	
-    	save [seed, cycle, investment_rotation_years, nursery_count, police_count, member_count, investor_count, investor_percent_earning_share, exotic_price_per_bdft, native_price_per_bdft,
-    		length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)),
-    		length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+    	save [seed, cycle, investment_rotation_years, nursery_count, police_count, member_count, investor_count, exotic_price_per_bdft, native_price_per_bdft,investor_percent_earning_share,
+	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
 			management_running_cost,ITP_running_earning,net_running_earning,
 			m_partners_earning, m_independent_earning,
-			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees, started_investment] rewrite: false to: "../results/batch_experiment.csv" format:"csv" header: true;		
+			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees, with_investment] rewrite: false to: "../results/batch_experiment.csv" format:"csv" header: true;		
 	}
 }
