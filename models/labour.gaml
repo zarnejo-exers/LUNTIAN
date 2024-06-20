@@ -47,40 +47,6 @@ species labour control: fsm{
 	reflex removeDeadTrees{
 		my_trees <- my_trees where !dead(each);
 	}
-	
-	//laborer gets as much tree as it can get 
-	//returns remaining unallocated trees
-	list<trees> getTrees(list<trees> treeToBeAlloc){
-		if(length(treeToBeAlloc) >= self.carrying_capacity){			//there are more trees than the laborer can hold
-			self.my_trees <<+ treeToBeAlloc[0::self.carrying_capacity];
-			treeToBeAlloc >>- treeToBeAlloc[0::self.carrying_capacity];		
-		}else{	//the number of trees isn't enough to make the laborer go back to the nursery to plant
-			self.my_trees <<+ treeToBeAlloc;	//get all the trees
-			treeToBeAlloc <- [];		//set the new unassigned trees to empty
-		}
-		
-		ask self.my_trees where each.is_new_tree{	//all allocated trees are no longer new trees
-			is_new_tree <- false;
-		}
-		return treeToBeAlloc;
-	}
-	
-	//First, look at the neighborhood of the nursery for any plot with seedlings, if there is proceed with gathering
-	//If there is none, put the laborer at the farthest position in the neighborhood so that the next time he will search on that new neighborhood
-	plot findPlotWithSeedlings{
-		list<plot> neighborhood <- plot at_distance 150;
-		ask neighborhood{
-			list<trees> seedlings <- plot_trees where (each.state = SEEDLING);
-			if(length(seedlings) > 0){
-				return self;
-			}
-		}		
-		
-		current_plot <- neighborhood farthest_to self;
-		location <- any_location_in(current_plot.location);
-		
-		return nil;	 
-	}
 
 	//if source_plot = nil, then it is not a nursery plot
 	list<trees> plantInPlot(list<trees> trees_to_plant, plot pt_plant){
@@ -144,12 +110,17 @@ species labour control: fsm{
 	}
 	
 	action gatherSaplings{
-		list<trees> saplings_in_nurseries <- my_trees where (each.my_plot != nil);	//trees without plot are bought saplings
+		list<trees> saplings_in_nurseries <- [];
+		ask university_si{
+			add all: (my_saplings where (each.my_plot != nil)) to: saplings_in_nurseries;
+		}
 		
 		ask saplings_in_nurseries{
 			remove self from: my_plot.plot_trees;
 			location <- point(0,0,0);
 			myself.location <- any_location_in(my_plot.location);
+			my_plot <- nil;
+			add self to: myself.my_trees;
 		}
 	}
 	

@@ -185,6 +185,6 @@ species investor control: fsm{
 	}
 	
 	state end_investment{
-		write "End investment for investor "+name;
+		write "!End investment for investor "+name;
 	}
 }
