@@ -580,8 +580,7 @@ species trees{
 }
 
 species plot{
-	float stand_basal_area <- plot_trees sum_of (each.basal_area) update: plot_trees sum_of (each.basal_area);
-	int native_count <- plot_trees count (each.type = NATIVE) update: plot_trees count (each.type = NATIVE);
+	float stand_basal_area <- plot_trees sum_of (each.basal_area);
 	float my_pH <- (soil closest_to location).soil_pH;
 	climate my_climate <- climate closest_to location;
 	
@@ -617,6 +616,14 @@ species plot{
 		
 		return computeCoeff(curr_water, percent_precip, t_type);
 	}
+	
+	reflex updateStandBasalArea{
+		if(length(plot_trees) > 0){
+			stand_basal_area <-  plot_trees sum_of (each.basal_area);
+		}else{
+			stand_basal_area <- 0.0;
+		}
+	}
 		
 	//STATUS: CHECKED
 	//per plot
@@ -628,6 +635,7 @@ species plot{
 		list<trees> adult_trees <- reverse((plot_trees where (each.state = ADULT and each.age >= 15 and each.type=NATIVE and each.counter_to_next_recruitment = 0)) sort_by (each.dbh));	//get all adult trees in the plot
 		if(length(adult_trees) > 0){	//if count > 1, compute total number of recruits
 			int length_adult_trees <- length(adult_trees);
+			int native_count <- plot_trees count (each.type = NATIVE);
 			int total_no_of_native_recruits_in_plot <- int(4.202 + (0.017*native_count) + (-0.126*stand_basal_area));
 			if(total_no_of_native_recruits_in_plot > 0){
 				int recruits_per_adult_trees <- int(total_no_of_native_recruits_in_plot/length_adult_trees)+1;
