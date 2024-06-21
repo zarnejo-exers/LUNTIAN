@@ -43,11 +43,6 @@ species labour control: fsm{
 		}
 	}
 
-	//when tree dies, it is removed from the plot but the laborer isn't aware yet that it has died	
-	reflex removeDeadTrees{
-		my_trees <- my_trees where !dead(each);
-	}
-
 	//if source_plot = nil, then it is not a nursery plot
 	list<trees> plantInPlot(list<trees> trees_to_plant, plot pt_plant){
 		list<trees> planted_trees <- [];
@@ -99,9 +94,10 @@ species labour control: fsm{
 			
 			//remove the seedlings from the plot
 			ask all_seedlings{
-				remove self from: my_plot.plot_trees;	//remove it from where it is currently planted
+				remove self from: c_plot.plot_trees;	//remove it from where it is currently planted
 				add self to: myself.my_trees;	//my_trees is the bag of the laborer to hold the trees it had gathered
 				location <- point(0,0,0);	//no location, meaning the tree is currenltly held by laborer
+				my_plot <- nil;
 			}
 			
 			return all_seedlings;	
@@ -109,26 +105,14 @@ species labour control: fsm{
 		return nil;
 	}
 	
-	action gatherSaplings{
-		list<trees> saplings_in_nurseries <- [];
-		ask university_si{
-			add all: (my_saplings where (each.my_plot != nil)) to: saplings_in_nurseries;
-		}
-		
-		ask saplings_in_nurseries{
-			remove self from: my_plot.plot_trees;
-			location <- point(0,0,0);
-			myself.location <- any_location_in(my_plot.location);
-			my_plot <- nil;
-			add self to: myself.my_trees;
-		}
-	}
-	
 	action plantInSquare{
 		list<trees> planted_trees <- [];
 		loop tnp over: my_trees{
 			if(planting_spaces != []){
 				geometry sq <- planting_spaces[0];
+				if(tnp.my_plot != nil){
+					remove tnp from: tnp.my_plot.plot_trees;	
+				}
 				add tnp to: my_assigned_plot.plot_trees;	//move to pt_plant
 				tnp.my_plot <- my_assigned_plot;	//put the tree in the plot
 				tnp.location <- any_location_in(sq.location);
@@ -196,8 +180,6 @@ species labour control: fsm{
 	
 	//ITP planter
 	state assigned_planter{
-		//go to nurseries and get trees as much as it can carry => carrying_capacity
-		do gatherSaplings();
 		do plantInSquare();
 		ask university_si{
 			do payLaborer(myself, MD_ITP_PLANTING/myself.count_of_colaborers);	//assigned planter mandays

@@ -607,22 +607,14 @@ species plot{
 	bool is_ANR <- false;
 	bool is_harvested <- false;
 	
-	int exotic_trees <- length(plot_trees where (each.type = EXOTIC)) update: length(plot_trees where (each.type = EXOTIC));
-	int native_trees <- length(plot_trees where (each.type = NATIVE)) update: length(plot_trees where (each.type = NATIVE));
+	int exotic_trees <- length(plot_trees where (each.type = EXOTIC));
+	int native_trees <- length(plot_trees where (each.type = NATIVE));
 	
 	float getGrowthCoeff(int t_type){
 		float curr_water <- water_content[location];
 		float percent_precip <- curr_precip/my_climate.total_precipitation;
 		
 		return computeCoeff(curr_water, percent_precip, t_type);
-	}
-	
-	reflex updateStandBasalArea{
-		if(length(plot_trees) > 0){
-			stand_basal_area <-  plot_trees sum_of (each.basal_area);
-		}else{
-			stand_basal_area <- 0.0;
-		}
 	}
 		
 	//STATUS: CHECKED
@@ -686,7 +678,18 @@ species plot{
 			
 		is_dry <- (precip_value <etp_value)?-1:1;
 	}	
-	
+
+	reflex updatePlotDetails{
+		if(length(plot_trees) > 0){
+			stand_basal_area <-  plot_trees sum_of (each.basal_area);
+			exotic_trees <- length(plot_trees where (each.type = EXOTIC));
+			native_trees <- length(plot_trees where (each.type = NATIVE));
+		}else{
+			stand_basal_area <- 0.0;
+			exotic_trees <- 0;
+			native_trees <- 0;
+		}
+	}	
 	
 	//TO Update: use specific max and min per focused species
 	float reduceGrowth(float curr, float min, float max){
