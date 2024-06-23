@@ -90,6 +90,7 @@ global{
 
 	bool end_experiment <- false;
 	bool with_investment <- false;
+	bool break_exp <- false;
 	
 	int own_laborer <- 0;
 	int member_laborer <- 0; 
@@ -107,6 +108,180 @@ global{
 		
 		management_running_cost <- INIT_COST;	//infrastructure cost at the beginning
 	}
+	
+//	reflex stopCondition{
+//		if (
+//		(investment_rotation_years = 15 and  	
+//		nursery_count = 3 and 
+//		police_count = 3 and 
+//		member_count = 30 and 
+//		investor_count = 15	and 
+//		price_multiplier = 1 and 
+//		investor_percent_earning_share = 0.3) 
+//		or 
+//		(investment_rotation_years = 15 and  	
+//		nursery_count = 3 and 
+//		police_count = 3 and 
+//		member_count = 30 and 
+//		investor_count = 15	and 
+//		price_multiplier = 2 and 
+//		investor_percent_earning_share = 0.3)
+//		or 
+//		(investment_rotation_years = 15 and  	
+//		nursery_count = 3 and 
+//		police_count = 3 and 
+//		member_count = 15 and 
+//		investor_count = 15	and 
+//		price_multiplier = 1 and 
+//		investor_percent_earning_share = 0.3)
+//		or 
+//		(investment_rotation_years = 15 and  	
+//		nursery_count = 3 and 
+//		police_count = 3 and 
+//		member_count = 15 and 
+//		investor_count = 15	and 
+//		price_multiplier = 2 and 
+//		investor_percent_earning_share = 0.3)
+//		or 
+//		(investment_rotation_years = 15 and  	
+//		nursery_count = 3 and
+//		police_count = 1 and
+//		member_count = 30 and
+//		investor_count = 15	and
+//		price_multiplier = 1 and
+//		investor_percent_earning_share = 0.3)
+//		or 
+//		(investment_rotation_years = 15 and  	
+//		nursery_count = 3 and 
+//		police_count = 1 and
+//		member_count = 30 and
+//		investor_count = 15	and 
+//		price_multiplier = 2 and	
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 3 and
+//		police_count = 1 and
+//		member_count = 15 and
+//		investor_count = 15	and
+//		price_multiplier = 1 and
+//		investor_percent_earning_share = 0.3)
+//		or 
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 3 and
+//		police_count = 1 and
+//		member_count = 15 and
+//		investor_count = 15	and
+//		price_multiplier = 2 and
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 1 and
+//		police_count = 3 and
+//		member_count = 30 and
+//		investor_count = 15	and
+//		price_multiplier = 1 and
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 1 and
+//		police_count = 3 and
+//		member_count = 30 and
+//		investor_count = 15	and
+//		price_multiplier = 2 and
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 1 and
+//		police_count = 3 and
+//		member_count = 15 and
+//		investor_count = 15	and
+//		price_multiplier = 1 and
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 1 and
+//		police_count = 3 and
+//		member_count = 15 and
+//		investor_count = 15	and
+//		price_multiplier = 2 and
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 1 and
+//		police_count = 1 and
+//		member_count = 30 and
+//		investor_count = 15	and
+//		price_multiplier = 1 and
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 1 and
+//		police_count = 1 and
+//		member_count = 30 and
+//		investor_count = 15	and
+//		price_multiplier = 2 and
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 1 and
+//		police_count = 1 and
+//		member_count = 15 and
+//		investor_count = 15	and
+//		price_multiplier = 1 and	
+//		investor_percent_earning_share = 0.3)
+//		or 
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 1 and
+//		police_count = 1 and
+//		member_count = 15 and
+//		investor_count = 15	and
+//		price_multiplier = 2 and	
+//		investor_percent_earning_share = 0.3)
+//		or 
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 3 and
+//		police_count = 3 and
+//		member_count = 30 and
+//		investor_count = 5	and
+//		price_multiplier = 1 and	
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 3 and
+//		police_count = 3 and
+//		member_count = 30 and
+//		investor_count = 5	and
+//		price_multiplier = 2 and	
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 3 and
+//		police_count = 3 and
+//		member_count = 15 and
+//		investor_count = 5 and	
+//		price_multiplier = 1 and	
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 3 and
+//		police_count = 3 and
+//		member_count = 15 and
+//		investor_count = 5 and	
+//		price_multiplier = 2 and	
+//		investor_percent_earning_share = 0.3)
+//		or
+//		(investment_rotation_years = 15 and 	
+//		nursery_count = 3 and
+//		police_count = 1 and
+//		member_count = 30 and
+//		investor_count = 5 and	
+//		price_multiplier = 1 and	
+//		investor_percent_earning_share = 0.3)){
+//			break_exp <- true;
+//			do pause;
+//		}
+//	}
 	
 	reflex updateCashflow{
     	investor_total_profit <- sum(investor collect each.total_profit); 

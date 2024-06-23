@@ -138,7 +138,9 @@ species labour control: fsm{
 	
 	state manage_nursery{
 		ask university_si{
-			do payLaborer(myself, MD_NURSERY_MAINTENANCE/myself.count_of_colaborers);	//maintenance of seedlings: 8.64 mandays
+			if(myself.count_of_colaborers > 0){
+				do payLaborer(myself, MD_NURSERY_MAINTENANCE/myself.count_of_colaborers);	//maintenance of seedlings: 8.64 mandays	
+			}
 		}
 		
 		transition to: assigned_nursery when: ((fruiting_months_N + fruiting_months_E) contains current_month){//fruiting season, go out to gather
@@ -159,7 +161,9 @@ species labour control: fsm{
 			remove current_plot from: to_visit_plot;	
 		}
 		ask university_si{
-			do payLaborer(myself, MD_NURSERY_PREPARATION/myself.count_of_colaborers);	//gathering and preparation of soil
+			if(myself.count_of_colaborers > 0){
+				do payLaborer(myself, MD_NURSERY_PREPARATION/myself.count_of_colaborers);	//gathering and preparation of soil
+			}
 		}
 
 		transition to: manage_nursery when: !((fruiting_months_N + fruiting_months_E) contains current_month)
@@ -172,7 +176,9 @@ species labour control: fsm{
 				list<trees> planted_trees <- plantInPlot(all_seedlings_gathered, my_assigned_plot);	//put to nursery all the gathered seedlings
 				remove all: planted_trees from: all_seedlings_gathered;
 				ask university_si{
-					do payLaborer(myself, MD_NURSERY_PLANTING/myself.count_of_colaborers);	//sowing of seed + potting of seedlings
+					if(myself.count_of_colaborers > 0){
+						do payLaborer(myself, MD_NURSERY_PLANTING/myself.count_of_colaborers);	//sowing of seed + potting of seedlings
+					}
 				}
 			}
 		}
@@ -182,7 +188,9 @@ species labour control: fsm{
 	state assigned_planter{
 		do plantInSquare();
 		ask university_si{
-			do payLaborer(myself, MD_ITP_PLANTING/myself.count_of_colaborers);	//assigned planter mandays
+			if(myself.count_of_colaborers > 0){
+				do payLaborer(myself, MD_ITP_PLANTING/myself.count_of_colaborers);	//assigned planter mandays
+			}
 		}
 		transition to: vacant{
 			if(my_assigned_plot.is_ANR){
@@ -228,7 +236,9 @@ species labour control: fsm{
 		}
 		
 		ask university_si{
-			do payLaborer(myself, MD_INVESTED_MAINTENANCE/myself.count_of_colaborers);
+			if(myself.count_of_colaborers > 0){
+				do payLaborer(myself, MD_INVESTED_MAINTENANCE/myself.count_of_colaborers);	
+			}
 		}
 		
 		transition to: vacant when: month = 5;	//commitment is only 6 months
