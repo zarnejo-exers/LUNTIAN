@@ -29,11 +29,11 @@ experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_
 	}
 	
 	parameter "Investor percent earning share" var: investor_percent_earning_share among: [0.3];
-	parameter "Investment rotation years" var: investment_rotation_years among: [10, 15];
-	parameter "Investor count" var: investor_count among: [30];
- 	parameter "Nursery count" var: nursery_count among: [1, 3];	
-	parameter "Special police" var: police_count among: [1, 3];
-	parameter "Community members" var: member_count among: [15, 30];
+	parameter "Investment rotation years" var: investment_rotation_years among: [15, 10];
+	parameter "Investor count" var: investor_count among: [50];
+ 	parameter "Nursery count" var: nursery_count among: [3, 1];	
+	parameter "Special police" var: police_count among: [3, 1];
+	parameter "Community members" var: member_count among: [30, 15];
 	parameter "Price multiplier" var: price_multiplier among: [2.0, 1.0];
 
 	reflex save_results_explo{   	
@@ -43,6 +43,6 @@ experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_
 			management_running_cost,ITP_running_earning,net_running_earning,
 			m_partners_earning, m_independent_earning,
 			own_laborer, member_laborer, independent_laborer,
-			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees, with_investment] rewrite: false to: "../results/second_batch_experiment_a_30.csv" format:"csv" header: true;	
+			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees, with_investment] rewrite: false to: "../results/second_batch_experiment_a_50.csv" format:"csv" header: true;	
 	}
 }
