@@ -11,8 +11,8 @@ experiment social_interaction model: "university_si.gaml" type:gui {
 	
 	/** Parameters can be used to input values to the model **/
 	parameter "Investor percent earning share" var: investor_percent_earning_share among: [0.3, 0.4];
-	parameter "Investment rotation years" var: investment_rotation_years among: [10, 20];
-	parameter "Investor count" var: investor_count among: [5, 15];
+	parameter "Investment rotation years" var: investment_rotation_years among: [10, 15, 20];
+	parameter "Investor count" var: investor_count among: [5, 15, 50];
  	parameter "Nursery count" var: nursery_count among: [1, 4];	
 	parameter "Special police" var: police_count among: [1, 3, 10];
 	parameter "Community members" var: member_count among: [30, 15, 50];

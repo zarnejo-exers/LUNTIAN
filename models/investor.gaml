@@ -148,9 +148,9 @@ species investor control: fsm{
 	 	
 		//will only state transition after (investment_rotation_years*12) 
 		//harvest_month_monitor monitors how long the investor has been investing 	
-		transition to: end_investment when: (harvest_month_monitor = (investment_rotation_years*12));
-//	    transition to: potential_active when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit >= projected_profit));
-//	    transition to: potential_passive when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit < projected_profit));
+//		transition to: end_investment when: (harvest_month_monitor = (investment_rotation_years*12));
+	    transition to: potential_active when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit >= projected_profit));
+	    transition to: potential_passive when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit < projected_profit));
 	    
 //	    write "before transitioning with recent_profit="+recent_profit+" promised_profit="+projected_profit+" total_profit="+total_profit;
 	    harvest_month_monitor <- harvest_month_monitor + 1;
@@ -184,7 +184,7 @@ species investor control: fsm{
 	    transition to: potential_active when: (to_transition);
 	}
 	
-	state end_investment{
-		write "!End investment for investor "+name;
-	}
+//	state end_investment{
+//		write "!End investment for investor "+name;
+//	}
 }
