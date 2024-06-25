@@ -35,10 +35,10 @@ global{
 	int police_count <- 1 update: police_count;
 	int police_neighborhood <- 16 update: police_neighborhood;
 	int laborer_count <- 20 update: laborer_count; 
-	int nursery_count <- 1 update: nursery_count; 
+	int nursery_count <- 3 update: nursery_count; 
 	int hiring_calls <- 0;
 	
-	int investment_rotation_years <- 10 update: investment_rotation_years;	
+	int investment_rotation_years <- 15 update: investment_rotation_years;	
 	
 	int ANR_instance <- 0; 
 	int total_investments <- 0;
@@ -118,29 +118,29 @@ global{
     	member_laborer <- member_laborer + length(employees where (each.com_identity != nil));
     	independent_laborer <- independent_laborer + length(comm_member where (each.state = "independent_harvesting"));
     	
-		save [cycle, investment_rotation_years, nursery_count, police_count, member_count, investor_count, investor_percent_earning_share, exotic_price_per_bdft, native_price_per_bdft,
-    		length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)),
-    		length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-			management_running_cost,ITP_running_earning,net_running_earning,
-			m_partners_earning, m_independent_earning,
-			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees,
-			own_laborer, member_laborer, independent_laborer
-			] rewrite: false to: "../results/1-experiment_77.csv" format:"csv" header: true;
-		m_partners_earning <- 0.0;
-    	m_independent_earning <- 0.0;
+//		save [cycle, investment_rotation_years, nursery_count, police_count, member_count, investor_count, investor_percent_earning_share, exotic_price_per_bdft, native_price_per_bdft,
+//    		length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)),
+//    		length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
+//			management_running_cost,ITP_running_earning,net_running_earning,
+//			m_partners_earning, m_independent_earning,
+//			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees,
+//			own_laborer, member_laborer, independent_laborer
+//			] rewrite: false to: "../results/1-experiment_77.csv" format:"csv" header: true;
+//		m_partners_earning <- 0.0;
+//    	m_independent_earning <- 0.0;
     	
     	
     	//store also information on the specific number of comm_member per state	
-//		int waiting_investors <- length(investor where (each.state = "investing"));
-//		if(!with_investment and waiting_investors > 0){
-//			with_investment <- true;
-//		}
-//		
-//		//if there's no investment even after 5 years, end
-//		//if there's investment and no more waiting investors 
-//		if((with_investment and waiting_investors = 0) or (!with_investment and cycle > 60)){
-//			end_experiment <- true;
-//		}
+		int waiting_investors <- length(investor where (each.state = "investing"));
+		if(!with_investment and waiting_investors > 0){
+			with_investment <- true;
+		}
+		
+		//if there's no investment even after 5 years, end
+		//if there's investment and no more waiting investors 
+		if((with_investment and waiting_investors = 0) or (!with_investment and cycle > 60)){
+			end_experiment <- true;
+		}
 	}
 	
 //	reflex collectTreeInformation{
