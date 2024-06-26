@@ -15,7 +15,7 @@ import "university_si.gaml"
 global{
 	float risk_averse <- 0.5; 	//type = 0
 	float risk_loving <- 1.0;	//type = 1
-	int investor_count <- 5 update: investor_count;
+	int investor_count <- 50 update: investor_count;
 	map<string,float> risk_types <-["Averse"::0.25, "Loving"::0.95, "Neutral"::0.5];
 	
 	init{
@@ -47,7 +47,7 @@ species investor control: fsm{
 	float investment_cost; 
 	float total_investment <- 0.0;
 	
-	int harvest_count  <- 3;
+	int harvest_count  <- 1;
 	
 	aspect default{
 		draw pyramid(5) color: #gold; 
