@@ -47,6 +47,8 @@ species investor control: fsm{
 	float investment_cost; 
 	float total_investment <- 0.0;
 	
+	int harvest_count  <- 3;
+	
 	aspect default{
 		draw pyramid(5) color: #gold; 
 	}
@@ -144,13 +146,14 @@ species investor control: fsm{
 	state investing { 
 		enter{
 			int harvest_month_monitor <- 0;
+			harvest_count <- harvest_count - 1;
 		}
 	 	
 		//will only state transition after (investment_rotation_years*12) 
 		//harvest_month_monitor monitors how long the investor has been investing 	
-		transition to: end_investment when: (harvest_month_monitor = (investment_rotation_years*12));
-//	    transition to: potential_active when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit >= projected_profit));
-//	    transition to: potential_passive when: ((harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit < projected_profit));
+		transition to: end_investment when: (harvest_month_monitor = (investment_rotation_years*12) and harvest_count = 0);
+	    transition to: potential_active when: (harvest_count > 0 and (harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit >= projected_profit));
+	    transition to: potential_passive when: (harvest_count > 0 and (harvest_month_monitor = (investment_rotation_years*12)) and (recent_profit < projected_profit));
 	    
 //	    write "before transitioning with recent_profit="+recent_profit+" promised_profit="+projected_profit+" total_profit="+total_profit;
 	    harvest_month_monitor <- harvest_month_monitor + 1;
