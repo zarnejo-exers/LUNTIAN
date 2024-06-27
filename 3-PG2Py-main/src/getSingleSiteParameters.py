@@ -27,7 +27,7 @@ class getSingleSiteParametersClass():
 
     file_counter = 0;
     
-    def __init__(self, soilDB={}, paraDict={}, excel_file='', site=''):
+    def __init__(self, soilDB={}, paraDict={}, excel_file='', site='', x_counter=0):
         
         if excel_file != '' and site != '':
             
@@ -52,13 +52,13 @@ class getSingleSiteParametersClass():
             self.soilDB = soilDB
             
             # Call readSiteParaemters() to initialize single site parameters
-            self.readParaemters()
+            self.readParaemters(x_counter)
          
     
     #
     # Fill the dictionary with data read from excel "Standard 3PGxl soil types" block
     # Refer funtion readParaemters() in VBA
-    def readParaemters(self):
+    def readParaemters(self, x_counter):
         
         # Open the workbook
         self.wb = xlrd.open_workbook(self.excel_file, 'rb')
@@ -70,7 +70,7 @@ class getSingleSiteParametersClass():
         
         self.readSiteFactors()
         
-        self.readStandData()
+        self.readStandData(x_counter)
         
         self.getChangedParameterValues()
         
@@ -225,7 +225,9 @@ class getSingleSiteParametersClass():
     #
     # Get "Stand data" block parameters
     #
-    def readStandData(self):
+    def readStandData(self, x_counter):
+
+        print("x_counter is "+str(x_counter))
 
         #I can have a counter for how many times this block has been called
         
@@ -241,8 +243,9 @@ class getSingleSiteParametersClass():
         self.PlantedMonth = int(self.PlantedDate[1])
         
         # Attention: 0.5(0 year, May), 0.12(0 year, December)
-        self.locateCell("Initial age =", cellLocation)        
-        self.InitialAge   = self.sh.cell(cellLocation['row'], cellLocation['col']+1).value.split('.')
+        #self.locateCell("Initial age =", cellLocation)        
+        initial_age = ["27.4", "28.2", "30.9", "27.4", "26.4"]
+        self.InitialAge   = initial_age[x_counter].split('.')
         self.InitialYear  = self.PlantedYear + int(self.InitialAge[0])
         self.InitialMonth = self.PlantedMonth + int(self.InitialAge[1])
         if self.InitialMonth >= 12:
@@ -273,11 +276,14 @@ class getSingleSiteParametersClass():
             else:
                 self.StandMass = 0
                 self.locateCell("Initial WF =", cellLocation)
-                self.WFi = float(self.sh.cell(cellLocation['row'], cellLocation['col']+1).value)
+                initial_wf = [25.10297738, 30.4765917, 35.00041251, 24.37474211, 20.01677442]
+                self.WFi = initial_wf[x_counter]
                 self.locateCell("Initial WS =", cellLocation)
-                self.WSi = float(self.sh.cell(cellLocation['row'], cellLocation['col']+1).value)
+                initial_ws = [167.3531825, 203.177278, 233.3360834, 162.4982807, 133.4451628]
+                self.WSi = initial_ws[x_counter]
                 self.locateCell("Initial WR =", cellLocation)
-                self.WRi = float(self.sh.cell(cellLocation['row'], cellLocation['col']+1).value)
+                initial_wr = [83.67659126, 101.588639, 116.6680417, 81.24914035, 66.7225814]
+                self.WRi = initial_wr[x_counter]
                 
         # Reads fraction of total mass in a biomas pool, refer getBiomassFractions() functoin in VBA
         if self.locateCell("WF fraction", cellLocation):
@@ -299,16 +305,19 @@ class getSingleSiteParametersClass():
                 self.fracWS = 0
         
         self.locateCell("Initial stocking =", cellLocation)
-        self.StemNoi = float(self.sh.cell(cellLocation['row'], cellLocation['col']+1).value)
+        initial_stock = [84, 100, 21, 85, 100]
+        self.StemNoi = initial_stock[x_counter]
         
         self.locateCell("Edge trees =", cellLocation)
         self.edgeTrees = int(self.sh.cell(cellLocation['row'], cellLocation['col']+1).value)
         
         self.locateCell("Initial ASW =", cellLocation)
-        self.SWi = float(self.sh.cell(cellLocation['row'], cellLocation['col']+1).value)
+        initial_asw = [568.3065186, 564.9382324, 564.9382324, 564.9382324, 568.4538574]
+        self.SWi = initial_asw[x_counter]
         
         self.locateCell("%Tree cover =", cellLocation)
-        self.treeCover = self.sh.cell(cellLocation['row'], cellLocation['col']+1).value / 100.0
+        initial_tree_cover = [7.450561015, 8.7294499, 9.582729867, 7.532279886, 6.274615893]
+        self.treeCover = initial_tree_cover[x_counter] / 100.0
  
               
     #
@@ -1460,12 +1469,11 @@ class getSingleSiteParametersClass():
 #
 def assembleSingleSite(excel_file, siteSeriesList, soilDB, paraDict, sitesParameterCollection):
     
+    site = siteSeriesList[0]
     # Iterate the site series
-    for site in siteSeriesList:        
+    for x in range(0,5):        
         # Using class getSingleSiteParametersClass() instance fill the site specific parameters
-        sitesParameterCollection[site] = getSingleSiteParametersClass(soilDB, paraDict, excel_file, site)
-        
-    
+        sitesParameterCollection["plot"+str(x)] = getSingleSiteParametersClass(soilDB, paraDict, excel_file, site, x)
 
 
 

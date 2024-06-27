@@ -1048,7 +1048,7 @@ if __name__ == '__main__':
                                                       GlobalVar.siteSeries)
     
     print ("Note: 3-PG2Py is a Python version of 3-PGxl(VBA based).\n")
-    print ("=================Initialization??=================")
+    print ("=================Initialization=================")
     
     # Get each single site's parameters 
     SingleSiteParameters = getSingleSiteParameters.assembleSingleSite(GlobalVar.excel_file, 
@@ -1069,11 +1069,14 @@ if __name__ == '__main__':
 
     if args.mode == 'r':    # run 3-PG2Py directly
         t0 = time.time()
+        x_counter = 0
         for key in sitesCollection.keys():
             plot = sitesCollection[key]
+            plot.siteName = plot.siteName + str(x_counter)
             plot.endAge = args.endage
             main_module.run3PG_2_class(plot)
             print('{} ... is finished.\n'.format(key))
+            x_counter = x_counter + 1
         print("\nTotal execution time is: %4.3f s" % (time.time() - t0))
     elif args.mode == 'spatial':  # spatial simulation
         print('spatial simulation mode')
