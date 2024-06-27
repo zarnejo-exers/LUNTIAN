@@ -23,18 +23,18 @@
 //}
 
 //55years, 660/12
-experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:(end_experiment){
+experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:cycle = 600{
 	reflex setSeed{
 		seed <- 10.0 ;
 	}
 	
-	parameter "Investor percent earning share" var: investor_percent_earning_share among: [0.3];
-	parameter "Investment rotation years" var: investment_rotation_years among: [15];
-	parameter "Investor count" var: investor_count among: [50];
- 	parameter "Nursery count" var: nursery_count among: [1];	
-	parameter "Special police" var: police_count among: [1];
-	parameter "Community members" var: member_count among: [15];
-	parameter "Price multiplier" var: price_multiplier among: [2.0];
+	parameter "Investor percent earning share" var: investor_percent_earning_share among: [0.0];
+	parameter "Investment rotation years" var: investment_rotation_years among: [0];
+	parameter "Investor count" var: investor_count among: [0];
+ 	parameter "Nursery count" var: nursery_count among: [0];	
+	parameter "Special police" var: police_count among: [0];
+	parameter "Community members" var: member_count among: [0];
+	parameter "Price multiplier" var: price_multiplier among: [0.0];
 
 //	reflex save_results_explo{   	
 //		save [seed, cycle, investment_rotation_years, nursery_count, police_count, member_count, investor_count, exotic_price_per_bdft, native_price_per_bdft,investor_percent_earning_share,
@@ -46,9 +46,55 @@ experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_
 //			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees, with_investment] rewrite: false to: "../results/second_batch_experiment_a_5-ncount31.csv" format:"csv" header: true;	
 //	}
 
-	reflex saveTrees{
-		ask trees{
-			save [state, my_plot.name, dbh, th] rewrite: false to: "../results/tree_details.csv" format:"csv" header: true;
+//	reflex saveTrees{
+//		ask trees{
+//			save [state, my_plot.name, dbh, th] rewrite: false to: "../results/tree_details.csv" format:"csv" header: true;
+//		}
+//	}
+
+	//Initial age = (stand age), average of the age 
+	//End age = 50
+	//Initial WF = 
+	//Initial WR = 
+	//Initial WS = 
+	//Initial stocking = 
+	//Edge trees = 0
+	//Initial ASW = 
+	//%Tree cover =
+	reflex computeStandDetails{
+		
+		ask plot{
+			float initial_age <- mean(plot_trees collect (each.age));
+			
+			float total_tree_biomass <- 0.0;
+			list<trees> below_60 <- plot_trees where (each.dbh >= 5 and each.dbh <= 60);
+			//	For trees with DBH that ranges from 5 – 60 cm.
+			//			Y = EXP(-2.134+2.530*LN(DBH))	
+			ask below_60{
+				total_tree_biomass <- total_tree_biomass + exp(-2.134 + 2.540 * ln(dbh));				
+			}
+			
+			list<trees> above_60 <- plot_trees where (each.dbh > 60);
+			//	For trees with DBH >60 cm
+			//		Y = 42.69-12.8*DBH+1.242*(DBH)2
+			ask above_60{
+				total_tree_biomass <- total_tree_biomass + 42.69-12.8*dbh+1.242*(dbh^2);
+			}
+			float stand_level_biomass <- total_tree_biomass / length(plot_trees);
+			
+			float aws <- water_content[location];
+			
+			int initial_stock <- length(plot_trees);
+			
+			float total_tree_cover <- 0.0;
+			
+			ask plot_trees{
+				total_tree_cover <- total_tree_cover + circle((dbh/2)#cm).area;
+			}
+			
+			float percent_tree_cover <- total_tree_cover / (shape.area)#cm;
+			
+			save [name, initial_age, stand_level_biomass, aws, initial_stock, percent_tree_cover] rewrite: false to: "../results/stand-validation-600.csv" format:"csv" header: true;
 		}
 	}
 }

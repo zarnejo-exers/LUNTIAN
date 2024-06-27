@@ -24,6 +24,8 @@ import numpy as np
 from globalVariables import globalVariablesClass
 
 class getSingleSiteParametersClass():
+
+    file_counter = 0;
     
     def __init__(self, soilDB={}, paraDict={}, excel_file='', site=''):
         
@@ -224,6 +226,8 @@ class getSingleSiteParametersClass():
     # Get "Stand data" block parameters
     #
     def readStandData(self):
+
+        #I can have a counter for how many times this block has been called
         
         # Location dictionary contains the [row, column] position of a certain cell
         cellLocation = {'row': 0, 'col': 0}

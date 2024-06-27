@@ -120,7 +120,7 @@ global{
 //		} 
 //	}
 	
-	reflex updateCashflow{
+//	reflex updateCashflow{
 //    	investor_total_profit <- sum(investor collect each.total_profit); 
 //    	total_investment_cost <- sum( investor collect each.total_investment);
 //    	inv_harvested_trees <- sum(investor collect each.total_tree_harvested);
@@ -142,17 +142,17 @@ global{
     	
     	
     	//store also information on the specific number of comm_member per state	
-		int waiting_investors <- length(investor where (each.state = "investing"));
-		if(!with_investment and waiting_investors > 0){
-			with_investment <- true;
-		}
+//		int waiting_investors <- length(investor where (each.state = "investing"));
+//		if(!with_investment and waiting_investors > 0){
+//			with_investment <- true;
+//		}
 		
 		//if there's no investment even after 5 years, end
 		//if there's investment and no more waiting investors 
-		if((with_investment and waiting_investors = 0) or (!with_investment and cycle > 60)){
-			end_experiment <- true;
-		}
-	}
+//		if((with_investment and waiting_investors = 0) or (!with_investment and cycle > 60)){
+//			end_experiment <- true;
+//		}
+//	}
 	
 //	reflex collectTreeInformation{
 //		list<trees> temp;

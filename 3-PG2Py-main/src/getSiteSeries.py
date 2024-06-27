@@ -44,6 +44,7 @@ class getSiteSeriesClass():
         
         while len(sh.cell(row_num, 0).value) > 0:                     
             self.siteSeries.append(sh.cell(row_num, 0).value)
+            print("here: "+sh.cell(row_num, 0).value)
             
             # has arrived the limit of the row number of the sheet
             if sh.nrows == row_num + 1:

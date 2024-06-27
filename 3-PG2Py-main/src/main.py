@@ -1048,7 +1048,7 @@ if __name__ == '__main__':
                                                       GlobalVar.siteSeries)
     
     print ("Note: 3-PG2Py is a Python version of 3-PGxl(VBA based).\n")
-    print ("=================Initialization=================")
+    print ("=================Initialization??=================")
     
     # Get each single site's parameters 
     SingleSiteParameters = getSingleSiteParameters.assembleSingleSite(GlobalVar.excel_file, 
