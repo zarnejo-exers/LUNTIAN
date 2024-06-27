@@ -1072,7 +1072,7 @@ if __name__ == '__main__':
         x_counter = 0
         for key in sitesCollection.keys():
             plot = sitesCollection[key]
-            plot.siteName = plot.siteName + str(x_counter)
+            plot.siteName = "plot"+ str(x_counter)
             plot.endAge = args.endage
             main_module.run3PG_2_class(plot)
             print('{} ... is finished.\n'.format(key))
