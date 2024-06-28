@@ -109,6 +109,46 @@ global{
 		
 		management_running_cost <- INIT_COST;	//infrastructure cost at the beginning
 	}
+
+	reflex computeStandDetails when: (cycle = 1){
+		
+		ask plot{
+			list<trees> focused_trees <- plot_trees where (each.dbh >= 5);
+			float stand_age <- mean(focused_trees collect(each.age));
+			
+			float total_tree_biomass <- 0.0;
+			list<trees> below_60 <- focused_trees where (each.dbh <= 60);
+			//	For trees with DBH that ranges from 5 – 60 cm.
+			//			Y = EXP(-2.134+2.530*LN(DBH))	
+			ask below_60{
+				total_tree_biomass <- total_tree_biomass + exp(-2.134 + 2.540 * ln(dbh));				
+			}
+			
+			list<trees> above_60 <- focused_trees where (each.dbh > 60);
+			//	For trees with DBH >60 cm
+			//		Y = 42.69-12.8*DBH+1.242*(DBH)2
+			ask above_60{
+				total_tree_biomass <- total_tree_biomass + 42.69-12.8*dbh+1.242*(dbh^2);
+			}
+			float stand_level_biomass <- total_tree_biomass / length(focused_trees);
+			
+			float aws <- water_content[location];
+			
+			int stock <- length(focused_trees);
+			
+			float total_tree_cover <- 0.0;
+			
+			ask focused_trees{
+				total_tree_cover <- total_tree_cover + circle((dbh/2)#cm).area;
+			}
+			
+			float percent_tree_cover <- total_tree_cover / (shape.area)#cm;
+			
+			float mean_dbh <- mean(focused_trees collect(each.dbh));
+			
+			save [cycle, name, stand_age, stand_level_biomass, stand_basal_area, mean_dbh, stock, aws, percent_tree_cover] rewrite: false to: "../results/stand-validation_1cycle.csv" format:"csv" header: true;
+		}
+	}
 	
 //	reflex terminateExperiment {
 //		list<investor> lend_experiments <- investor where (each.state = "end_investment");

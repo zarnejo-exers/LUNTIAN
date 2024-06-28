@@ -64,37 +64,40 @@ experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_
 	reflex computeStandDetails{
 		
 		ask plot{
-			float initial_age <- mean(plot_trees collect (each.age));
+			list<trees> focused_trees <- plot_trees where (each.dbh >= 5);
+			float stand_age <- mean(focused_trees collect(each.age));
 			
 			float total_tree_biomass <- 0.0;
-			list<trees> below_60 <- plot_trees where (each.dbh >= 5 and each.dbh <= 60);
+			list<trees> below_60 <- focused_trees where (each.dbh <= 60);
 			//	For trees with DBH that ranges from 5 – 60 cm.
 			//			Y = EXP(-2.134+2.530*LN(DBH))	
 			ask below_60{
 				total_tree_biomass <- total_tree_biomass + exp(-2.134 + 2.540 * ln(dbh));				
 			}
 			
-			list<trees> above_60 <- plot_trees where (each.dbh > 60);
+			list<trees> above_60 <- focused_trees where (each.dbh > 60);
 			//	For trees with DBH >60 cm
 			//		Y = 42.69-12.8*DBH+1.242*(DBH)2
 			ask above_60{
 				total_tree_biomass <- total_tree_biomass + 42.69-12.8*dbh+1.242*(dbh^2);
 			}
-			float stand_level_biomass <- total_tree_biomass / length(plot_trees);
+			float stand_level_biomass <- total_tree_biomass / length(focused_trees);
 			
 			float aws <- water_content[location];
 			
-			int initial_stock <- length(plot_trees);
+			int stock <- length(focused_trees);
 			
 			float total_tree_cover <- 0.0;
 			
-			ask plot_trees{
+			ask focused_trees{
 				total_tree_cover <- total_tree_cover + circle((dbh/2)#cm).area;
 			}
 			
 			float percent_tree_cover <- total_tree_cover / (shape.area)#cm;
 			
-			save [name, initial_age, stand_level_biomass, aws, initial_stock, percent_tree_cover] rewrite: false to: "../results/stand-validation-600.csv" format:"csv" header: true;
+			float mean_dbh <- mean(focused_trees collect(each.dbh));
+			
+			save [cycle, name, stand_age, stand_level_biomass, stand_basal_area, mean_dbh, stock, aws, percent_tree_cover] rewrite: false to: "../results/stand-validation_600cycle.csv" format:"csv" header: true;
 		}
 	}
 }
