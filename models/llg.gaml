@@ -110,7 +110,7 @@ global {
 		create trees from: trees_shapefile{
 			dbh <- float(read("Book2_DBH"));				
 			r <- float(read("Book2_R"));		
-			type <- (string(read("Book2_Clas")) = "Native")? NATIVE:EXOTIC;	
+			type <- NATIVE; //(string(read("Book2_Clas")) = "Native")? NATIVE:EXOTIC;	
 			
 			basal_area <- #pi * (dbh^2)/40000;
 			do setState();

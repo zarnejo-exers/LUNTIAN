@@ -114,7 +114,9 @@ global{
 		
 		ask plot{
 			list<trees> focused_trees <- plot_trees where (each.dbh >= 5);
-			float stand_age <- mean(focused_trees collect(each.age));
+			float mean_stand_age <- mean(focused_trees collect(each.age));
+			float max_dbh <- max(focused_trees collect (each.dbh));
+			float dominant_stand_age <- max((focused_trees where (each.dbh = max_dbh)) collect (each.age));
 			
 			float total_tree_biomass <- 0.0;
 			list<trees> below_60 <- focused_trees where (each.dbh <= 60);
@@ -146,7 +148,8 @@ global{
 			
 			float mean_dbh <- mean(focused_trees collect(each.dbh));
 			
-			save [cycle, name, stand_age, stand_level_biomass, stand_basal_area, mean_dbh, stock, aws, percent_tree_cover] rewrite: false to: "../results/stand-validation_1cycle.csv" format:"csv" header: true;
+			//save [cycle, name, stand_age, stand_level_biomass, aws, initial_stock, percent_tree_cover] rewrite: false to: "../results/stand-validation-cycle1.csv" format:"csv" header: true;
+			save [cycle, name, mean_stand_age, dominant_stand_age, stand_level_biomass, stand_basal_area, mean_dbh, stock, aws, percent_tree_cover] rewrite: false to: "../results/stand-validation_1cycle_anative.csv" format:"csv" header: true;
 		}
 	}
 	
