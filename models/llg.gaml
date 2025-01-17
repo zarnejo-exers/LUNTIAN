@@ -7,7 +7,7 @@
 */
 
 model llg
-import "university_si.gaml"
+import "university_si.gaml"	//TODO: uncomment when running social_interaction.experiment
 
 global {
 	int NB_TS <- 12; //monthly timestep, constant
@@ -19,10 +19,16 @@ global {
 	int POLE <- 2;
 	int ADULT <- 3;
 	
+//	int CURRENT_EXPERIMENT_TYPE <- NATIVE;
+	
 //	file trees_shapefile <- shape_file("../includes/TREES_WITH_RIVER.shp");	//mixed species -> ITP PORTION
 //	file plot_shapefile <- shape_file("../includes/ITP_WITH_RIVER.shp");
-	file trees_shapefile <- shape_file("../includes/INIT_TREE_CONFIG.shp");	//mixed species -> ITP AREA
+	file trees_shapefile <- shape_file("../includes/INIT_TREE_CONFIG.shp");	//mixed species -> ITP COMPLETE AREA
 	file plot_shapefile <- shape_file("../includes/ITP_GRID_NORIVER.shp");
+//	file trees_shapefile <- shape_file("../includes/TREES_1PLOT.shp");	//mixed species -> ITP 1-PLOT
+//	file plot_shapefile <- shape_file("../includes/ITP_GRID_1PLOT.shp");
+//	file trees_shapefile <- shape_file("../includes/for-calibration-trees.shp");	//mixed species -> For Calibration
+//	file plot_shapefile <- shape_file("../includes/for-calibration.shp");
 	file road_shapefile <- file("../includes/ITP_Road.shp");
 	file river_shapefile <- file("../includes/River_S5.shp");
 	file Precip_TAverage <- file("../includes/CLIMATE_COMP.shp"); // Monthly_Prec_TAvg, Temperature in Celsius, Precipitation in mm, total mm of ET0 per month
@@ -30,6 +36,8 @@ global {
 	file water_file <- file("../images/water_level.tif");
 	file elev_file <- file("../images/ITP_Reprojected_Filled.tif"); //resolution 30m-by-30m
 	
+    float neighborhood_interaction_native <- 1.3562 update: neighborhood_interaction_native;
+    float neighborhood_interaction_exotic <- 2.0 update: neighborhood_interaction_exotic;
 	float growth_rate_exotic <- 1.25 update: growth_rate_exotic;//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	float growth_rate_native <- 0.72 update: growth_rate_native;	//https://www.researchgate.net/publication/258164722_Growth_performance_of_sixty_tree_species_in_smallholder_reforestation_trials_on_Leyte_Philippines
 	
@@ -75,6 +83,11 @@ global {
 	list<point> drain_cells <- [];
 	list<plot> entrance_plots;
 	
+	float averageDBHErrorN <- 0.0;
+	float averageDBHErrorE <- 0.0;
+	float averageBAErrorN <- 0.0;
+	float averageBAErrorE <- 0.0;
+	
 	init{
 		write "Begin initialization";
 		create climate from: Precip_TAverage {
@@ -110,7 +123,7 @@ global {
 		create trees from: trees_shapefile{
 			dbh <- float(read("Book2_DBH"));				
 			r <- float(read("Book2_R"));		
-			type <- NATIVE; //(string(read("Book2_Clas")) = "Native")? NATIVE:EXOTIC;	
+			type <- (string(read("Book2_Clas")) = "Native")? NATIVE:EXOTIC; //CURRENT_EXPERIMENT_TYPE;// 	
 			
 			basal_area <- #pi * (dbh^2)/40000;
 			do setState();
@@ -171,6 +184,16 @@ global {
 		loop times: length(connected_components) {colors << rnd_color(255);}
 		entrance_plots <- reverse(sort_by(plot where (!each.has_road and each.plot_trees != nil), each.location.y))[0::200];	//entrance_plot is the first 100 lowest point
 		write "End initialization";
+		
+		
+		write "Summary";
+		
+		list<trees> all_native <- trees where (each.type = NATIVE);
+		list<trees> all_exotic <- trees where (each.type = EXOTIC);
+		
+		write "Native count: "+length(all_native);
+		write "Exotic count: "+length(all_exotic);
+		
 	}
 	
 	//base on the current month, add precipitation
@@ -230,7 +253,47 @@ global {
 			water_content[pp] <- 0;
 		}
 	}
-}
+
+	//for calibration with openmole
+//	reflex computeCumulativeError when: cycle = 3{// when: (plot count (each.mean_stand_age >=80) = length(plot)){
+//		//read the csv file
+//		//row0 is table headers
+//		//column1: plot name; column2: mean_dbh; column3: stand_basal_area
+//		file data <- (CURRENT_EXPERIMENT_TYPE = EXOTIC)? csv_file("../includes/exotic_3PG.csv",","):csv_file("../includes/native_3PG.csv",",");
+//		
+//		//convert the file into a matrix
+//		matrix data_3PG <- matrix(data);
+//		
+//		float cummulativeDBHError <- 0.0;
+//		float cummulativeBAError <- 0.0;
+//		
+//		ask plot{
+//			list plot_name <- (name split_with "plot"); 
+//			int plot_id <- int(plot_name[0]);
+//			
+//			float dbh <- mean_dbh;
+//			float basal_area <- stand_basal_area;
+//			
+//			cummulativeDBHError <- cummulativeDBHError + abs(dbh - float(data_3PG[1, plot_id]));
+//			cummulativeBAError <- cummulativeBAError + abs(basal_area - float(data_3PG[2, plot_id]));
+//
+//			save [cycle, name, mean_stand_age, stand_basal_area, mean_dbh] rewrite: false to: "../results/80_environment"+CURRENT_EXPERIMENT_TYPE+".csv" format:"csv" header: true;
+//		}
+//		
+//		if(CURRENT_EXPERIMENT_TYPE = NATIVE){
+//			averageDBHErrorN <- cummulativeDBHError/length(plot);
+//			averageBAErrorN <- cummulativeBAError/length(plot);	
+//		}else{
+//			averageDBHErrorE <- cummulativeDBHError/length(plot);
+//			averageBAErrorE <- cummulativeBAError/length(plot);	
+//		}
+//		ask plot{
+//			save [cycle, name, mean_stand_age, stand_basal_area, mean_dbh] rewrite: false to: "../results/800_environment_mixed_plots.csv" format:"csv" header: true;
+//		}
+//		
+//		do pause;
+//	}	
+//}
 
 species trees{ 
 	float dbh; //diameter at breast height
@@ -267,29 +330,31 @@ species trees{
 		if(crown_diameter != 0){
 			//this is the crown
 			// /2 since parameter asks for radius
+			float crown_size <- (self.crown_diameter/2);
+			float loc_height <- elev[point(location.x, location.y)]*2;
 			if(is_illegal){
-				draw sphere((self.crown_diameter/2)#m) color: #red at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
+				draw sphere(crown_size#m) color: #red at: {location.x,location.y,loc_height+th#m};
 			}else if(is_marked){
-				draw sphere((self.crown_diameter/2)#m) color: #black at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
+				draw sphere(crown_size#m) color: #black at: {location.x,location.y,loc_height+th#m};
 			}else if(type = NATIVE){
-				draw sphere((self.crown_diameter/2)#m) color: #darkgreen at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
+				draw sphere(crown_size#m) color: #yellow at: {location.x,location.y,loc_height+th#m};
 			}else{
-				draw sphere((self.crown_diameter/2)#m) color: #darkviolet at: {location.x,location.y,elev[point(location.x, location.y)]+400+th#m};
+				draw sphere(crown_size#m) color: #green at: {location.x,location.y,loc_height+th#m};
 			}
 			
 			//this is the stem
 			switch state{
 				match SEEDLING{
-					draw circle((dbh/2)#cm) at: {location.x,location.y, elev[point(location.x, location.y)]+400} color: #yellow depth: th#m;		
+					draw circle((dbh/2)#cm) at: {location.x,location.y, loc_height} color: #yellow depth: th#m;		
 				}
 				match SAPLING{
-					draw circle((dbh/2)#cm) at: {location.x,location.y, elev[point(location.x, location.y)]+400} color: #green depth: th#m;
+					draw circle((dbh/2)#cm) at: {location.x,location.y, loc_height} color: #green depth: th#m;
 				}
 				match POLE{
-					draw circle((dbh/2)#cm) at: {location.x,location.y, elev[point(location.x, location.y)]+400} color: #blue depth: th#m;
+					draw circle((dbh/2)#cm) at: {location.x,location.y, loc_height} color: #blue depth: th#m;
 				}
 				match ADULT{
-					draw circle((dbh/2)#cm) at: {location.x,location.y, elev[point(location.x, location.y)]+400} color: #red depth: th#m;
+					draw circle((dbh/2)#cm) at: {location.x,location.y, loc_height} color: #red depth: th#m;
 				}
 			}
 			
@@ -305,9 +370,9 @@ species trees{
 			}else if(is_marked){
 				draw sphere((self.crown_diameter/2)#m) color: #black at: {location.x,location.y,th#m};
 			}else if(type = NATIVE){
-				draw sphere((self.crown_diameter/2)#m) color: #darkgreen at: {location.x,location.y,th#m};
+				draw sphere((self.crown_diameter/2)#m) color: #yellow at: {location.x,location.y,th#m};
 			}else{
-				draw sphere((self.crown_diameter/2)#m) color: #violet at: {location.x,location.y,th#m};
+				draw sphere((self.crown_diameter/2)#m) color: #green at: {location.x,location.y,th#m};
 			}
 			
 			//this is the stem
@@ -386,6 +451,7 @@ species trees{
 		p_dead <- (e/(e+1));
 		
 		//if nursery or invested and with laborers, decrease the probability of dying
+		//TODO:uncomment the entire if{} when running social_interaction.experiment
 		if(my_plot.is_nursery or (my_plot.is_invested and (length(my_plot.my_laborers) > 0))){
 			p_dead <- p_dead - 0.25;
 		}
@@ -506,7 +572,8 @@ species trees{
 	}
 	
 	//based on Vanclay(1994) schematic representation of growth model
-	reflex growthModel when: location != point(0,0,0){	//trees with location = nil are currently in the "bags" of laborers, meaning, gathered as seedling 
+	reflex growthModel when: location != point(0,0,0) and my_plot.mean_stand_age<80{	//trees with location = nil are currently in the "bags" of laborers, meaning, gathered as seedling 
+//TODO:uncomment the entire if-else when running social interaction experiment, leave onluy treegrowthincrement() and stepage()
 		if(checkMortality()){
 			remove self from: my_plot.plot_trees;
 			if(state = ADULT){
@@ -515,7 +582,7 @@ species trees{
 			do die;	
 		}
 		else{	//tree recruits, tree grows, tree ages
-			do treeRecruitment();
+			do treeRecruitment();	
 			do treeGrowthIncrement();
 			do stepAge();
 		}
@@ -524,26 +591,28 @@ species trees{
 	
 	//ni goes from [0,1], with 1 being a very strong influence
 	float neighborhoodInteraction{
-		float not_type <- 0.0;
-		float same_type <- 0.0;
+		int not_type <- 0;
+		int same_type <- 0;
 		ask my_neighbors{
-			float dis <- self distance_to myself;
-			if(dis > 0.0){
-				if(self.type = myself.type){
-					same_type <- same_type + (basal_area/dis);	
-				}else{
-					not_type <- not_type + (basal_area/dis);
-				}
+			if(self.type = myself.type){
+				same_type <- same_type + 1;	
+			}else{
+				not_type <- not_type + 1;
 			}
 		}
 		
 		if(same_type > not_type){
-			return 1.25;
-		}else if(same_type = not_type){
-			return 1.0;
-		}else{
-			return 0.75;	
+			if(self.type = NATIVE){
+				return neighborhood_interaction_native;	
+			}
+			return neighborhood_interaction_exotic;	
+		}else if(same_type < not_type){
+			if(self.type = NATIVE){
+				return neighborhood_interaction_exotic;	
+			}
+			return neighborhood_interaction_native;	
 		}
+		return 1.0;	//no effect if equal distribution
 	}	
 	
 	//Called when either: (1) a tree has just recently became adult; or (2) an adult tree has died
@@ -568,6 +637,7 @@ species trees{
 			is_new_tree <- false;
 		}else if(dbh < max_dbh_per_class[type][SAPLING] and dbh >= max_dbh_per_class[type][SEEDLING]){
 			if(my_plot != nil and my_plot.is_nursery and state != SAPLING){
+				//TODO: uncomment entire ask when running social_interaction.experiment
 				ask university_si{
 					add myself to: my_saplings;
 				}
@@ -589,8 +659,7 @@ species plot{
 	
 	list<trees> plot_trees<- [];
 	int id;
-	climate closest_clim;
-	int is_dry; 
+	climate closest_clim; 
 
 	bool is_near_water <- false;
 	bool is_nursery <- false;
@@ -599,24 +668,30 @@ species plot{
 	bool is_candidate_nursery <- false; //true if there exist a mother tree in one of its trees;
 	bool is_policed <- false;
 	float distance_to_river;
-
-	list<labour> my_laborers <- [];
+	list<labour> my_laborers <- [];//	TODO:uncomment if running social_interaction.experiment
 	int tree_count <- length(plot_trees) update: length(plot_trees);
 	soil my_soil <- soil closest_to location;	
-	
+	float mean_stand_age <- 0.0;
+	float mean_dbh <- 0.0;
 	bool is_ANR <- false;
 	bool is_harvested <- false;
 	
 	int exotic_trees <- length(plot_trees where (each.type = EXOTIC));
 	int native_trees <- length(plot_trees where (each.type = NATIVE));
-	
+
 	float getGrowthCoeff(int t_type){
 		float curr_water <- water_content[location];
 		float percent_precip <- curr_precip/my_climate.total_precipitation;
 		
 		return computeCoeff(curr_water, percent_precip, t_type);
 	}
-		
+	
+	reflex computeMeanStandAge{
+		list<trees> focused_trees <- plot_trees where (each.dbh >= 5);
+		mean_stand_age <- mean(focused_trees collect(each.age));
+		mean_dbh <- mean(focused_trees collect(each.dbh));
+	}
+	
 	//STATUS: CHECKED
 	//per plot
 	reflex native_determineNumberOfRecruits when: (fruiting_months_N contains current_month){
@@ -652,7 +727,7 @@ species plot{
 		if(is_nursery){
 			draw shape color: #green;
 		}else if(is_policed){
-			draw shape color: #yellow;	
+			draw shape color: #yellowgreen;	
 		}else if(is_ANR){
 			draw shape color: #aquamarine;
 		}else if(is_invested){
@@ -671,13 +746,6 @@ species plot{
 		  
 		is_candidate_nursery <- (length(nmother_trees) > 0)?true:false;
 	}
-	
-	reflex checkIsDry{
-		float precip_value <- closest_clim.precipitation[current_month];
-		float etp_value <- closest_clim.etp[current_month];
-			
-		is_dry <- (precip_value <etp_value)?-1:1;
-	}	
 
 	reflex updatePlotDetails{
 		if(length(plot_trees) > 0){
@@ -714,6 +782,11 @@ species plot{
 		g_coeff <- g_coeff * reduceGrowth(c_water, min_water[NATIVE]*p_precip, max_water[NATIVE]*p_precip);//coefficient given water (considering only the percentage of precipitation given current month over the total annual precipitation)
 		return g_coeff;
 	}
+	
+//	reflex write_startvalue when: cycle = 0{
+//		//save [cycle, name, mean_stand_age, stand_basal_area, mean_dbh] rewrite: false to: "../results/0_environment"+CURRENT_EXPERIMENT_TYPE+".csv" format:"csv" header: true;
+//		save [cycle, name, mean_stand_age, stand_basal_area, mean_dbh] rewrite: false to: "../results/0_environment_mixed_plots.csv" format:"csv" header: true;
+//	}
 }
 
 species soil{
@@ -778,7 +851,8 @@ species river{
 	int basin;
 	
 	aspect default {
-		//draw display_shape color: #blue depth: 3 at: {location.x,location.y,terrain[point(location.x, location.y)]+250};//250
+		//draw display_shape color: #blue depth: 3 at: {location.x,location.y,terarin[point(location.x, location.y)]+250};//250
 		draw shape color: #blue;// at: {location.x,location.y,location.z};//200
 	}
+}
 }

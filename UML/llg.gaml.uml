@@ -1,77 +1,77 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <uml:Model xmi:version="2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1" xmlns:uml="http://www.eclipse.org/uml2/3.0.0/UML" xmi:id="_NpznoOUmEeeAeY96UuZjHg" name="llg">
-	 <packagedElement xmi:type="uml:Class" xmi:id="88" name="market">
+	 <packagedElement xmi:type="uml:Class" xmi:id="198" name="soil">
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Class" xmi:id="1" name="investor">
-	 	 <ownedAttribute xmi:id="5" name="my_iplot" visibility="public" isUnique="false" type="166" association="4">
+	 <packagedElement xmi:type="uml:Class" xmi:id="1" name="comm_member">
+	 	 <ownedAttribute xmi:id="3" name="instance_labour" visibility="public" isUnique="false" type="31" association="2">
 	 	 </ownedAttribute>
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Class" xmi:id="166" name="plot">
-	 	 <ownedAttribute xmi:id="171" name="my_climate" visibility="public" isUnique="false" type="207" association="170">
-	 	 </ownedAttribute>
-	 	 <ownedAttribute xmi:id="177" name="closest_clim" visibility="public" isUnique="false" type="207" association="176">
-	 	 </ownedAttribute>
-	 	 <ownedAttribute xmi:id="189" name="my_soil" visibility="public" isUnique="false" type="200" association="188">
+	 <packagedElement xmi:type="uml:Class" xmi:id="123" name="trees">
+	 	 <ownedAttribute xmi:id="132" name="my_plot" visibility="public" isUnique="false" type="163" association="131">
 	 	 </ownedAttribute>
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Class" xmi:id="68" name="comm_member">
-	 	 <ownedAttribute xmi:id="70" name="instance_labour" visibility="public" isUnique="false" type="30" association="69">
+	 <packagedElement xmi:type="uml:Class" xmi:id="212" name="road">
+	 </packagedElement>
+	 <packagedElement xmi:type="uml:Class" xmi:id="214" name="river">
+	 </packagedElement>
+	 <packagedElement xmi:type="uml:Class" xmi:id="205" name="climate">
+	 </packagedElement>
+	 <packagedElement xmi:type="uml:Class" xmi:id="92" name="university_si">
+	 </packagedElement>
+	 <packagedElement xmi:type="uml:Class" xmi:id="71" name="investor">
+	 	 <ownedAttribute xmi:id="75" name="my_iplot" visibility="public" isUnique="false" type="163" association="74">
 	 	 </ownedAttribute>
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Class" xmi:id="200" name="soil">
-	 </packagedElement>
-	 <packagedElement xmi:type="uml:Class" xmi:id="126" name="trees">
-	 	 <ownedAttribute xmi:id="136" name="my_plot" visibility="public" isUnique="false" type="166" association="135">
+	 <packagedElement xmi:type="uml:Class" xmi:id="31" name="labour">
+	 	 <ownedAttribute xmi:id="36" name="my_assigned_plot" visibility="public" isUnique="false" type="163" association="35">
+	 	 </ownedAttribute>
+	 	 <ownedAttribute xmi:id="49" name="com_identity" visibility="public" isUnique="false" type="1" association="48">
+	 	 </ownedAttribute>
+	 	 <ownedAttribute xmi:id="39" name="current_plot" visibility="public" isUnique="false" type="163" association="38">
 	 	 </ownedAttribute>
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Class" xmi:id="214" name="road">
-	 </packagedElement>
-	 <packagedElement xmi:type="uml:Class" xmi:id="216" name="river">
-	 </packagedElement>
-	 <packagedElement xmi:type="uml:Class" xmi:id="207" name="climate">
-	 </packagedElement>
-	 <packagedElement xmi:type="uml:Class" xmi:id="93" name="university_si">
-	 </packagedElement>
-	 <packagedElement xmi:type="uml:Class" xmi:id="30" name="labour">
-	 	 <ownedAttribute xmi:id="35" name="my_assigned_plot" visibility="public" isUnique="false" type="166" association="34">
+	 <packagedElement xmi:type="uml:Class" xmi:id="163" name="plot">
+	 	 <ownedAttribute xmi:id="173" name="closest_clim" visibility="public" isUnique="false" type="205" association="172">
 	 	 </ownedAttribute>
-	 	 <ownedAttribute xmi:id="48" name="com_identity" visibility="public" isUnique="false" type="68" association="47">
+	 	 <ownedAttribute xmi:id="185" name="my_soil" visibility="public" isUnique="false" type="198" association="184">
 	 	 </ownedAttribute>
-	 	 <ownedAttribute xmi:id="38" name="current_plot" visibility="public" isUnique="false" type="166" association="37">
+	 	 <ownedAttribute xmi:id="167" name="my_climate" visibility="public" isUnique="false" type="205" association="166">
 	 	 </ownedAttribute>
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Class" xmi:id="20" name="special_police">
-	 	 <ownedAttribute xmi:id="23" name="assigned_area" visibility="public" isUnique="false" type="166" association="22">
+	 <packagedElement xmi:type="uml:Class" xmi:id="21" name="special_police">
+	 	 <ownedAttribute xmi:id="24" name="assigned_area" visibility="public" isUnique="false" type="163" association="23">
 	 	 </ownedAttribute>
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Association" xmi:id="4" memberEnd="5 221">
-	 	 <ownedEnd xmi:id="221" visibility="public" type="1" association="4" >	 	 </ownedEnd >
+	 <packagedElement xmi:type="uml:Class" xmi:id="65" name="market">
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Association" xmi:id="176" memberEnd="177 222">
-	 	 <ownedEnd xmi:id="222" visibility="public" type="166" association="176" >	 	 </ownedEnd >
+	 <packagedElement xmi:type="uml:Association" xmi:id="2" memberEnd="3 219">
+	 	 <ownedEnd xmi:id="219" visibility="public" type="1" association="2" >	 	 </ownedEnd >
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Association" xmi:id="188" memberEnd="189 223">
-	 	 <ownedEnd xmi:id="223" visibility="public" type="166" association="188" >	 	 </ownedEnd >
+	 <packagedElement xmi:type="uml:Association" xmi:id="131" memberEnd="132 220">
+	 	 <ownedEnd xmi:id="220" visibility="public" type="123" association="131" >	 	 </ownedEnd >
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Association" xmi:id="170" memberEnd="171 224">
-	 	 <ownedEnd xmi:id="224" visibility="public" type="166" association="170" >	 	 </ownedEnd >
+	 <packagedElement xmi:type="uml:Association" xmi:id="74" memberEnd="75 221">
+	 	 <ownedEnd xmi:id="221" visibility="public" type="71" association="74" >	 	 </ownedEnd >
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Association" xmi:id="69" memberEnd="70 225">
-	 	 <ownedEnd xmi:id="225" visibility="public" type="68" association="69" >	 	 </ownedEnd >
+	 <packagedElement xmi:type="uml:Association" xmi:id="35" memberEnd="36 222">
+	 	 <ownedEnd xmi:id="222" visibility="public" type="31" association="35" >	 	 </ownedEnd >
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Association" xmi:id="135" memberEnd="136 226">
-	 	 <ownedEnd xmi:id="226" visibility="public" type="126" association="135" >	 	 </ownedEnd >
+	 <packagedElement xmi:type="uml:Association" xmi:id="48" memberEnd="49 223">
+	 	 <ownedEnd xmi:id="223" visibility="public" type="31" association="48" >	 	 </ownedEnd >
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Association" xmi:id="34" memberEnd="35 227">
-	 	 <ownedEnd xmi:id="227" visibility="public" type="30" association="34" >	 	 </ownedEnd >
+	 <packagedElement xmi:type="uml:Association" xmi:id="38" memberEnd="39 224">
+	 	 <ownedEnd xmi:id="224" visibility="public" type="31" association="38" >	 	 </ownedEnd >
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Association" xmi:id="47" memberEnd="48 228">
-	 	 <ownedEnd xmi:id="228" visibility="public" type="30" association="47" >	 	 </ownedEnd >
+	 <packagedElement xmi:type="uml:Association" xmi:id="166" memberEnd="167 225">
+	 	 <ownedEnd xmi:id="225" visibility="public" type="163" association="166" >	 	 </ownedEnd >
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Association" xmi:id="37" memberEnd="38 229">
-	 	 <ownedEnd xmi:id="229" visibility="public" type="30" association="37" >	 	 </ownedEnd >
+	 <packagedElement xmi:type="uml:Association" xmi:id="172" memberEnd="173 226">
+	 	 <ownedEnd xmi:id="226" visibility="public" type="163" association="172" >	 	 </ownedEnd >
 	 </packagedElement>
-	 <packagedElement xmi:type="uml:Association" xmi:id="22" memberEnd="23 230">
-	 	 <ownedEnd xmi:id="230" visibility="public" type="20" association="22" >	 	 </ownedEnd >
+	 <packagedElement xmi:type="uml:Association" xmi:id="184" memberEnd="185 227">
+	 	 <ownedEnd xmi:id="227" visibility="public" type="163" association="184" >	 	 </ownedEnd >
+	 </packagedElement>
+	 <packagedElement xmi:type="uml:Association" xmi:id="23" memberEnd="24 228">
+	 	 <ownedEnd xmi:id="228" visibility="public" type="21" association="23" >	 	 </ownedEnd >
 	 </packagedElement>
 </uml:Model>

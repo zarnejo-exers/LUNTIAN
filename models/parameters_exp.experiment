@@ -6,101 +6,45 @@
 */
 
 
-//TODO: add experimentation on the rotation years. currently, it is set at 10years.
-//experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until: ( cycle > 660){
-//    parameter "Total count of investors" category: "Investors" var: investor_count among: [15, 30, 50];
-//	parameter "Total count of community members" category: "Community Members" var: member_count among: [10, 20, 30];
-//	parameter "Number of nurseries" category: "Nursery Management" var: nursery_count among: [1, 2, 4];
-//	
-//	reflex  {   	
-//    	save [cycle, investor_count, member_count, nursery_count, 
-//	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-//			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-//			management_running_cost,ITP_running_earning,net_running_earning,
-//			total_partners_earning, total_independent_earning,
-//			investor_total_profit, total_investment_cost, total_investments] rewrite: false to: "../results/batch_experiment.csv" format:"csv" header: true;		
-//	}
-//}
-
 //55years, 660/12
-experiment parametersexp model: "university_si.gaml" type: batch repeat: 1 keep_seed: true until:cycle = 600{
+experiment parametersexp model: "llg.gaml" type: batch repeat: 1 keep_seed: true{
 	reflex setSeed{
 		seed <- 10.0 ;
 	}
 	
-	parameter "Investor percent earning share" var: investor_percent_earning_share among: [0.0];
-	parameter "Investment rotation years" var: investment_rotation_years among: [0];
-	parameter "Investor count" var: investor_count among: [0];
- 	parameter "Nursery count" var: nursery_count among: [0];	
-	parameter "Special police" var: police_count among: [0];
-	parameter "Community members" var: member_count among: [0];
-	parameter "Price multiplier" var: price_multiplier among: [0.0];
-
-//	reflex save_results_explo{   	
-//		save [seed, cycle, investment_rotation_years, nursery_count, police_count, member_count, investor_count, exotic_price_per_bdft, native_price_per_bdft,investor_percent_earning_share,
-//	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
-//			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT)),
-//			management_running_cost,ITP_running_earning,net_running_earning,
-//			m_partners_earning, m_independent_earning,
-//			own_laborer, member_laborer, independent_laborer,
-//			investor_total_profit, total_investment_cost, total_investments, inv_harvested_trees, with_investment] rewrite: false to: "../results/second_batch_experiment_a_5-ncount31.csv" format:"csv" header: true;	
-//	}
-
-//	reflex saveTrees{
-//		ask trees{
-//			save [state, my_plot.name, dbh, th] rewrite: false to: "../results/tree_details.csv" format:"csv" header: true;
-//		}
-//	}
-
-	//Initial age = (stand age), average of the age 
-	//End age = 50
-	//Initial WF = 
-	//Initial WR = 
-	//Initial WS = 
-	//Initial stocking = 
-	//Edge trees = 0
-	//Initial ASW = 
-	//%Tree cover =
-	reflex computeStandDetails{
-		
-		ask plot{
-			list<trees> focused_trees <- plot_trees where (each.dbh >= 5);
-			float mean_stand_age <- mean(focused_trees collect(each.age));
-			float max_dbh <- max(focused_trees collect (each.dbh));
-			float dominant_stand_age <- max((focused_trees where (each.dbh = max_dbh)) collect (each.age));
-			
-			float total_tree_biomass <- 0.0;
-			list<trees> below_60 <- focused_trees where (each.dbh <= 60);
-			//	For trees with DBH that ranges from 5 – 60 cm.
-			//			Y = EXP(-2.134+2.530*LN(DBH))	
-			ask below_60{
-				total_tree_biomass <- total_tree_biomass + exp(-2.134 + 2.540 * ln(dbh));				
-			}
-			
-			list<trees> above_60 <- focused_trees where (each.dbh > 60);
-			//	For trees with DBH >60 cm
-			//		Y = 42.69-12.8*DBH+1.242*(DBH)2
-			ask above_60{
-				total_tree_biomass <- total_tree_biomass + 42.69-12.8*dbh+1.242*(dbh^2);
-			}
-			float stand_level_biomass <- total_tree_biomass / length(focused_trees);
-			
-			float aws <- water_content[location];
-			
-			int stock <- length(focused_trees);
-			
-			float total_tree_cover <- 0.0;
-			
-			ask focused_trees{
-				total_tree_cover <- total_tree_cover + circle((dbh/2)#cm).area;
-			}
-			
-			float percent_tree_cover <- total_tree_cover / (shape.area)#cm;
-			
-			float mean_dbh <- mean(focused_trees collect(each.dbh));
-			
-			//save [cycle, name, stand_age, stand_level_biomass, aws, initial_stock, percent_tree_cover] rewrite: false to: "../results/stand-validation-cycle1.csv" format:"csv" header: true;
-			save [cycle, name, mean_stand_age, dominant_stand_age, stand_level_biomass, stand_basal_area, mean_dbh, stock, aws, percent_tree_cover] rewrite: false to: "../results/stand-validation_600cycle_anative.csv" format:"csv" header: true;
-		}
+	reflex printTrees{
+		save [seed, cycle, 
+	    	length(trees where (each.type = NATIVE and each.state = SEEDLING)),length(trees where (each.type = NATIVE and each.state = SAPLING)),length(trees where (each.type = NATIVE and each.state = POLE)),length(trees where (each.type = NATIVE and each.state = ADULT)), 
+			length(trees where (each.type = EXOTIC and each.state = SEEDLING)),length(trees where (each.type = EXOTIC and each.state = SAPLING)),length(trees where (each.type = EXOTIC and each.state = POLE)),length(trees where (each.type = EXOTIC and each.state = ADULT))
+			] rewrite: false to: "../results/800_environment_mixed_trees.csv" format:"csv" header: true;
 	}
 }
+
+//experiment llg_test type: gui{
+//	
+//	parameter "NInteraction Native" var: neighborhood_interaction_native;
+//    parameter "NInteraction Exotic" var: neighborhood_interaction_exotic;
+//    
+//	output{
+//		monitor "Tree count" value: length(trees);
+//		monitor "Average Native DBH error" value: averageDBHErrorN;
+//		monitor "Average Exotic DBH error" value: averageDBHErrorE;
+//		monitor "Average Native BA error" value: averageBAErrorN;
+//		monitor "Average Exotic BA error" value: averageBAErrorE;
+//	}
+//}
+
+//experiment parametersexp {
+//
+//	output{
+//		monitor "Cycle" value: int(cycle);
+//		monitor "Native Seedling" value: length(trees where (each.type = NATIVE and each.state = SEEDLING));
+//		monitor "Native Sapling" value: length(trees where (each.type = NATIVE and each.state = SAPLING));
+//		monitor "Native Pole" value: length(trees where (each.type = NATIVE and each.state = POLE));
+//		monitor "Native Adult" value: length(trees where (each.type = NATIVE and each.state = ADULT));
+//		monitor "Exotic Seedling" value: length(trees where (each.type = EXOTIC and each.state = SEEDLING));
+//		monitor "Exotic Sapling" value: length(trees where (each.type = EXOTIC and each.state = SAPLING));
+//		monitor "Exotic Pole" value: length(trees where (each.type = EXOTIC and each.state = POLE));
+//		monitor "Exotic Adult" value: length(trees where (each.type = EXOTIC and each.state = ADULT));
+//	}
+//}

@@ -32,14 +32,14 @@ global{
 	float HLABOUR_COST <- 16.21;	//https://www.mdpi.com/1999-4907/7/8/152
 	
 	int average_no_trees_in1ha <- 20;
-	int police_count <- 1 update: police_count;
+	int police_count <- 0 update: police_count;	//1
 	int police_neighborhood <- 16 update: police_neighborhood;
 	int laborer_count <- 20 update: laborer_count; 
-	int nursery_count <- 1 update: nursery_count; 
+	int nursery_count <- 0 update: nursery_count; 	//1
 	int hiring_calls <- 0;
 	
-	int investment_rotation_years <- 15 update: investment_rotation_years;	
-	
+	int investment_rotation_years <- 0 update: investment_rotation_years;	//15
+		
 	int ANR_instance <- 0; 
 	int total_investments <- 0;
 	int total_warned_CM <- sum(special_police collect each.total_comm_members_reprimanded) update: sum(special_police collect each.total_comm_members_reprimanded);
@@ -82,9 +82,9 @@ global{
 	float total_investment_cost <- 0.0;
 	int inv_harvested_trees <- 0; 
 	
-	float investor_percent_earning_share <- 0.3 update: investor_percent_earning_share;
+	float investor_percent_earning_share <- 0.0 update: investor_percent_earning_share;	//0.3
 	//(2" x 4" x 8")
-	float price_multiplier <- 2.0;
+	float price_multiplier <- 0.0;	//2
 	float exotic_price_per_bdft <- (45.06)*(price_multiplier) update: (45.06)*(price_multiplier);	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
 	float native_price_per_bdft <- (49.35)*(price_multiplier) update: (49.35)*(price_multiplier);	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35
 
@@ -109,59 +109,12 @@ global{
 		
 		management_running_cost <- INIT_COST;	//infrastructure cost at the beginning
 	}
-
-	reflex computeStandDetails when: (cycle = 1){
-		
-		ask plot{
-			list<trees> focused_trees <- plot_trees where (each.dbh >= 5);
-			float mean_stand_age <- mean(focused_trees collect(each.age));
-			float max_dbh <- max(focused_trees collect (each.dbh));
-			float dominant_stand_age <- max((focused_trees where (each.dbh = max_dbh)) collect (each.age));
-			
-			float total_tree_biomass <- 0.0;
-			list<trees> below_60 <- focused_trees where (each.dbh <= 60);
-			//	For trees with DBH that ranges from 5 – 60 cm.
-			//			Y = EXP(-2.134+2.530*LN(DBH))	
-			ask below_60{
-				total_tree_biomass <- total_tree_biomass + exp(-2.134 + 2.540 * ln(dbh));				
-			}
-			
-			list<trees> above_60 <- focused_trees where (each.dbh > 60);
-			//	For trees with DBH >60 cm
-			//		Y = 42.69-12.8*DBH+1.242*(DBH)2
-			ask above_60{
-				total_tree_biomass <- total_tree_biomass + 42.69-12.8*dbh+1.242*(dbh^2);
-			}
-			float stand_level_biomass <- total_tree_biomass / length(focused_trees);
-			
-			float aws <- water_content[location];
-			
-			int stock <- length(focused_trees);
-			
-			float total_tree_cover <- 0.0;
-			
-			ask focused_trees{
-				total_tree_cover <- total_tree_cover + circle((dbh/2)#cm).area;
-			}
-			
-			float percent_tree_cover <- total_tree_cover / (shape.area)#cm;
-			
-			float mean_dbh <- mean(focused_trees collect(each.dbh));
-			
-			//save [cycle, name, stand_age, stand_level_biomass, aws, initial_stock, percent_tree_cover] rewrite: false to: "../results/stand-validation-cycle1.csv" format:"csv" header: true;
-			save [cycle, name, mean_stand_age, dominant_stand_age, stand_level_biomass, stand_basal_area, mean_dbh, stock, aws, percent_tree_cover] rewrite: false to: "../results/stand-validation_1cycle_anative.csv" format:"csv" header: true;
+	
+	reflex terminateExperiment when: (length(investor) = length(investor where (each.state = "end_investment"))){
+		ask host{
+			do die;
 		}
 	}
-	
-//	reflex terminateExperiment {
-//		list<investor> lend_experiments <- investor where (each.state = "end_investment");
-//		
-//		if(length(lend_experiments) = length(investor)){
-//			ask host{
-//				do die;
-//			}
-//		} 
-//	}
 	
 //	reflex updateCashflow{
 //    	investor_total_profit <- sum(investor collect each.total_profit); 
@@ -196,46 +149,7 @@ global{
 //			end_experiment <- true;
 //		}
 //	}
-	
-//	reflex collectTreeInformation{
-//		list<trees> temp;
-//		list<trees> native <- trees where (each.type = NATIVE);
-//		list<trees> exotic <- trees where (each.type = EXOTIC);
-//		
-//		list<float> native_dbh_cm <- [];
-//		list<float> native_th_m <- [];
-//		list<float> exotic_dbh_cm <- [];
-//		list<float> exotic_th_m <- [];
-//		  
-//		temp <- (native where (each.state = SEEDLING));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;		
-//		temp <- (native where (each.state = SAPLING));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
-//		temp <- (native where (each.state = POLE));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
-//		temp <- (native where (each.state = ADULT));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: native_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: native_th_m;
-//		
-//		temp <- (exotic where (each.state = SEEDLING));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-//		temp <- (exotic where (each.state = SAPLING));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-//		temp <- (exotic where (each.state = POLE));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-//		temp <- (exotic where (each.state = ADULT));
-//		add (temp!=[])?(sum(temp collect each.dbh)/length(temp)):0 to: exotic_dbh_cm;
-//		add (temp!=[])?(sum(temp collect each.th)/length(temp)):0 to: exotic_th_m;
-//		
-//		save [cycle, native_dbh_cm[0], native_dbh_cm[1], native_dbh_cm[2], native_dbh_cm[3], native_th_m[0], native_th_m[1], native_th_m[2], native_th_m[3], exotic_dbh_cm[0], exotic_dbh_cm[1], exotic_dbh_cm[2], exotic_dbh_cm[3], exotic_th_m[0], exotic_th_m[1], exotic_th_m[2], exotic_th_m[3]] rewrite: false to: "../results/tree-verification.csv" format:"csv" header: true;
-//	}
-//	
+
 }
 
 species university_si{
@@ -301,26 +215,6 @@ species university_si{
 			}
 		}
 	}		
-		
-//	reflex startITPHarvesting when: (length(my_nurseries) > (nursery_count/2)){
-//		
-//		if(current_month = 0){	//new month
-//			itp_count <- 0;
-//		}
-//		
-//		if(((length(investor where (each.state = "potential_active"))) < (length(investor)/2)) or itp_count < uni_ITP_limit){
-////			write "UNI is harvesting since potential active = "+length(investor where (each.state = "potential_active"))+" itp_count: "+itp_count;
-//			loop h_plot over: reverse(harvestable_plot sort_by each.stand_basal_area){
-//				int hs_count <- harvestITP(nil, h_plot, BOTH);    
-//				if(hs_count = -1){
-//					break;
-//				}
-//				//write "University harvesting...";
-//				count_available_saplings_harvesting <- count_available_saplings_harvesting + hs_count;
-//				itp_count <- itp_count + 1;
-//			}	
-//		}
-//	}
 		
 	//hire 4 different laborers every six months
 	//six months is ensured in the laborer state 
