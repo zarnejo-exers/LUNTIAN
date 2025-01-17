@@ -32,13 +32,13 @@ global{
 	float HLABOUR_COST <- 16.21;	//https://www.mdpi.com/1999-4907/7/8/152
 	
 	int average_no_trees_in1ha <- 20;
-	int police_count <- 0 update: police_count;	//1
+	int police_count <- 1 update: police_count;	//1
 	int police_neighborhood <- 16 update: police_neighborhood;
 	int laborer_count <- 20 update: laborer_count; 
-	int nursery_count <- 0 update: nursery_count; 	//1
+	int nursery_count <- 1 update: nursery_count; 	//1
 	int hiring_calls <- 0;
 	
-	int investment_rotation_years <- 0 update: investment_rotation_years;	//15
+	int investment_rotation_years <- 15 update: investment_rotation_years;	//15
 		
 	int ANR_instance <- 0; 
 	int total_investments <- 0;
@@ -82,9 +82,9 @@ global{
 	float total_investment_cost <- 0.0;
 	int inv_harvested_trees <- 0; 
 	
-	float investor_percent_earning_share <- 0.0 update: investor_percent_earning_share;	//0.3
+	float investor_percent_earning_share <- 0.3 update: investor_percent_earning_share;	//0.3
 	//(2" x 4" x 8")
-	float price_multiplier <- 0.0;	//2
+	float price_multiplier <- 2.0;	//2
 	float exotic_price_per_bdft <- (45.06)*(price_multiplier) update: (45.06)*(price_multiplier);	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 45.06
 	float native_price_per_bdft <- (49.35)*(price_multiplier) update: (49.35)*(price_multiplier);	//https://forestry.denr.gov.ph/pdf/ds/prices-lumber.pdf 49.35
 
