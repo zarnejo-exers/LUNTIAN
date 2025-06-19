@@ -1,4 +1,4 @@
-LUNTIAN Model
+**LUNTIAN Model**
 
 To reflect both the local context and the interdisciplinary nature of the model, we refer to the developed agent-based model as LUNTIAN — an acronym for Labor, UNiversity, Timber Investment, and Agent-based Nexus. The name emphasizes the model’s core components: the roles of labor dynamics (community and institutional), the university as resource manager, and the investment-driven nature of industrial timber operations. "Nexus" captures the interconnected biophysical and socio-economic processes that characterize the modeled socio-ecological system. Additionally, "luntian" is a Filipino word meaning "green," symbolizing the model's focus on sustainability and forest regeneration within the Philippine context.
 
