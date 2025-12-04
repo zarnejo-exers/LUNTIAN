@@ -1,7 +1,7 @@
 # LUNTIAN — Agent-Based Model for Laguna Land Grant Case Study
 
 ## Overview  
-**LUNTIAN** (Labor, UNiversity, Timber Investment, and Agent-based Nexus) is an agent-based model designed to simulate an Industrial Tree Plantation (ITP) embedded in a socio-ecological system. Its name reflects the model’s core components — labor dynamics (community and institutional), a university as resource manager, investment-driven timber operations — and their ecological nexus. “Luntian” means “green” in Filipino, symbolizing the model’s emphasis on sustainable forest regeneration within its Philippine context.  
+**LUNTIAN** (Labor, UNiversity, Timber Investment, and Agent-based Nexus) is an agent-based model designed to simulate an Industrial Tree Plantation (ITP) embedded in a socio-ecological system. Its name reflects the model’s core components — labor dynamics (community and institutional), a university as resource manager, investment-driven timber operations — and their ecological nexus. “Luntian” means “green” in Tagalog, symbolizing the model’s emphasis on sustainable forest regeneration within its Philippine context.  
 
 The model does **not** aim to resolve land-tenure disputes or political conflict. Instead, it provides a simulation framework for assessing ecological viability, investment management strategies, labor integration, and potential outcomes of ITP development under different scenarios.
 
