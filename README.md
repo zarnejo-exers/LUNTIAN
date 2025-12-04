@@ -1,5 +1,30 @@
-**LUNTIAN Model**
+# LUNTIAN — Agent-Based Model for Laguna Land Grant Case Study 🌳
 
-To reflect both the local context and the interdisciplinary nature of the model, we refer to the developed agent-based model as LUNTIAN — an acronym for Labor, UNiversity, Timber Investment, and Agent-based Nexus. The name emphasizes the model’s core components: the roles of labor dynamics (community and institutional), the university as resource manager, and the investment-driven nature of industrial timber operations. "Nexus" captures the interconnected biophysical and socio-economic processes that characterize the modeled socio-ecological system. Additionally, "luntian" is a Filipino word meaning "green," symbolizing the model's focus on sustainability and forest regeneration within the Philippine context.
+## Overview  
+**LUNTIAN** (Labor, UNiversity, Timber Investment, and Agent-based Nexus) is an agent-based model designed to simulate an Industrial Tree Plantation (ITP) embedded in a socio-ecological system. Its name reflects the model’s core components — labor dynamics (community and institutional), a university as resource manager, investment-driven timber operations — and their ecological nexus. “Luntian” means “green” in Filipino, symbolizing the model’s emphasis on sustainable forest regeneration within its Philippine context.  
 
-The design of the LUNTIAN model is grounded in the specific socio-political and ecological context of the UP LLG. It was developed in alignment with the official proposal and implementation strategy led by the University of the Philippines. As such, the modeler operates within the boundaries defined by the institution’s objectives and governance framework, and does not intervene in ongoing land tenure disputes or political conflicts. The model does not aim to resolve issues of land ownership or access. Instead, it serves as a simulation framework for analyzing the university’s proposed approach to ITP development—focused on ecological viability, investment management, and possible labor integration.
+The model does **not** aim to resolve land-tenure disputes or political conflict. Instead, it provides a simulation framework for assessing ecological viability, investment management strategies, labor integration, and potential outcomes of ITP development under different scenarios.
+
+LUNTIAN is particularly useful for researchers and practitioners interested in:  
+- the interplay between socio-economic and ecological processes in plantations;  
+- effects of labor decisions, investment strategies, and institutional management on forest sustainability;  
+- scenario analysis (e.g. harvesting regimes, labor policies, investment options);  
+- understanding trade-offs between profitability and ecological preservation in tree plantations.
+
+## 📄 Contents  
+
+- `/models` — Core model code (agent definitions, submodels, scheduling, processes)  
+- `/includes` — Shared modules, helper functions, configuration files  
+- `/results` — Example simulation outputs, graphs, time series, and evaluation data  
+- `/stats` — Statistical analyses and summary scripts  
+- `/documentation` — Additional documentation (description, ODD protocol, UML diagrams, model assumptions)  
+- `/images` — Figures, diagrams, visualizations used in documentation and results  
+
+### Prerequisites  
+- GAMA (version 1.9.3)  
+
+### Installation  
+1. Clone the repository:  
+   ```bash
+   git clone https://github.com/zarnejo-exers/LUNTIAN.git  
+   cd LUNTIAN  
